@@ -11,6 +11,7 @@ import Commissions from "./pages/Commissions";
 import Expenses from "./pages/Expenses";
 import CashFlow from "./pages/CashFlow";
 import Reconciliation from "./pages/Reconciliation";
+import Settings from "./pages/Settings";
 import Placeholder from "./pages/Placeholder";
 import NotFound from "./pages/NotFound";
 
@@ -38,7 +39,7 @@ function AppRoutes() {
         <Route path="/conciliacao" element={<Reconciliation />} />
         <Route path="/fluxo-caixa" element={<CashFlow />} />
         <Route path="/relatorios" element={<Placeholder />} />
-        <Route path="/configuracoes" element={<Placeholder />} />
+        <Route path="/configuracoes" element={<Settings />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>

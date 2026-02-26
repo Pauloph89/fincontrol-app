@@ -119,6 +119,7 @@ export type Database = {
           installment_number: number
           notes: string | null
           paid_date: string | null
+          receipt_url: string | null
           status: string
           updated_at: string
           value: number
@@ -131,6 +132,7 @@ export type Database = {
           installment_number: number
           notes?: string | null
           paid_date?: string | null
+          receipt_url?: string | null
           status?: string
           updated_at?: string
           value: number
@@ -143,6 +145,7 @@ export type Database = {
           installment_number?: number
           notes?: string | null
           paid_date?: string | null
+          receipt_url?: string | null
           status?: string
           updated_at?: string
           value?: number
@@ -299,31 +302,55 @@ export type Database = {
       }
       profiles: {
         Row: {
+          alert_days: number
+          cnpj: string | null
           company_logo_url: string | null
           company_name: string | null
           created_at: string
+          currency: string
+          default_account: string
+          email: string | null
+          financial_day_start: number
           id: string
+          phone: string | null
           primary_color: string | null
+          responsible_name: string | null
           secondary_color: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          alert_days?: number
+          cnpj?: string | null
           company_logo_url?: string | null
           company_name?: string | null
           created_at?: string
+          currency?: string
+          default_account?: string
+          email?: string | null
+          financial_day_start?: number
           id?: string
+          phone?: string | null
           primary_color?: string | null
+          responsible_name?: string | null
           secondary_color?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          alert_days?: number
+          cnpj?: string | null
           company_logo_url?: string | null
           company_name?: string | null
           created_at?: string
+          currency?: string
+          default_account?: string
+          email?: string | null
+          financial_day_start?: number
           id?: string
+          phone?: string | null
           primary_color?: string | null
+          responsible_name?: string | null
           secondary_color?: string | null
           updated_at?: string
           user_id?: string

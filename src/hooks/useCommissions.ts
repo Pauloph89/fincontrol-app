@@ -4,6 +4,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { addDays } from "date-fns";
 
+export interface ManualInstallment {
+  number: number;
+  value: number;
+  date: string;
+  observation?: string;
+}
+
 export interface CommissionFormData {
   factory: string;
   client: string;
@@ -16,6 +23,7 @@ export interface CommissionFormData {
   crm_deal_id?: string;
   num_installments: number;
   installment_interval: number;
+  manual_installments?: ManualInstallment[];
 }
 
 export function useCommissions() {
@@ -40,8 +48,6 @@ export function useCommissions() {
     mutationFn: async (form: CommissionFormData) => {
       if (!user) throw new Error("Not authenticated");
       const commission_total = (form.sale_value * form.commission_percent) / 100;
-      const installmentValue = Math.round((commission_total / form.num_installments) * 100) / 100;
-      const lastInstallment = Math.round((commission_total - installmentValue * (form.num_installments - 1)) * 100) / 100;
 
       const { data: commission, error } = await supabase
         .from("commissions")
@@ -62,21 +68,35 @@ export function useCommissions() {
         .single();
       if (error) throw error;
 
-      const baseDate = new Date(form.billing_date || form.sale_date);
-      const installments = Array.from({ length: form.num_installments }, (_, i) => ({
-        commission_id: commission.id,
-        installment_number: i + 1,
-        value: i === form.num_installments - 1 ? lastInstallment : installmentValue,
-        due_date: addDays(baseDate, form.installment_interval * (i + 1)).toISOString().split("T")[0],
-        status: "previsto" as const,
-      }));
+      let installments: any[];
 
-      const { error: instError } = await supabase
-        .from("commission_installments")
-        .insert(installments);
+      if (form.manual_installments && form.manual_installments.length > 0) {
+        // Manual mode
+        installments = form.manual_installments.map((mi) => ({
+          commission_id: commission.id,
+          installment_number: mi.number,
+          value: mi.value,
+          due_date: mi.date,
+          status: "previsto" as const,
+          notes: mi.observation || null,
+        }));
+      } else {
+        // Auto mode
+        const installmentValue = Math.round((commission_total / form.num_installments) * 100) / 100;
+        const lastInstallment = Math.round((commission_total - installmentValue * (form.num_installments - 1)) * 100) / 100;
+        const baseDate = new Date(form.billing_date || form.sale_date);
+        installments = Array.from({ length: form.num_installments }, (_, i) => ({
+          commission_id: commission.id,
+          installment_number: i + 1,
+          value: i === form.num_installments - 1 ? lastInstallment : installmentValue,
+          due_date: addDays(baseDate, form.installment_interval * (i + 1)).toISOString().split("T")[0],
+          status: "previsto" as const,
+        }));
+      }
+
+      const { error: instError } = await supabase.from("commission_installments").insert(installments);
       if (instError) throw instError;
 
-      // Audit log
       await supabase.from("audit_log").insert({
         user_id: user.id,
         table_name: "commissions",
@@ -99,9 +119,8 @@ export function useCommissions() {
   const updateCommission = useMutation({
     mutationFn: async ({ id, data: updateData, recalcInstallments }: { id: string; data: Partial<CommissionFormData>; recalcInstallments?: boolean }) => {
       if (!user) throw new Error("Not authenticated");
-      
       const oldCommission = commissionsQuery.data?.find((c) => c.id === id);
-      
+
       const updatePayload: any = {};
       if (updateData.factory !== undefined) updatePayload.factory = updateData.factory;
       if (updateData.client !== undefined) updatePayload.client = updateData.client;
@@ -127,7 +146,6 @@ export function useCommissions() {
       if (error) throw error;
 
       if (recalcInstallments && updatePayload.commission_total !== undefined) {
-        // Delete non-received installments and recreate
         const { data: existingInst } = await supabase
           .from("commission_installments")
           .select("*")
@@ -183,7 +201,6 @@ export function useCommissions() {
     mutationFn: async (id: string) => {
       if (!user) throw new Error("Not authenticated");
       await supabase.from("commissions").update({ status: "cancelada" }).eq("id", id);
-      // Cancel all non-received installments
       const { data: installments } = await supabase
         .from("commission_installments")
         .select("id, status")
@@ -206,6 +223,60 @@ export function useCommissions() {
     },
   });
 
+  const reactivateCommission = useMutation({
+    mutationFn: async (id: string) => {
+      if (!user) throw new Error("Not authenticated");
+      await supabase.from("commissions").update({ status: "ativa" }).eq("id", id);
+      // Restore cancelled (non-received) installments to previsto
+      const { data: installments } = await supabase
+        .from("commission_installments")
+        .select("id, status")
+        .eq("commission_id", id);
+      const cancelled = (installments || []).filter((i: any) => i.status === "cancelado");
+      if (cancelled.length > 0) {
+        await supabase.from("commission_installments").update({ status: "previsto" }).in("id", cancelled.map((i: any) => i.id));
+      }
+      await supabase.from("audit_log").insert({
+        user_id: user.id,
+        table_name: "commissions",
+        record_id: id,
+        action: "reactivate",
+        new_data: { status: "ativa" },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["commissions"] });
+      toast({ title: "Comissão reativada!" });
+    },
+  });
+
+  const deleteCommission = useMutation({
+    mutationFn: async (id: string) => {
+      if (!user) throw new Error("Not authenticated");
+      // Soft delete
+      await supabase.from("commissions").update({ status: "deleted" }).eq("id", id);
+      const { data: installments } = await supabase
+        .from("commission_installments")
+        .select("id, status")
+        .eq("commission_id", id);
+      const nonReceived = (installments || []).filter((i: any) => i.status !== "recebido");
+      if (nonReceived.length > 0) {
+        await supabase.from("commission_installments").update({ status: "cancelado" }).in("id", nonReceived.map((i: any) => i.id));
+      }
+      await supabase.from("audit_log").insert({
+        user_id: user.id,
+        table_name: "commissions",
+        record_id: id,
+        action: "delete",
+        new_data: { status: "deleted" },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["commissions"] });
+      toast({ title: "Comissão excluída." });
+    },
+  });
+
   const updateInstallmentStatus = useMutation({
     mutationFn: async ({ id, status, paid_date }: { id: string; status: string; paid_date?: string }) => {
       const { error } = await supabase
@@ -219,5 +290,30 @@ export function useCommissions() {
     },
   });
 
-  return { commissionsQuery, createCommission, updateCommission, cancelCommission, updateInstallmentStatus };
+  const uploadInstallmentReceipt = useMutation({
+    mutationFn: async ({ installmentId, file }: { installmentId: string; file: File }) => {
+      if (!user) throw new Error("Not authenticated");
+      const filePath = `${user.id}/inst_${installmentId}_${file.name}`;
+      const { error: uploadError } = await supabase.storage.from("receipts").upload(filePath, file);
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from("receipts").getPublicUrl(filePath);
+      const { error } = await supabase.from("commission_installments").update({ receipt_url: publicUrl } as any).eq("id", installmentId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["commissions"] });
+      toast({ title: "Comprovante enviado!" });
+    },
+  });
+
+  return {
+    commissionsQuery,
+    createCommission,
+    updateCommission,
+    cancelCommission,
+    reactivateCommission,
+    deleteCommission,
+    updateInstallmentStatus,
+    uploadInstallmentReceipt,
+  };
 }

@@ -9,7 +9,11 @@ import { useAuditLog } from "@/hooks/useAuditLog";
 import { formatCurrency, formatDate } from "@/lib/financial-utils";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { History } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { History, Loader2 } from "lucide-react";
 
 interface CommissionEditDialogProps {
   commission: any;
@@ -18,7 +22,7 @@ interface CommissionEditDialogProps {
 }
 
 export function CommissionEditDialog({ commission, open, onOpenChange }: CommissionEditDialogProps) {
-  const { updateCommission, cancelCommission } = useCommissions();
+  const { updateCommission, cancelCommission, reactivateCommission } = useCommissions();
   const { logsQuery } = useAuditLog("commissions", commission?.id);
   const [form, setForm] = useState({
     factory: "",
@@ -64,6 +68,11 @@ export function CommissionEditDialog({ commission, open, onOpenChange }: Commiss
     onOpenChange(false);
   };
 
+  const handleReactivate = async () => {
+    await reactivateCommission.mutateAsync(commission.id);
+    onOpenChange(false);
+  };
+
   const auditLogs = logsQuery.data || [];
 
   return (
@@ -77,7 +86,7 @@ export function CommissionEditDialog({ commission, open, onOpenChange }: Commiss
             <TabsTrigger value="edit" className="flex-1">Editar</TabsTrigger>
             <TabsTrigger value="history" className="flex-1">
               <History className="mr-1 h-3 w-3" />
-              Histórico
+              Histórico ({auditLogs.length})
             </TabsTrigger>
           </TabsList>
           <TabsContent value="edit">
@@ -129,19 +138,46 @@ export function CommissionEditDialog({ commission, open, onOpenChange }: Commiss
               </div>
               <div className="flex gap-2">
                 <Button type="submit" className="flex-1" disabled={updateCommission.isPending}>
-                  {updateCommission.isPending ? "Salvando..." : "Salvar Alterações"}
+                  {updateCommission.isPending ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Salvando...</>
+                  ) : "Salvar Alterações"}
                 </Button>
-                {commission.status !== "cancelada" && (
-                  <Button type="button" variant="destructive" onClick={handleCancel} disabled={cancelCommission.isPending}>
-                    Cancelar
+                {commission.status === "cancelada" ? (
+                  <Button type="button" variant="outline" onClick={handleReactivate} disabled={reactivateCommission.isPending}>
+                    Reativar
                   </Button>
+                ) : (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button type="button" variant="destructive" disabled={cancelCommission.isPending}>
+                        Cancelar
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Cancelar comissão?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Parcelas não recebidas serão canceladas. Você poderá reativar a comissão depois.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Voltar</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleCancel} className="bg-destructive text-destructive-foreground">
+                          Confirmar Cancelamento
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 )}
               </div>
             </form>
           </TabsContent>
           <TabsContent value="history" className="pt-2">
             {auditLogs.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">Nenhuma alteração registrada.</p>
+              <div className="text-center py-8">
+                <div className="text-2xl mb-2">📝</div>
+                <p className="text-sm text-muted-foreground">Nenhuma alteração registrada ainda.</p>
+              </div>
             ) : (
               <div className="space-y-2 max-h-[400px] overflow-y-auto">
                 {auditLogs.map((log: any) => (
