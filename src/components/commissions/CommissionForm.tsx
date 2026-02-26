@@ -7,10 +7,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, PlusCircle, Loader2 } from "lucide-react";
+import { Plus, Trash2, PlusCircle, Loader2, CalendarCog } from "lucide-react";
 import { useCommissions, CommissionFormData } from "@/hooks/useCommissions";
 import { formatCurrency, formatDate } from "@/lib/financial-utils";
+import { normalizeInstallments, NormalizedInstallment } from "@/lib/normalize-installments";
 import { addDays } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 
 const INTERVAL_OPTIONS = [
   { label: "30 dias", value: 30 },
@@ -21,17 +23,12 @@ const INTERVAL_OPTIONS = [
   { label: "120 dias", value: 120 },
 ];
 
-interface ManualInstallment {
-  number: number;
-  value: number;
-  date: string;
-  observation: string;
-}
-
 export function CommissionForm() {
   const [open, setOpen] = useState(false);
   const { createCommission } = useCommissions();
+  const { toast } = useToast();
   const [parcelMode, setParcelMode] = useState<"auto" | "manual">("auto");
+  const [editingAutoDates, setEditingAutoDates] = useState(false);
   const [form, setForm] = useState<CommissionFormData>({
     factory: "",
     client: "",
@@ -57,23 +54,33 @@ export function CommissionForm() {
       number: i + 1,
       value: i === form.num_installments - 1 ? lastVal : instValue,
       date: addDays(baseDate, form.installment_interval * (i + 1)),
+      dateStr: addDays(baseDate, form.installment_interval * (i + 1)).toISOString().split("T")[0],
     }));
   }, [form.sale_value, form.commission_percent, form.num_installments, form.installment_interval, form.sale_date, form.billing_date, commissionTotal]);
 
+  // Editable auto dates (for "adjust dates" feature)
+  const [editableDates, setEditableDates] = useState<string[]>([]);
+
+  const handleAdjustDates = () => {
+    setEditableDates(autoPreview.map((p) => p.dateStr));
+    setEditingAutoDates(true);
+  };
+
   // Manual installments state
-  const [manualInstallments, setManualInstallments] = useState<ManualInstallment[]>([]);
+  const [manualInstallments, setManualInstallments] = useState<NormalizedInstallment[]>([]);
 
   const initManualFromAuto = () => {
     const items = autoPreview.map((p) => ({
       number: p.number,
       value: p.value,
-      date: p.date.toISOString().split("T")[0],
+      date: p.dateStr,
       observation: "",
     }));
     setManualInstallments(items.length > 0 ? items : [
       { number: 1, value: commissionTotal, date: form.sale_date, observation: "" },
     ]);
     setParcelMode("manual");
+    setEditingAutoDates(false);
   };
 
   const addManualInstallment = () => {
@@ -90,7 +97,7 @@ export function CommissionForm() {
     setManualInstallments(manualInstallments.filter((_, i) => i !== index).map((inst, i) => ({ ...inst, number: i + 1 })));
   };
 
-  const updateManualInstallment = (index: number, field: keyof ManualInstallment, value: any) => {
+  const updateManualInstallment = (index: number, field: keyof NormalizedInstallment, value: any) => {
     setManualInstallments(manualInstallments.map((inst, i) => i === index ? { ...inst, [field]: value } : inst));
   };
 
@@ -99,18 +106,51 @@ export function CommissionForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const submissionData: CommissionFormData = {
-      ...form,
-      ...(parcelMode === "manual" ? {
-        manual_installments: manualInstallments.map((inst) => ({
+
+    // If editing auto dates, convert to manual installments
+    if (editingAutoDates) {
+      const asManual = autoPreview.map((p, i) => ({
+        number: i + 1,
+        value: p.value,
+        date: editableDates[i] || p.dateStr,
+        observation: "",
+      }));
+      const result = normalizeInstallments(asManual);
+      if (!result.valid) {
+        toast({ title: "Erro nas parcelas", description: result.error, variant: "destructive" });
+        return;
+      }
+      const submissionData: CommissionFormData = {
+        ...form,
+        manual_installments: result.data.map((inst) => ({
           number: inst.number,
           value: inst.value,
           date: inst.date,
           observation: inst.observation,
         })),
-      } : {}),
-    };
-    await createCommission.mutateAsync(submissionData);
+      };
+      await createCommission.mutateAsync(submissionData);
+    } else if (parcelMode === "manual") {
+      // Normalize before saving
+      const result = normalizeInstallments(manualInstallments);
+      if (!result.valid) {
+        toast({ title: "Erro nas parcelas", description: result.error, variant: "destructive" });
+        return;
+      }
+      const submissionData: CommissionFormData = {
+        ...form,
+        manual_installments: result.data.map((inst) => ({
+          number: inst.number,
+          value: inst.value,
+          date: inst.date,
+          observation: inst.observation,
+        })),
+      };
+      await createCommission.mutateAsync(submissionData);
+    } else {
+      await createCommission.mutateAsync(form);
+    }
+
     setOpen(false);
     setForm({
       factory: "", client: "", order_number: "", sale_value: 0,
@@ -119,10 +159,13 @@ export function CommissionForm() {
     });
     setManualInstallments([]);
     setParcelMode("auto");
+    setEditingAutoDates(false);
+    setEditableDates([]);
   };
 
   const update = (field: keyof CommissionFormData, value: string | number) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+    if (editingAutoDates) setEditingAutoDates(false);
   };
 
   return (
@@ -186,7 +229,7 @@ export function CommissionForm() {
             <div className="space-y-3">
               <Tabs value={parcelMode} onValueChange={(v) => {
                 if (v === "manual") initManualFromAuto();
-                else setParcelMode("auto");
+                else { setParcelMode("auto"); setEditingAutoDates(false); }
               }}>
                 <TabsList className="w-full">
                   <TabsTrigger value="auto" className="flex-1">Automático</TabsTrigger>
@@ -218,14 +261,45 @@ export function CommissionForm() {
                       </Select>
                     </div>
                   </div>
+
                   <div className="rounded-lg border border-border p-3 space-y-1">
-                    {autoPreview.map((inst) => (
-                      <div key={inst.number} className="flex justify-between text-xs text-muted-foreground">
-                        <span>Parcela {inst.number}</span>
-                        <span>{formatCurrency(inst.value)} — {formatDate(inst.date.toISOString().split("T")[0])}</span>
-                      </div>
-                    ))}
+                    {editingAutoDates ? (
+                      editableDates.map((date, i) => (
+                        <div key={i} className="flex justify-between items-center text-xs gap-2">
+                          <span className="text-muted-foreground">Parcela {i + 1} — {formatCurrency(autoPreview[i]?.value || 0)}</span>
+                          <Input
+                            type="date"
+                            value={date}
+                            onChange={(e) => {
+                              const nd = [...editableDates];
+                              nd[i] = e.target.value;
+                              setEditableDates(nd);
+                            }}
+                            className="h-7 text-xs w-40"
+                          />
+                        </div>
+                      ))
+                    ) : (
+                      autoPreview.map((inst) => (
+                        <div key={inst.number} className="flex justify-between text-xs text-muted-foreground">
+                          <span>Parcela {inst.number}</span>
+                          <span>{formatCurrency(inst.value)} — {formatDate(inst.dateStr)}</span>
+                        </div>
+                      ))
+                    )}
                   </div>
+
+                  {autoPreview.length > 0 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={editingAutoDates ? () => setEditingAutoDates(false) : handleAdjustDates}
+                    >
+                      <CalendarCog className="mr-1 h-3 w-3" />
+                      {editingAutoDates ? "Restaurar datas automáticas" : "Ajustar datas após gerar parcelas"}
+                    </Button>
+                  )}
                 </TabsContent>
 
                 <TabsContent value="manual" className="space-y-3">

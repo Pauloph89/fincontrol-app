@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { addDays } from "date-fns";
+import { normalizeInstallments } from "@/lib/normalize-installments";
 
 export interface ManualInstallment {
   number: number;
@@ -71,8 +72,18 @@ export function useCommissions() {
       let installments: any[];
 
       if (form.manual_installments && form.manual_installments.length > 0) {
-        // Manual mode
-        installments = form.manual_installments.map((mi) => ({
+        // Normalize before saving - ensures sequential numbering
+        const normalized = normalizeInstallments(
+          form.manual_installments.map((mi) => ({
+            number: mi.number,
+            value: mi.value,
+            date: mi.date,
+            observation: mi.observation || "",
+          }))
+        );
+        if (!normalized.valid) throw new Error(normalized.error);
+
+        installments = normalized.data.map((mi) => ({
           commission_id: commission.id,
           installment_number: mi.number,
           value: mi.value,
@@ -227,7 +238,6 @@ export function useCommissions() {
     mutationFn: async (id: string) => {
       if (!user) throw new Error("Not authenticated");
       await supabase.from("commissions").update({ status: "ativa" }).eq("id", id);
-      // Restore cancelled (non-received) installments to previsto
       const { data: installments } = await supabase
         .from("commission_installments")
         .select("id, status")
@@ -253,7 +263,6 @@ export function useCommissions() {
   const deleteCommission = useMutation({
     mutationFn: async (id: string) => {
       if (!user) throw new Error("Not authenticated");
-      // Soft delete
       await supabase.from("commissions").update({ status: "deleted" }).eq("id", id);
       const { data: installments } = await supabase
         .from("commission_installments")
