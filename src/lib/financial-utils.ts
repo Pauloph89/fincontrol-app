@@ -52,6 +52,8 @@ export const statusLabels: Record<string, string> = {
   vencido: "Vencido",
   ativa: "Ativa",
   cancelada: "Cancelada",
+  deleted: "Excluída",
+  reactivate: "Reativada",
 };
 
 export const recurrenceLabels: Record<string, string> = {

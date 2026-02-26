@@ -6,16 +6,24 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle2, ChevronDown, ChevronRight, Pencil, Search, XCircle } from "lucide-react";
-import { useState, useMemo } from "react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { CheckCircle2, ChevronDown, ChevronRight, Pencil, Search, XCircle, Trash2, RotateCcw, Paperclip, Loader2 } from "lucide-react";
+import { useState, useMemo, useRef } from "react";
 import { CommissionEditDialog } from "./CommissionEditDialog";
 
 export function CommissionsList() {
-  const { commissionsQuery, updateInstallmentStatus } = useCommissions();
+  const { commissionsQuery, updateInstallmentStatus, reactivateCommission, deleteCommission, uploadInstallmentReceipt } = useCommissions();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [editCommission, setEditCommission] = useState<any>(null);
   const [search, setSearch] = useState("");
   const [filterFactory, setFilterFactory] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingInstId, setUploadingInstId] = useState<string | null>(null);
 
   const toggleExpand = (id: string) => {
     setExpanded((prev) => {
@@ -25,29 +33,46 @@ export function CommissionsList() {
     });
   };
 
-  const allCommissions = commissionsQuery.data || [];
+  const allCommissions = (commissionsQuery.data || []).filter((c: any) => c.status !== "deleted");
   const factories = [...new Set(allCommissions.map((c) => c.factory))].sort();
 
   const commissions = useMemo(() => {
     return allCommissions.filter((c) => {
       if (filterFactory !== "all" && c.factory !== filterFactory) return false;
+      if (filterStatus !== "all" && (c as any).status !== filterStatus) return false;
       if (search) {
         const s = search.toLowerCase();
         return c.factory.toLowerCase().includes(s) || c.client.toLowerCase().includes(s) || c.order_number.toLowerCase().includes(s);
       }
       return true;
     });
-  }, [allCommissions, search, filterFactory]);
+  }, [allCommissions, search, filterFactory, filterStatus]);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && uploadingInstId) {
+      await uploadInstallmentReceipt.mutateAsync({ installmentId: uploadingInstId, file });
+      setUploadingInstId(null);
+    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   if (commissionsQuery.isLoading) {
-    return <div className="text-center py-12 text-muted-foreground">Carregando comissões...</div>;
+    return (
+      <div className="flex items-center justify-center py-12 text-muted-foreground gap-2">
+        <Loader2 className="h-5 w-5 animate-spin" />
+        Carregando comissões...
+      </div>
+    );
   }
 
   if (allCommissions.length === 0) {
     return (
       <Card>
-        <CardContent className="py-12 text-center text-muted-foreground">
-          Nenhuma comissão cadastrada. Clique em "Nova Comissão" para começar.
+        <CardContent className="py-16 text-center">
+          <div className="text-4xl mb-3">📋</div>
+          <h3 className="font-semibold text-lg mb-1">Nenhuma comissão cadastrada</h3>
+          <p className="text-muted-foreground text-sm">Clique em "Nova Comissão" para começar a registrar suas vendas.</p>
         </CardContent>
       </Card>
     );
@@ -55,9 +80,10 @@ export function CommissionsList() {
 
   return (
     <>
+      <input ref={fileInputRef} type="file" accept=".pdf,image/*" className="hidden" onChange={handleFileChange} />
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <CardTitle className="text-lg">Comissões Cadastradas</CardTitle>
             <div className="flex items-center gap-2">
               <div className="relative">
@@ -71,6 +97,16 @@ export function CommissionsList() {
                 <SelectContent>
                   <SelectItem value="all">Todas</SelectItem>
                   {factories.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="h-9 w-32">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="ativa">Ativa</SelectItem>
+                  <SelectItem value="cancelada">Cancelada</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -88,7 +124,7 @@ export function CommissionsList() {
                 <TableHead className="text-right">Comissão</TableHead>
                 <TableHead>Data</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="w-10"></TableHead>
+                <TableHead className="w-28"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -112,9 +148,55 @@ export function CommissionsList() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={(e) => { e.stopPropagation(); setEditCommission(c); }} title="Editar">
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
+                        <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setEditCommission(c)}>
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Editar comissão</TooltipContent>
+                          </Tooltip>
+
+                          {commStatus === "cancelada" && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => reactivateCommission.mutate(c.id)}>
+                                  <RotateCcw className="h-3.5 w-3.5 text-success" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Reativar comissão</TooltipContent>
+                            </Tooltip>
+                          )}
+
+                          <AlertDialog>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <AlertDialogTrigger asChild>
+                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
+                                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                              </TooltipTrigger>
+                              <TooltipContent>Excluir comissão</TooltipContent>
+                            </Tooltip>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Excluir comissão?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Esta ação irá excluir a comissão de {c.factory} - {c.client} (Pedido {c.order_number}).
+                                  Parcelas não recebidas serão canceladas. Esta ação pode ser desfeita pelo suporte.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => deleteCommission.mutate(c.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                  Excluir
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
                       </TableCell>
                     </TableRow>
                     {isOpen && installments.length > 0 && (
@@ -137,6 +219,7 @@ export function CommissionsList() {
                                     </div>
                                     <div className="text-sm font-bold">{formatCurrency(inst.value)}</div>
                                     <div className="text-xs opacity-75">Venc.: {formatDate(inst.due_date)}</div>
+                                    {inst.notes && <div className="text-xs opacity-60 mt-1 italic">{inst.notes}</div>}
                                     {inst.status !== "recebido" && inst.status !== "cancelado" && (
                                       <div className="flex gap-1 mt-2">
                                         <Button
@@ -155,6 +238,23 @@ export function CommissionsList() {
                                           <CheckCircle2 className="mr-1 h-3 w-3" />
                                           Recebido
                                         </Button>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              className="h-7 px-2"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setUploadingInstId(inst.id);
+                                                fileInputRef.current?.click();
+                                              }}
+                                            >
+                                              <Paperclip className="h-3 w-3" />
+                                            </Button>
+                                          </TooltipTrigger>
+                                          <TooltipContent>Anexar comprovante</TooltipContent>
+                                        </Tooltip>
                                         <Button
                                           size="sm"
                                           variant="ghost"
@@ -167,6 +267,11 @@ export function CommissionsList() {
                                           <XCircle className="h-3 w-3" />
                                         </Button>
                                       </div>
+                                    )}
+                                    {(inst as any).receipt_url && (
+                                      <a href={(inst as any).receipt_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-info underline mt-1 block">
+                                        Ver comprovante
+                                      </a>
                                     )}
                                   </div>
                                 );
@@ -181,6 +286,13 @@ export function CommissionsList() {
                   </>
                 );
               })}
+              {commissions.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    Nenhuma comissão encontrada com os filtros aplicados.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>

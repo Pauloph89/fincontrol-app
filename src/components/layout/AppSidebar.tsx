@@ -23,6 +23,7 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCompanySettings } from "@/hooks/useCompanySettings";
 
 const menuItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
@@ -38,16 +39,28 @@ export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { signOut } = useAuth();
+  const { settingsQuery } = useCompanySettings();
+  const settings = settingsQuery.data;
 
   return (
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border px-4 py-5">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary">
-            <Building2 className="h-5 w-5 text-sidebar-primary-foreground" />
-          </div>
+          {settings?.company_logo_url ? (
+            <img
+              src={settings.company_logo_url}
+              alt="Logo"
+              className="h-9 w-9 rounded-lg object-contain"
+            />
+          ) : (
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary">
+              <Building2 className="h-5 w-5 text-sidebar-primary-foreground" />
+            </div>
+          )}
           <div>
-            <h2 className="text-sm font-bold text-sidebar-foreground tracking-tight">FinControl</h2>
+            <h2 className="text-sm font-bold text-sidebar-foreground tracking-tight">
+              {settings?.company_name || "FinControl"}
+            </h2>
             <p className="text-xs text-sidebar-foreground/60">Sistema Financeiro</p>
           </div>
         </div>
