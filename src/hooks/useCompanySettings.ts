@@ -60,12 +60,22 @@ export function useCompanySettings() {
   const uploadLogo = useMutation({
     mutationFn: async (file: File) => {
       if (!user) throw new Error("Not authenticated");
-      const filePath = `${user.id}/logo_${Date.now()}_${file.name}`;
-      const { error: uploadError } = await supabase.storage.from("receipts").upload(filePath, file);
+      // Upload to company-assets bucket (public)
+      const filePath = `${user.id}/logo_${Date.now()}.${file.name.split('.').pop()}`;
+      const { error: uploadError } = await supabase.storage
+        .from("company-assets")
+        .upload(filePath, file, { upsert: true });
       if (uploadError) throw uploadError;
-      const { data: { publicUrl } } = supabase.storage.from("receipts").getPublicUrl(filePath);
-      await supabase.from("profiles").update({ company_logo_url: publicUrl } as any).eq("user_id", user.id);
-      return publicUrl;
+      const { data: { publicUrl } } = supabase.storage
+        .from("company-assets")
+        .getPublicUrl(filePath);
+      // Cache bust
+      const urlWithCacheBust = `${publicUrl}?v=${Date.now()}`;
+      await supabase
+        .from("profiles")
+        .update({ company_logo_url: urlWithCacheBust } as any)
+        .eq("user_id", user.id);
+      return urlWithCacheBust;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["company_settings"] });
