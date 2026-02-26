@@ -14,6 +14,102 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          new_data: Json | null
+          old_data: Json | null
+          record_id: string
+          table_name: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id: string
+          table_name: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string
+          table_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      bank_entries: {
+        Row: {
+          account: string
+          commission_installment_id: string | null
+          created_at: string
+          date: string
+          description: string
+          expense_id: string | null
+          id: string
+          receipt_url: string | null
+          reconciled: boolean
+          type: string
+          updated_at: string
+          user_id: string
+          value: number
+        }
+        Insert: {
+          account?: string
+          commission_installment_id?: string | null
+          created_at?: string
+          date: string
+          description: string
+          expense_id?: string | null
+          id?: string
+          receipt_url?: string | null
+          reconciled?: boolean
+          type?: string
+          updated_at?: string
+          user_id: string
+          value: number
+        }
+        Update: {
+          account?: string
+          commission_installment_id?: string | null
+          created_at?: string
+          date?: string
+          description?: string
+          expense_id?: string | null
+          id?: string
+          receipt_url?: string | null
+          reconciled?: boolean
+          type?: string
+          updated_at?: string
+          user_id?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_entries_commission_installment_id_fkey"
+            columns: ["commission_installment_id"]
+            isOneToOne: false
+            referencedRelation: "commission_installments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_entries_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       commission_installments: {
         Row: {
           commission_id: string
@@ -21,6 +117,7 @@ export type Database = {
           due_date: string
           id: string
           installment_number: number
+          notes: string | null
           paid_date: string | null
           status: string
           updated_at: string
@@ -32,6 +129,7 @@ export type Database = {
           due_date: string
           id?: string
           installment_number: number
+          notes?: string | null
           paid_date?: string | null
           status?: string
           updated_at?: string
@@ -43,6 +141,7 @@ export type Database = {
           due_date?: string
           id?: string
           installment_number?: number
+          notes?: string | null
           paid_date?: string | null
           status?: string
           updated_at?: string
@@ -60,6 +159,7 @@ export type Database = {
       }
       commissions: {
         Row: {
+          billing_date: string | null
           client: string
           commission_percent: number
           commission_total: number
@@ -71,10 +171,12 @@ export type Database = {
           order_number: string
           sale_date: string
           sale_value: number
+          status: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          billing_date?: string | null
           client: string
           commission_percent?: number
           commission_total: number
@@ -86,10 +188,12 @@ export type Database = {
           order_number: string
           sale_date: string
           sale_value: number
+          status?: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          billing_date?: string | null
           client?: string
           commission_percent?: number
           commission_total?: number
@@ -101,7 +205,29 @@ export type Database = {
           order_number?: string
           sale_date?: string
           sale_value?: number
+          status?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      expense_categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
           user_id?: string
         }
         Relationships: []
@@ -114,8 +240,11 @@ export type Database = {
           description: string
           due_date: string
           id: string
+          parent_expense_id: string | null
           payment_date: string | null
           receipt_url: string | null
+          recurrence: string | null
+          recurrence_end_date: string | null
           status: string
           type: string
           updated_at: string
@@ -129,8 +258,11 @@ export type Database = {
           description: string
           due_date: string
           id?: string
+          parent_expense_id?: string | null
           payment_date?: string | null
           receipt_url?: string | null
+          recurrence?: string | null
+          recurrence_end_date?: string | null
           status?: string
           type: string
           updated_at?: string
@@ -144,15 +276,26 @@ export type Database = {
           description?: string
           due_date?: string
           id?: string
+          parent_expense_id?: string | null
           payment_date?: string | null
           receipt_url?: string | null
+          recurrence?: string | null
+          recurrence_end_date?: string | null
           status?: string
           type?: string
           updated_at?: string
           user_id?: string
           value?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "expenses_parent_expense_id_fkey"
+            columns: ["parent_expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

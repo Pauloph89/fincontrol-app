@@ -9,6 +9,8 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Commissions from "./pages/Commissions";
 import Expenses from "./pages/Expenses";
+import CashFlow from "./pages/CashFlow";
+import Reconciliation from "./pages/Reconciliation";
 import Placeholder from "./pages/Placeholder";
 import NotFound from "./pages/NotFound";
 
@@ -33,8 +35,8 @@ function AppRoutes() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/comissoes" element={<Commissions />} />
         <Route path="/despesas" element={<Expenses />} />
-        <Route path="/conciliacao" element={<Placeholder />} />
-        <Route path="/fluxo-caixa" element={<Placeholder />} />
+        <Route path="/conciliacao" element={<Reconciliation />} />
+        <Route path="/fluxo-caixa" element={<CashFlow />} />
         <Route path="/relatorios" element={<Placeholder />} />
         <Route path="/configuracoes" element={<Placeholder />} />
       </Route>

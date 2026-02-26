@@ -131,4 +131,7 @@
   .status-vencido {
     @apply bg-destructive/10 text-destructive border-destructive/20;
   }
+  .status-cancelado {
+    @apply bg-muted text-muted-foreground border-border;
+  }
 }
