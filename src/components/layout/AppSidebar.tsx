@@ -5,6 +5,7 @@ import {
   Wallet,
   ArrowLeftRight,
   TrendingUp,
+  BarChart3,
   FileBarChart,
   Settings,
   LogOut,
@@ -28,6 +29,7 @@ import { useCompanySettings } from "@/hooks/useCompanySettings";
 const menuItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Comissões", url: "/comissoes", icon: Receipt },
+  { title: "Projeções", url: "/projecoes", icon: BarChart3 },
   { title: "Despesas", url: "/despesas", icon: Wallet },
   { title: "Conciliação", url: "/conciliacao", icon: ArrowLeftRight },
   { title: "Fluxo de Caixa", url: "/fluxo-caixa", icon: TrendingUp },

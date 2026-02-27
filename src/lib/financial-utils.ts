@@ -54,10 +54,27 @@ export const statusLabels: Record<string, string> = {
   cancelada: "Cancelada",
   deleted: "Excluída",
   reactivate: "Reativada",
+  // Commission lifecycle statuses
+  pedido_enviado: "Pedido Enviado",
+  faturado: "Faturado",
+  entregue: "Entregue",
+  comissao_aprovada: "Comissão Aprovada",
 };
+
+export const commissionStatusFlow = [
+  { value: "pedido_enviado", label: "Pedido Enviado" },
+  { value: "faturado", label: "Faturado" },
+  { value: "entregue", label: "Entregue" },
+  { value: "comissao_aprovada", label: "Comissão Aprovada" },
+  { value: "ativa", label: "Ativa" },
+  { value: "cancelada", label: "Cancelada" },
+];
 
 export const recurrenceLabels: Record<string, string> = {
   mensal: "Mensal",
+  quinzenal: "Quinzenal",
+  semanal: "Semanal",
   trimestral: "Trimestral",
   anual: "Anual",
+  personalizado: "Personalizado",
 };

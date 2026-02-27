@@ -1,5 +1,5 @@
 import { useCommissions } from "@/hooks/useCommissions";
-import { formatCurrency, formatDate, getInstallmentAlertClass, getInstallmentStatus, statusLabels } from "@/lib/financial-utils";
+import { formatCurrency, formatDate, getInstallmentAlertClass, getInstallmentStatus, statusLabels, commissionStatusFlow } from "@/lib/financial-utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -100,13 +100,14 @@ export function CommissionsList() {
                 </SelectContent>
               </Select>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="h-9 w-32">
+                <SelectTrigger className="h-9 w-40">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="ativa">Ativa</SelectItem>
-                  <SelectItem value="cancelada">Cancelada</SelectItem>
+                  {commissionStatusFlow.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
