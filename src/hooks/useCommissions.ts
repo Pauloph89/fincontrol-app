@@ -25,6 +25,7 @@ export interface CommissionFormData {
   num_installments: number;
   installment_interval: number;
   manual_installments?: ManualInstallment[];
+  commission_status?: string;
 }
 
 export function useCommissions() {
@@ -64,6 +65,7 @@ export function useCommissions() {
           billing_date: form.billing_date || null,
           observations: form.observations || null,
           crm_deal_id: form.crm_deal_id || null,
+          status: form.commission_status || "pedido_enviado",
         })
         .select()
         .single();
@@ -141,6 +143,7 @@ export function useCommissions() {
       if (updateData.sale_date !== undefined) updatePayload.sale_date = updateData.sale_date;
       if (updateData.billing_date !== undefined) updatePayload.billing_date = updateData.billing_date || null;
       if (updateData.observations !== undefined) updatePayload.observations = updateData.observations || null;
+      if ((updateData as any).status !== undefined) updatePayload.status = (updateData as any).status;
 
       if (updateData.sale_value !== undefined || updateData.commission_percent !== undefined) {
         const sv = updateData.sale_value ?? oldCommission?.sale_value ?? 0;

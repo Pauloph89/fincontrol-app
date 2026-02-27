@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Trash2, PlusCircle, Loader2, CalendarCog } from "lucide-react";
 import { useCommissions, CommissionFormData } from "@/hooks/useCommissions";
-import { formatCurrency, formatDate } from "@/lib/financial-utils";
+import { formatCurrency, formatDate, commissionStatusFlow } from "@/lib/financial-utils";
 import { normalizeInstallments, NormalizedInstallment } from "@/lib/normalize-installments";
 import { addDays } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
@@ -27,8 +27,9 @@ export function CommissionForm() {
   const [open, setOpen] = useState(false);
   const { createCommission } = useCommissions();
   const { toast } = useToast();
-  const [parcelMode, setParcelMode] = useState<"auto" | "manual">("auto");
+  const [parcelMode, setParcelMode] = useState<"auto" | "manual" | "custom_days">("auto");
   const [editingAutoDates, setEditingAutoDates] = useState(false);
+  const [customDaysInput, setCustomDaysInput] = useState("");
   const [form, setForm] = useState<CommissionFormData>({
     factory: "",
     client: "",
@@ -40,6 +41,7 @@ export function CommissionForm() {
     crm_deal_id: "",
     num_installments: 4,
     installment_interval: 30,
+    commission_status: "pedido_enviado",
   });
 
   const commissionTotal = (form.sale_value * form.commission_percent) / 100;
@@ -58,7 +60,23 @@ export function CommissionForm() {
     }));
   }, [form.sale_value, form.commission_percent, form.num_installments, form.installment_interval, form.sale_date, form.billing_date, commissionTotal]);
 
-  // Editable auto dates (for "adjust dates" feature)
+  // Custom days preview
+  const customDaysPreview = useMemo(() => {
+    if (!customDaysInput.trim() || form.sale_value <= 0) return [];
+    const days = customDaysInput.split(",").map((d) => parseInt(d.trim())).filter((d) => !isNaN(d) && d > 0);
+    if (days.length === 0) return [];
+    const instValue = Math.round((commissionTotal / days.length) * 100) / 100;
+    const lastVal = Math.round((commissionTotal - instValue * (days.length - 1)) * 100) / 100;
+    const baseDate = new Date(form.billing_date || form.sale_date);
+    return days.sort((a, b) => a - b).map((d, i) => ({
+      number: i + 1,
+      value: i === days.length - 1 ? lastVal : instValue,
+      date: addDays(baseDate, d).toISOString().split("T")[0],
+      observation: "",
+    }));
+  }, [customDaysInput, form.sale_value, form.commission_percent, form.billing_date, form.sale_date, commissionTotal]);
+
+  // Editable auto dates
   const [editableDates, setEditableDates] = useState<string[]>([]);
 
   const handleAdjustDates = () => {
@@ -107,8 +125,16 @@ export function CommissionForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // If editing auto dates, convert to manual installments
-    if (editingAutoDates) {
+    let installmentsToSend: NormalizedInstallment[] | undefined;
+
+    if (parcelMode === "custom_days" && customDaysPreview.length > 0) {
+      const result = normalizeInstallments(customDaysPreview);
+      if (!result.valid) {
+        toast({ title: "Erro nas parcelas", description: result.error, variant: "destructive" });
+        return;
+      }
+      installmentsToSend = result.data;
+    } else if (editingAutoDates) {
       const asManual = autoPreview.map((p, i) => ({
         number: i + 1,
         value: p.value,
@@ -120,47 +146,42 @@ export function CommissionForm() {
         toast({ title: "Erro nas parcelas", description: result.error, variant: "destructive" });
         return;
       }
-      const submissionData: CommissionFormData = {
-        ...form,
-        manual_installments: result.data.map((inst) => ({
-          number: inst.number,
-          value: inst.value,
-          date: inst.date,
-          observation: inst.observation,
-        })),
-      };
-      await createCommission.mutateAsync(submissionData);
+      installmentsToSend = result.data;
     } else if (parcelMode === "manual") {
-      // Normalize before saving
       const result = normalizeInstallments(manualInstallments);
       if (!result.valid) {
         toast({ title: "Erro nas parcelas", description: result.error, variant: "destructive" });
         return;
       }
-      const submissionData: CommissionFormData = {
-        ...form,
-        manual_installments: result.data.map((inst) => ({
+      installmentsToSend = result.data;
+    }
+
+    const submissionData: CommissionFormData = {
+      ...form,
+      ...(installmentsToSend ? {
+        manual_installments: installmentsToSend.map((inst) => ({
           number: inst.number,
           value: inst.value,
           date: inst.date,
           observation: inst.observation,
         })),
-      };
-      await createCommission.mutateAsync(submissionData);
-    } else {
-      await createCommission.mutateAsync(form);
-    }
+      } : {}),
+    };
+
+    await createCommission.mutateAsync(submissionData);
 
     setOpen(false);
     setForm({
       factory: "", client: "", order_number: "", sale_value: 0,
       commission_percent: 8, sale_date: new Date().toISOString().split("T")[0],
       observations: "", crm_deal_id: "", num_installments: 4, installment_interval: 30,
+      commission_status: "pedido_enviado",
     });
     setManualInstallments([]);
     setParcelMode("auto");
     setEditingAutoDates(false);
     setEditableDates([]);
+    setCustomDaysInput("");
   };
 
   const update = (field: keyof CommissionFormData, value: string | number) => {
@@ -197,17 +218,30 @@ export function CommissionForm() {
               <Input value={form.order_number} onChange={(e) => update("order_number", e.target.value)} required />
             </div>
             <div className="space-y-2">
-              <Label>Data da Venda *</Label>
+              <Label>Data do Pedido *</Label>
               <Input type="date" value={form.sale_date} onChange={(e) => update("sale_date", e.target.value)} required />
             </div>
           </div>
-          <div className="space-y-2">
-            <Label>Data de Faturamento (opcional)</Label>
-            <Input type="date" value={form.billing_date || ""} onChange={(e) => update("billing_date", e.target.value)} />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Data de Faturamento (opcional)</Label>
+              <Input type="date" value={form.billing_date || ""} onChange={(e) => update("billing_date", e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Status do Pedido</Label>
+              <Select value={form.commission_status || "pedido_enviado"} onValueChange={(v) => update("commission_status", v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {commissionStatusFlow.filter(s => s.value !== "cancelada").map((s) => (
+                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Valor da Venda *</Label>
+              <Label>Valor do Pedido *</Label>
               <Input type="number" step="0.01" min="0" value={form.sale_value || ""} onChange={(e) => update("sale_value", parseFloat(e.target.value) || 0)} required />
             </div>
             <div className="space-y-2">
@@ -229,11 +263,12 @@ export function CommissionForm() {
             <div className="space-y-3">
               <Tabs value={parcelMode} onValueChange={(v) => {
                 if (v === "manual") initManualFromAuto();
-                else { setParcelMode("auto"); setEditingAutoDates(false); }
+                else { setParcelMode(v as any); setEditingAutoDates(false); }
               }}>
                 <TabsList className="w-full">
-                  <TabsTrigger value="auto" className="flex-1">Automático</TabsTrigger>
-                  <TabsTrigger value="manual" className="flex-1">Personalizado (PRO)</TabsTrigger>
+                  <TabsTrigger value="auto" className="flex-1">DDL Automático</TabsTrigger>
+                  <TabsTrigger value="custom_days" className="flex-1">Dias Personalizados</TabsTrigger>
+                  <TabsTrigger value="manual" className="flex-1">Manual (PRO)</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="auto" className="space-y-3">
@@ -250,7 +285,7 @@ export function CommissionForm() {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label>Intervalo</Label>
+                      <Label>Intervalo DDL</Label>
                       <Select value={String(form.installment_interval)} onValueChange={(v) => update("installment_interval", parseInt(v))}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
@@ -299,6 +334,37 @@ export function CommissionForm() {
                       <CalendarCog className="mr-1 h-3 w-3" />
                       {editingAutoDates ? "Restaurar datas automáticas" : "Ajustar datas após gerar parcelas"}
                     </Button>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="custom_days" className="space-y-3">
+                  <div className="space-y-2">
+                    <Label>Dias após faturamento (separados por vírgula)</Label>
+                    <Input
+                      placeholder="Ex: 31, 46, 61, 76"
+                      value={customDaysInput}
+                      onChange={(e) => setCustomDaysInput(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Informe os dias corridos após a data base (faturamento ou pedido). Ex: 31,46,61,76
+                    </p>
+                  </div>
+
+                  {customDaysPreview.length > 0 && (
+                    <div className="rounded-lg border border-border p-3 space-y-1">
+                      {customDaysPreview.map((inst, i) => (
+                        <div key={i} className="flex justify-between text-xs text-muted-foreground">
+                          <span>Parcela {inst.number}</span>
+                          <span>{formatCurrency(inst.value)} — {formatDate(inst.date)}</span>
+                        </div>
+                      ))}
+                      <div className="pt-1 border-t border-border mt-1">
+                        <div className="flex justify-between text-xs font-semibold">
+                          <span>Total: {customDaysPreview.length} parcelas</span>
+                          <span>{formatCurrency(commissionTotal)}</span>
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </TabsContent>
 

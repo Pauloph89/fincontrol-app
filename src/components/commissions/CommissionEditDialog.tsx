@@ -6,8 +6,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useCommissions } from "@/hooks/useCommissions";
 import { useAuditLog } from "@/hooks/useAuditLog";
-import { formatCurrency, formatDate } from "@/lib/financial-utils";
+import { formatCurrency, formatDate, commissionStatusFlow } from "@/lib/financial-utils";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -33,6 +34,7 @@ export function CommissionEditDialog({ commission, open, onOpenChange }: Commiss
     sale_date: "",
     billing_date: "",
     observations: "",
+    status: "pedido_enviado",
   });
 
   useEffect(() => {
@@ -46,6 +48,7 @@ export function CommissionEditDialog({ commission, open, onOpenChange }: Commiss
         sale_date: commission.sale_date,
         billing_date: commission.billing_date || "",
         observations: commission.observations || "",
+        status: commission.status || "pedido_enviado",
       });
     }
   }, [commission]);
@@ -111,9 +114,22 @@ export function CommissionEditDialog({ commission, open, onOpenChange }: Commiss
                   <Input type="date" value={form.sale_date} onChange={(e) => setForm((p) => ({ ...p, sale_date: e.target.value }))} required />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label>Data de Faturamento</Label>
-                <Input type="date" value={form.billing_date} onChange={(e) => setForm((p) => ({ ...p, billing_date: e.target.value }))} />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Data de Faturamento</Label>
+                  <Input type="date" value={form.billing_date} onChange={(e) => setForm((p) => ({ ...p, billing_date: e.target.value }))} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Status do Pedido</Label>
+                  <Select value={form.status} onValueChange={(v) => setForm((p) => ({ ...p, status: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {commissionStatusFlow.map((s) => (
+                        <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
