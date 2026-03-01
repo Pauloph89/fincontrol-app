@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useCommissions } from "@/hooks/useCommissions";
 import { useExpenses } from "@/hooks/useExpenses";
+import { useExpenseProjection } from "@/hooks/useExpenseProjection";
 import { KpiCards } from "@/components/dashboard/KpiCards";
 import { DashboardCharts } from "@/components/dashboard/DashboardCharts";
 import { AlertsPanel } from "@/components/dashboard/AlertsPanel";
@@ -10,6 +11,7 @@ import { differenceInBusinessDays, isBefore, startOfDay, addDays } from "date-fn
 export default function Dashboard() {
   const { commissionsQuery } = useCommissions();
   const { expensesQuery } = useExpenses();
+  const { projections } = useExpenseProjection();
   const [periodKey, setPeriodKey] = useState("current_month");
   const [period, setPeriod] = useState<PeriodRange>(getDefaultPeriod());
 
@@ -24,7 +26,6 @@ export default function Dashboard() {
       (c.commission_installments || []).map((i: any) => ({ ...i, factory: c.factory, client: c.client }))
     );
 
-    // Revenue in period
     const receivedInPeriod = allInstallments
       .filter((i: any) => i.status === "recebido" && i.paid_date && new Date(i.paid_date) >= start && new Date(i.paid_date) <= end)
       .reduce((sum: number, i: any) => sum + Number(i.value), 0);
@@ -37,11 +38,15 @@ export default function Dashboard() {
       .filter((i: any) => i.status !== "recebido" && i.status !== "cancelado")
       .reduce((sum: number, i: any) => sum + Number(i.value), 0);
 
-    const toPay = expenses
+    // A Pagar: real unpaid expenses + projected virtual expenses
+    const realToPay = expenses
       .filter((e) => e.status !== "pago")
       .reduce((sum, e) => sum + Number(e.value), 0);
+    const projectedToPay = projections
+      .filter((p) => new Date(p.due_date) >= today)
+      .reduce((sum, p) => sum + p.value, 0);
+    const toPay = realToPay + projectedToPay;
 
-    // Inadimplência: total atrasado
     const lateCommissions = allInstallments
       .filter((i: any) => i.status !== "recebido" && i.status !== "cancelado" && isBefore(startOfDay(new Date(i.due_date)), today))
       .reduce((sum: number, i: any) => sum + Number(i.value), 0);
@@ -50,15 +55,18 @@ export default function Dashboard() {
       .reduce((sum, e) => sum + Number(e.value), 0);
     const inadimplencia = lateCommissions + lateExpenses;
 
-    // Previsão 90 dias
+    // Forecast 90 days includes projected expenses
     const in90days = addDays(today, 90);
     const forecast90in = allInstallments
       .filter((i: any) => i.status !== "recebido" && i.status !== "cancelado" && new Date(i.due_date) >= today && new Date(i.due_date) <= in90days)
       .reduce((sum: number, i: any) => sum + Number(i.value), 0);
-    const forecast90out = expenses
+    const forecast90outReal = expenses
       .filter((e) => e.status !== "pago" && new Date(e.due_date) >= today && new Date(e.due_date) <= in90days)
       .reduce((sum, e) => sum + Number(e.value), 0);
-    const forecast90 = forecast90in - forecast90out;
+    const forecast90outProjected = projections
+      .filter((p) => new Date(p.due_date) >= today && new Date(p.due_date) <= in90days)
+      .reduce((sum, p) => sum + p.value, 0);
+    const forecast90 = forecast90in - forecast90outReal - forecast90outProjected;
 
     // Alerts
     const alerts: any[] = [];
@@ -96,7 +104,6 @@ export default function Dashboard() {
       }, {})
     ).map(([name, value]) => ({ name, value: value as number }));
 
-    // Monthly evolution (last 12 months) for line chart
     const monthlyEvolution: { month: string; receitas: number; despesas: number }[] = [];
     for (let i = 11; i >= 0; i--) {
       const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
@@ -112,7 +119,7 @@ export default function Dashboard() {
     }
 
     return { receivedInPeriod, expensesPaidInPeriod, toReceive, toPay, inadimplencia, forecast90, alerts, revenueByFactory, expensesByCategory, monthlyEvolution };
-  }, [commissions, expenses, period]);
+  }, [commissions, expenses, projections, period]);
 
   return (
     <div className="space-y-6">
