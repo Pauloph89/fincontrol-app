@@ -235,6 +235,54 @@ export type Database = {
         }
         Relationships: []
       }
+      expense_rules: {
+        Row: {
+          account: string
+          active: boolean
+          category: string
+          created_at: string
+          end_date: string | null
+          id: string
+          name: string
+          recurrence_days: Json
+          recurrence_type: string
+          start_date: string
+          updated_at: string
+          user_id: string
+          value: number
+        }
+        Insert: {
+          account?: string
+          active?: boolean
+          category: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          name: string
+          recurrence_days?: Json
+          recurrence_type?: string
+          start_date: string
+          updated_at?: string
+          user_id: string
+          value: number
+        }
+        Update: {
+          account?: string
+          active?: boolean
+          category?: string
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          name?: string
+          recurrence_days?: Json
+          recurrence_type?: string
+          start_date?: string
+          updated_at?: string
+          user_id?: string
+          value?: number
+        }
+        Relationships: []
+      }
       expenses: {
         Row: {
           account: string
@@ -242,6 +290,7 @@ export type Database = {
           created_at: string
           description: string
           due_date: string
+          generated_from_rule_id: string | null
           id: string
           parent_expense_id: string | null
           payment_date: string | null
@@ -260,6 +309,7 @@ export type Database = {
           created_at?: string
           description: string
           due_date: string
+          generated_from_rule_id?: string | null
           id?: string
           parent_expense_id?: string | null
           payment_date?: string | null
@@ -278,6 +328,7 @@ export type Database = {
           created_at?: string
           description?: string
           due_date?: string
+          generated_from_rule_id?: string | null
           id?: string
           parent_expense_id?: string | null
           payment_date?: string | null
@@ -291,6 +342,13 @@ export type Database = {
           value?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "expenses_generated_from_rule_id_fkey"
+            columns: ["generated_from_rule_id"]
+            isOneToOne: false
+            referencedRelation: "expense_rules"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "expenses_parent_expense_id_fkey"
             columns: ["parent_expense_id"]

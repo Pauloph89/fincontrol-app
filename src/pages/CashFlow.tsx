@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useCommissions } from "@/hooks/useCommissions";
 import { useExpenses } from "@/hooks/useExpenses";
+import { useExpenseProjection } from "@/hooks/useExpenseProjection";
 import { formatCurrency, formatDate, statusLabels } from "@/lib/financial-utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend } from "recharts";
 import { TrendingUp, TrendingDown, DollarSign, AlertTriangle, ArrowDownLeft, ArrowUpRight } from "lucide-react";
-import { startOfDay, startOfWeek, startOfMonth, startOfYear, endOfYear, addMonths, format, isSameDay, isSameWeek, isSameMonth, isSameYear, isBefore } from "date-fns";
+import { startOfDay, startOfWeek, startOfMonth, addMonths, format, isSameMonth, isBefore } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface CashFlowEntry {
@@ -17,12 +18,13 @@ interface CashFlowEntry {
   type: "entrada" | "saida";
   value: number;
   status: string;
-  source: "comissao" | "despesa";
+  source: "comissao" | "despesa" | "projecao";
 }
 
 export default function CashFlow() {
   const { commissionsQuery } = useCommissions();
   const { expensesQuery } = useExpenses();
+  const { projections } = useExpenseProjection();
   const [view, setView] = useState("mensal");
 
   const commissions = commissionsQuery.data || [];
@@ -47,7 +49,7 @@ export default function CashFlow() {
       });
     });
 
-    // Expenses
+    // Real expenses
     expenses.forEach((e) => {
       allEntries.push({
         date: e.payment_date || e.due_date,
@@ -59,19 +61,31 @@ export default function CashFlow() {
       });
     });
 
+    // Projected expenses from rules (virtual, future only, exclude duplicates with real)
+    const realExpenseKeys = new Set(expenses.map((e) => `${(e as any).generated_from_rule_id}_${e.due_date}`));
+    projections.forEach((p) => {
+      if (new Date(p.due_date) < today) return;
+      if (realExpenseKeys.has(`${p.rule_id}_${p.due_date}`)) return;
+      allEntries.push({
+        date: p.due_date,
+        description: `📋 ${p.name} (projeção)`,
+        type: "saida",
+        value: p.value,
+        status: "projetado",
+        source: "projecao",
+      });
+    });
+
     allEntries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-    // Current balance: received - paid
     const received = allEntries.filter((e) => e.type === "entrada" && e.status === "recebido").reduce((s, e) => s + e.value, 0);
     const paid = allEntries.filter((e) => e.type === "saida" && e.status === "pago").reduce((s, e) => s + e.value, 0);
     const currentBalance = received - paid;
 
-    // Projected: current + future entries
     const futureIn = allEntries.filter((e) => e.type === "entrada" && e.status === "previsto").reduce((s, e) => s + e.value, 0);
-    const futureOut = allEntries.filter((e) => e.type === "saida" && e.status === "a_vencer").reduce((s, e) => s + e.value, 0);
+    const futureOut = allEntries.filter((e) => e.type === "saida" && (e.status === "a_vencer" || e.status === "projetado")).reduce((s, e) => s + e.value, 0);
     const projectedBalance = currentBalance + futureIn - futureOut;
 
-    // Monthly projection for charts
     const months: { month: string; entradas: number; saidas: number; saldo: number }[] = [];
     let runningBalance = currentBalance;
     for (let i = 0; i < 12; i++) {
@@ -85,9 +99,8 @@ export default function CashFlow() {
     }
 
     const riskMonths = months.filter((m) => m.saldo < 0).map((m) => m.month);
-
     return { entries: allEntries, currentBalance, projectedBalance, riskMonths, monthlyData: months };
-  }, [commissions, expenses]);
+  }, [commissions, expenses, projections]);
 
   const groupedEntries = useMemo(() => {
     const groups: Record<string, CashFlowEntry[]> = {};
@@ -110,10 +123,9 @@ export default function CashFlow() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Fluxo de Caixa</h1>
-        <p className="text-muted-foreground text-sm">Projeção financeira consolidada</p>
+        <p className="text-muted-foreground text-sm">Projeção financeira consolidada (real + projeções de regras)</p>
       </div>
 
-      {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="glass-card">
           <CardContent className="p-4">
@@ -153,7 +165,6 @@ export default function CashFlow() {
         </Card>
       </div>
 
-      {/* Charts */}
       <div className="grid lg:grid-cols-2 gap-6">
         <Card className="glass-card">
           <CardHeader className="pb-2">
@@ -191,7 +202,6 @@ export default function CashFlow() {
         </Card>
       </div>
 
-      {/* Timeline table */}
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
@@ -220,7 +230,7 @@ export default function CashFlow() {
             <TableBody>
               {Object.entries(groupedEntries).slice(0, 50).map(([group, items]) => (
                 items.map((entry, i) => (
-                  <TableRow key={`${group}-${i}`}>
+                  <TableRow key={`${group}-${i}`} className={entry.source === "projecao" ? "opacity-60" : ""}>
                     {i === 0 && <TableCell rowSpan={items.length} className="font-medium align-top border-r">{group}</TableCell>}
                     <TableCell>{entry.description}</TableCell>
                     <TableCell>
@@ -237,9 +247,10 @@ export default function CashFlow() {
                       <Badge variant="outline" className={`text-[10px] ${
                         entry.status === "recebido" || entry.status === "pago" ? "status-recebido" :
                         entry.status === "atrasado" || entry.status === "vencido" ? "status-atrasado" :
+                        entry.status === "projetado" ? "status-previsto" :
                         "status-previsto"
                       }`}>
-                        {statusLabels[entry.status] || entry.status}
+                        {entry.status === "projetado" ? "Projetado" : (statusLabels[entry.status] || entry.status)}
                       </Badge>
                     </TableCell>
                   </TableRow>
