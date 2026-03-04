@@ -1,40 +1,25 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard,
-  Receipt,
-  Wallet,
-  ArrowLeftRight,
-  TrendingUp,
-  BarChart3,
-  FileBarChart,
-  Settings,
-  LogOut,
-  Building2,
+  LayoutDashboard, Receipt, Wallet, ArrowLeftRight, TrendingUp,
+  BarChart3, FileBarChart, Settings, LogOut, Building2,
 } from "lucide-react";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarFooter,
+  Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
+  SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarFooter,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
+import { useUserRole } from "@/hooks/useUserRole";
 
-const menuItems = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Comissões", url: "/comissoes", icon: Receipt },
-  { title: "Projeções", url: "/projecoes", icon: BarChart3 },
-  { title: "Despesas", url: "/despesas", icon: Wallet },
-  { title: "Conciliação", url: "/conciliacao", icon: ArrowLeftRight },
-  { title: "Fluxo de Caixa", url: "/fluxo-caixa", icon: TrendingUp },
-  { title: "Relatórios", url: "/relatorios", icon: FileBarChart },
-  { title: "Configurações", url: "/configuracoes", icon: Settings },
+const allMenuItems = [
+  { title: "Dashboard", url: "/", icon: LayoutDashboard, module: "dashboard" },
+  { title: "Comissões", url: "/comissoes", icon: Receipt, module: "comissoes" },
+  { title: "Projeções", url: "/projecoes", icon: BarChart3, module: "projecoes" },
+  { title: "Despesas", url: "/despesas", icon: Wallet, module: "despesas" },
+  { title: "Conciliação", url: "/conciliacao", icon: ArrowLeftRight, module: "conciliacao" },
+  { title: "Fluxo de Caixa", url: "/fluxo-caixa", icon: TrendingUp, module: "fluxo-caixa" },
+  { title: "Relatórios", url: "/relatorios", icon: FileBarChart, module: "relatorios" },
+  { title: "Configurações", url: "/configuracoes", icon: Settings, module: "configuracoes" },
 ];
 
 export function AppSidebar() {
@@ -42,25 +27,24 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { signOut } = useAuth();
   const { settingsQuery } = useCompanySettings();
+  const { hasAccess } = useUserRole();
   const settings = settingsQuery.data;
+
+  const menuItems = allMenuItems.filter((item) => hasAccess(item.module));
 
   return (
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border px-4 py-5">
         <div className="flex items-center gap-3">
           {settings?.company_logo_url ? (
-            <img
-              src={settings.company_logo_url}
-              alt="Logo"
-              className="h-9 w-9 rounded-lg object-contain"
-            />
+            <img src={settings.company_logo_url} alt="Logo" className="h-9 w-9 rounded-lg object-contain" />
           ) : (
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-primary">
               <Building2 className="h-5 w-5 text-sidebar-primary-foreground" />
             </div>
           )}
-          <div>
-            <h2 className="text-sm font-bold text-sidebar-foreground tracking-tight">
+          <div className="min-w-0">
+            <h2 className="text-sm font-bold text-sidebar-foreground tracking-tight truncate">
               {settings?.company_name || "FinControl"}
             </h2>
             <p className="text-xs text-sidebar-foreground/60">Sistema Financeiro</p>
