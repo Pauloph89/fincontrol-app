@@ -291,14 +291,33 @@ export function useCommissions() {
 
   const updateInstallmentStatus = useMutation({
     mutationFn: async ({ id, status, paid_date }: { id: string; status: string; paid_date?: string }) => {
+      if (!user) throw new Error("Not authenticated");
+      // Get old state for audit
+      const { data: oldInst } = await supabase
+        .from("commission_installments")
+        .select("*")
+        .eq("id", id)
+        .single();
+
       const { error } = await supabase
         .from("commission_installments")
-        .update({ status, paid_date: paid_date || null })
+        .update({ status, paid_date: paid_date ?? null })
         .eq("id", id);
       if (error) throw error;
+
+      // Audit log for undo/status changes
+      await supabase.from("audit_log").insert({
+        user_id: user.id,
+        table_name: "commission_installments",
+        record_id: id,
+        action: status === "previsto" ? "undo_receipt" : `status_${status}`,
+        old_data: oldInst,
+        new_data: { status, paid_date: paid_date ?? null },
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["commissions"] });
+      toast({ title: "Status da parcela atualizado!" });
     },
   });
 

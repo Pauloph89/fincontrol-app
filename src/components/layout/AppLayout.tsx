@@ -7,11 +7,11 @@ export function AppLayout() {
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
         <AppSidebar />
-        <main className="flex-1 overflow-auto">
-          <div className="flex items-center gap-2 border-b border-border px-6 py-3 bg-card">
+        <main className="flex-1 overflow-auto min-w-0">
+          <div className="flex items-center gap-2 border-b border-border px-3 sm:px-6 py-3 bg-card">
             <SidebarTrigger />
           </div>
-          <div className="p-6 animate-fade-in">
+          <div className="p-3 sm:p-6 animate-fade-in">
             <Outlet />
           </div>
         </main>
