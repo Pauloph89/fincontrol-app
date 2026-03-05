@@ -8,7 +8,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Building2, Mail, Lock, ArrowRight } from "lucide-react";
 
 const Auth = () => {
-  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -18,22 +17,9 @@ const Auth = () => {
     e.preventDefault();
     setLoading(true);
 
-    if (isLogin) {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        toast({ title: "Erro ao entrar", description: error.message, variant: "destructive" });
-      }
-    } else {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { emailRedirectTo: window.location.origin },
-      });
-      if (error) {
-        toast({ title: "Erro ao cadastrar", description: error.message, variant: "destructive" });
-      } else {
-        toast({ title: "Cadastro realizado!", description: "Verifique seu e-mail para confirmar a conta." });
-      }
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      toast({ title: "Erro ao entrar", description: error.message, variant: "destructive" });
     }
     setLoading(false);
   };
@@ -64,10 +50,8 @@ const Auth = () => {
               <Building2 className="h-8 w-8 text-primary" />
               <span className="text-2xl font-bold text-primary">FinControl</span>
             </div>
-            <CardTitle className="text-2xl">{isLogin ? "Entrar" : "Criar conta"}</CardTitle>
-            <CardDescription>
-              {isLogin ? "Acesse seu painel financeiro" : "Cadastre-se para começar"}
-            </CardDescription>
+            <CardTitle className="text-2xl">Entrar</CardTitle>
+            <CardDescription>Acesse seu painel financeiro</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -103,18 +87,13 @@ const Auth = () => {
                 </div>
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Aguarde..." : isLogin ? "Entrar" : "Criar conta"}
+                {loading ? "Aguarde..." : "Entrar"}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </form>
-            <div className="mt-6 text-center">
-              <button
-                onClick={() => setIsLogin(!isLogin)}
-                className="text-sm text-muted-foreground hover:text-primary transition-colors"
-              >
-                {isLogin ? "Não tem conta? Cadastre-se" : "Já tem conta? Entrar"}
-              </button>
-            </div>
+            <p className="mt-6 text-center text-xs text-muted-foreground">
+              Novos usuários são adicionados pelo administrador da empresa.
+            </p>
           </CardContent>
         </Card>
       </div>

@@ -16,13 +16,32 @@ import Reports from "./pages/Reports";
 import Projections from "./pages/Projections";
 import Placeholder from "./pages/Placeholder";
 import NotFound from "./pages/NotFound";
+import { Building2 } from "lucide-react";
 
 const queryClient = new QueryClient();
 
-function AppRoutes() {
-  const { session, loading } = useAuth();
+function NoCompanyGuard() {
+  const { signOut } = useAuth();
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background p-8">
+      <div className="text-center max-w-md space-y-4">
+        <Building2 className="h-12 w-12 mx-auto text-muted-foreground" />
+        <h2 className="text-xl font-semibold">Usuário não vinculado a nenhuma empresa</h2>
+        <p className="text-muted-foreground text-sm">
+          Entre em contato com o administrador da sua empresa para receber acesso ao sistema.
+        </p>
+        <button onClick={signOut} className="text-sm text-primary hover:underline">
+          Sair
+        </button>
+      </div>
+    </div>
+  );
+}
 
-  if (loading) {
+function AppRoutes() {
+  const { session, loading, companyId, companyLoading } = useAuth();
+
+  if (loading || companyLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-muted-foreground">Carregando...</div>
@@ -31,6 +50,8 @@ function AppRoutes() {
   }
 
   if (!session) return <Auth />;
+
+  if (!companyId) return <NoCompanyGuard />;
 
   return (
     <Routes>
