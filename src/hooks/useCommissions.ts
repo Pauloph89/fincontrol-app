@@ -29,7 +29,7 @@ export interface CommissionFormData {
 }
 
 export function useCommissions() {
-  const { user } = useAuth();
+  const { user, companyId } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -43,18 +43,19 @@ export function useCommissions() {
       if (error) throw error;
       return data;
     },
-    enabled: !!user,
+    enabled: !!user && !!companyId,
   });
 
   const createCommission = useMutation({
     mutationFn: async (form: CommissionFormData) => {
-      if (!user) throw new Error("Not authenticated");
+      if (!user || !companyId) throw new Error("Not authenticated");
       const commission_total = (form.sale_value * form.commission_percent) / 100;
 
       const { data: commission, error } = await supabase
         .from("commissions")
         .insert({
           user_id: user.id,
+          company_id: companyId,
           factory: form.factory,
           client: form.client,
           order_number: form.order_number,
@@ -66,7 +67,7 @@ export function useCommissions() {
           observations: form.observations || null,
           crm_deal_id: form.crm_deal_id || null,
           status: form.commission_status || "pedido_enviado",
-        })
+        } as any)
         .select()
         .single();
       if (error) throw error;
@@ -74,7 +75,6 @@ export function useCommissions() {
       let installments: any[];
 
       if (form.manual_installments && form.manual_installments.length > 0) {
-        // Normalize before saving - ensures sequential numbering
         const normalized = normalizeInstallments(
           form.manual_installments.map((mi) => ({
             number: mi.number,
@@ -94,7 +94,6 @@ export function useCommissions() {
           notes: mi.observation || null,
         }));
       } else {
-        // Auto mode
         const installmentValue = Math.round((commission_total / form.num_installments) * 100) / 100;
         const lastInstallment = Math.round((commission_total - installmentValue * (form.num_installments - 1)) * 100) / 100;
         const baseDate = new Date(form.billing_date || form.sale_date);
@@ -112,11 +111,12 @@ export function useCommissions() {
 
       await supabase.from("audit_log").insert({
         user_id: user.id,
+        company_id: companyId,
         table_name: "commissions",
         record_id: commission.id,
         action: "create",
         new_data: commission,
-      });
+      } as any);
 
       return commission;
     },
@@ -131,7 +131,7 @@ export function useCommissions() {
 
   const updateCommission = useMutation({
     mutationFn: async ({ id, data: updateData, recalcInstallments }: { id: string; data: Partial<CommissionFormData>; recalcInstallments?: boolean }) => {
-      if (!user) throw new Error("Not authenticated");
+      if (!user || !companyId) throw new Error("Not authenticated");
       const oldCommission = commissionsQuery.data?.find((c) => c.id === id);
 
       const updatePayload: any = {};
@@ -193,12 +193,13 @@ export function useCommissions() {
 
       await supabase.from("audit_log").insert({
         user_id: user.id,
+        company_id: companyId,
         table_name: "commissions",
         record_id: id,
         action: "update",
         old_data: oldCommission,
         new_data: updated,
-      });
+      } as any);
 
       return updated;
     },
@@ -213,7 +214,7 @@ export function useCommissions() {
 
   const cancelCommission = useMutation({
     mutationFn: async (id: string) => {
-      if (!user) throw new Error("Not authenticated");
+      if (!user || !companyId) throw new Error("Not authenticated");
       await supabase.from("commissions").update({ status: "cancelada" }).eq("id", id);
       const { data: installments } = await supabase
         .from("commission_installments")
@@ -225,11 +226,12 @@ export function useCommissions() {
       }
       await supabase.from("audit_log").insert({
         user_id: user.id,
+        company_id: companyId,
         table_name: "commissions",
         record_id: id,
         action: "cancel",
         new_data: { status: "cancelada" },
-      });
+      } as any);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["commissions"] });
@@ -239,7 +241,7 @@ export function useCommissions() {
 
   const reactivateCommission = useMutation({
     mutationFn: async (id: string) => {
-      if (!user) throw new Error("Not authenticated");
+      if (!user || !companyId) throw new Error("Not authenticated");
       await supabase.from("commissions").update({ status: "ativa" }).eq("id", id);
       const { data: installments } = await supabase
         .from("commission_installments")
@@ -251,11 +253,12 @@ export function useCommissions() {
       }
       await supabase.from("audit_log").insert({
         user_id: user.id,
+        company_id: companyId,
         table_name: "commissions",
         record_id: id,
         action: "reactivate",
         new_data: { status: "ativa" },
-      });
+      } as any);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["commissions"] });
@@ -265,7 +268,7 @@ export function useCommissions() {
 
   const deleteCommission = useMutation({
     mutationFn: async (id: string) => {
-      if (!user) throw new Error("Not authenticated");
+      if (!user || !companyId) throw new Error("Not authenticated");
       await supabase.from("commissions").update({ status: "deleted" }).eq("id", id);
       const { data: installments } = await supabase
         .from("commission_installments")
@@ -277,11 +280,12 @@ export function useCommissions() {
       }
       await supabase.from("audit_log").insert({
         user_id: user.id,
+        company_id: companyId,
         table_name: "commissions",
         record_id: id,
         action: "delete",
         new_data: { status: "deleted" },
-      });
+      } as any);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["commissions"] });
@@ -291,8 +295,7 @@ export function useCommissions() {
 
   const updateInstallmentStatus = useMutation({
     mutationFn: async ({ id, status, paid_date }: { id: string; status: string; paid_date?: string }) => {
-      if (!user) throw new Error("Not authenticated");
-      // Get old state for audit
+      if (!user || !companyId) throw new Error("Not authenticated");
       const { data: oldInst } = await supabase
         .from("commission_installments")
         .select("*")
@@ -305,15 +308,15 @@ export function useCommissions() {
         .eq("id", id);
       if (error) throw error;
 
-      // Audit log for undo/status changes
       await supabase.from("audit_log").insert({
         user_id: user.id,
+        company_id: companyId,
         table_name: "commission_installments",
         record_id: id,
         action: status === "previsto" ? "undo_receipt" : `status_${status}`,
         old_data: oldInst,
         new_data: { status, paid_date: paid_date ?? null },
-      });
+      } as any);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["commissions"] });

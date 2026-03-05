@@ -9,7 +9,7 @@ const DEFAULT_CATEGORIES = [
 ];
 
 export function useExpenseCategories() {
-  const { user } = useAuth();
+  const { user, companyId } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -23,7 +23,7 @@ export function useExpenseCategories() {
       if (error) throw error;
       return data;
     },
-    enabled: !!user,
+    enabled: !!user && !!companyId,
   });
 
   const allCategories = (() => {
@@ -35,8 +35,12 @@ export function useExpenseCategories() {
 
   const createCategory = useMutation({
     mutationFn: async (name: string) => {
-      if (!user) throw new Error("Not authenticated");
-      const { error } = await supabase.from("expense_categories").insert({ user_id: user.id, name });
+      if (!user || !companyId) throw new Error("Not authenticated");
+      const { error } = await supabase.from("expense_categories").insert({
+        user_id: user.id,
+        company_id: companyId,
+        name,
+      } as any);
       if (error) throw error;
     },
     onSuccess: () => {

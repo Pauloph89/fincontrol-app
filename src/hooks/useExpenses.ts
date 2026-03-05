@@ -17,7 +17,7 @@ export interface ExpenseFormData {
 }
 
 export function useExpenses() {
-  const { user } = useAuth();
+  const { user, companyId } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -31,15 +31,16 @@ export function useExpenses() {
       if (error) throw error;
       return data;
     },
-    enabled: !!user,
+    enabled: !!user && !!companyId,
   });
 
   const createExpense = useMutation({
     mutationFn: async (form: ExpenseFormData) => {
-      if (!user) throw new Error("Not authenticated");
+      if (!user || !companyId) throw new Error("Not authenticated");
       const status = form.payment_date ? "pago" : "a_vencer";
       const { data: parent, error } = await supabase.from("expenses").insert({
         user_id: user.id,
+        company_id: companyId,
         type: form.type,
         category: form.category,
         description: form.description,
@@ -50,10 +51,9 @@ export function useExpenses() {
         status,
         recurrence: form.recurrence || null,
         recurrence_end_date: form.recurrence_end_date || null,
-      }).select().single();
+      } as any).select().single();
       if (error) throw error;
 
-      // Generate recurrent expenses
       if (form.recurrence && parent) {
         const recurrences: any[] = [];
         let currentDate = new Date(form.due_date);
@@ -68,6 +68,7 @@ export function useExpenses() {
 
           recurrences.push({
             user_id: user.id,
+            company_id: companyId,
             type: form.type,
             category: form.category,
             description: form.description,
@@ -81,7 +82,7 @@ export function useExpenses() {
         }
 
         if (recurrences.length > 0) {
-          await supabase.from("expenses").insert(recurrences);
+          await supabase.from("expenses").insert(recurrences as any);
         }
       }
     },
@@ -112,7 +113,6 @@ export function useExpenses() {
   const deleteExpense = useMutation({
     mutationFn: async ({ id, deleteSeries }: { id: string; deleteSeries?: boolean }) => {
       if (deleteSeries) {
-        // Delete all children and the parent
         await supabase.from("expenses").delete().eq("parent_expense_id", id);
       }
       const { error } = await supabase.from("expenses").delete().eq("id", id);

@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 export interface ExpenseRule {
   id: string;
   user_id: string;
+  company_id: string;
   name: string;
   category: string;
   value: number;
@@ -31,7 +32,7 @@ export interface ExpenseRuleFormData {
 }
 
 export function useExpenseRules() {
-  const { user } = useAuth();
+  const { user, companyId } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -45,14 +46,15 @@ export function useExpenseRules() {
       if (error) throw error;
       return (data as any[]) as ExpenseRule[];
     },
-    enabled: !!user,
+    enabled: !!user && !!companyId,
   });
 
   const createRule = useMutation({
     mutationFn: async (form: ExpenseRuleFormData) => {
-      if (!user) throw new Error("Not authenticated");
+      if (!user || !companyId) throw new Error("Not authenticated");
       const { error } = await supabase.from("expense_rules" as any).insert({
         user_id: user.id,
+        company_id: companyId,
         name: form.name,
         category: form.category,
         value: form.value,
