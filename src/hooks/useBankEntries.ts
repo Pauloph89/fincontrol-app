@@ -12,7 +12,7 @@ export interface BankEntryFormData {
 }
 
 export function useBankEntries() {
-  const { user } = useAuth();
+  const { user, companyId } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -26,16 +26,17 @@ export function useBankEntries() {
       if (error) throw error;
       return data;
     },
-    enabled: !!user,
+    enabled: !!user && !!companyId,
   });
 
   const createBankEntry = useMutation({
     mutationFn: async (form: BankEntryFormData) => {
-      if (!user) throw new Error("Not authenticated");
+      if (!user || !companyId) throw new Error("Not authenticated");
       const { error } = await supabase.from("bank_entries").insert({
         user_id: user.id,
+        company_id: companyId,
         ...form,
-      });
+      } as any);
       if (error) throw error;
     },
     onSuccess: () => {

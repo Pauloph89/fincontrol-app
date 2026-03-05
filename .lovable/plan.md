@@ -1,161 +1,223 @@
 
 
-## Plan: Multi-Tenant Architecture for FinControl
+# Plano de Expansao do FinControl - Fase 1
 
-### Current State
-- All data tables use `user_id` for RLS (single-user isolation)
-- Tables: commissions, commission_installments, expenses, expense_rules, expense_categories, bank_entries, audit_log, profiles, user_roles
-- Roles enum: admin, financeiro, comercial, visualizador (keeping all 4)
-- Company data lives in `profiles` table (company_name, cnpj, logo_url, etc.)
+Dado o tamanho da expansao (10 modulos), o plano sera dividido em 2 fases. Esta Fase 1 cobre os 5 modulos operacionais mais criticos. A Fase 2 (Relatorios, Configuracoes, Automacoes avancadas) sera implementada na sequencia.
 
-### Architecture Overview
+---
+
+## Fase 1 - Modulos Incluidos
+
+1. Melhorias no Modulo de Comissoes
+2. Upgrade do Modulo de Despesas
+3. Fluxo de Caixa Projetado
+4. Conciliacao Financeira
+5. Dashboard Executivo Avancado
+
+---
+
+## 1. Alteracoes no Banco de Dados
+
+### Tabela `commissions` - adicionar colunas:
+- `billing_date` (date, nullable) - data de faturamento alternativa
+- `status` (text, default 'ativa') - ativa, cancelada
+
+### Tabela `commission_installments` - adicionar coluna:
+- `notes` (text, nullable) - observacoes por parcela
+- Atualizar status para aceitar 'cancelado'
+
+### Tabela `expenses` - adicionar colunas:
+- `recurrence` (text, nullable) - mensal, trimestral, anual, null=sem recorrencia
+- `recurrence_end_date` (date, nullable)
+- `parent_expense_id` (uuid, nullable, FK para expenses) - vincular despesas recorrentes
+
+### Nova tabela `expense_categories`:
+- `id` (uuid, PK)
+- `user_id` (uuid, NOT NULL)
+- `name` (text, NOT NULL)
+- `created_at` (timestamptz)
+- RLS: usuario ve/edita apenas suas categorias
+
+### Nova tabela `bank_entries` (conciliacao):
+- `id` (uuid, PK)
+- `user_id` (uuid, NOT NULL)
+- `date` (date, NOT NULL)
+- `description` (text, NOT NULL)
+- `value` (numeric, NOT NULL)
+- `type` (text) - entrada/saida
+- `account` (text) - cnpj/pessoal
+- `reconciled` (boolean, default false)
+- `commission_installment_id` (uuid, nullable, FK)
+- `expense_id` (uuid, nullable, FK)
+- `receipt_url` (text, nullable)
+- `created_at`, `updated_at`
+- RLS: usuario ve/edita apenas seus registros
+
+### Nova tabela `audit_log`:
+- `id` (uuid, PK)
+- `user_id` (uuid, NOT NULL)
+- `table_name` (text)
+- `record_id` (uuid)
+- `action` (text) - create, update, delete
+- `old_data` (jsonb, nullable)
+- `new_data` (jsonb, nullable)
+- `created_at`
+- RLS: usuario ve apenas seu historico
+
+### Storage bucket `receipts`:
+- Para upload de comprovantes (PDF/imagem)
+- Politica: usuario acessa apenas seus arquivos
+
+---
+
+## 2. Modulo de Comissoes - Melhorias
+
+### Parcelas flexiveis (CommissionForm):
+- Adicionar campo "Numero de parcelas" (1-12) com select
+- Opcoes rapidas de intervalo: 30/45/60/75/90/120 dias entre parcelas
+- Preview das parcelas antes de salvar
+- Calcular datas automaticamente baseado na data da venda ou faturamento
+
+### Edicao de comissao:
+- Novo componente `CommissionEditDialog`
+- Permitir editar todos os campos da comissao
+- Ao alterar valor/percentual, recalcular parcelas nao recebidas
+- Registrar alteracoes no audit_log
+
+### CommissionsList melhorada:
+- Botao de editar em cada comissao
+- Status "Cancelado" nas parcelas
+- Filtros por fabrica, cliente, periodo
+- Busca por numero de pedido
+
+---
+
+## 3. Modulo de Despesas - Upgrade
+
+### Categorias personalizadas:
+- Novo hook `useExpenseCategories` para CRUD de categorias
+- No ExpenseForm, permitir criar categoria inline
+- Categorias padrao pre-cadastradas + custom do usuario
+
+### Recorrencia automatica:
+- Campo recorrencia no ExpenseForm (mensal/trimestral/anual)
+- Ao cadastrar despesa recorrente, gerar proximas ocorrencias automaticamente (ate 12 meses)
+- Link visual entre despesas recorrentes
+
+### Edicao e exclusao:
+- Componente `ExpenseEditDialog`
+- Excluir despesa individual ou serie recorrente
+
+### Upload de comprovante:
+- Usar storage bucket `receipts`
+- Botao de upload na lista de despesas
+- Preview/download do comprovante
+
+---
+
+## 4. Fluxo de Caixa Projetado (novo modulo)
+
+### Pagina `src/pages/CashFlow.tsx`:
+- Consolidar automaticamente parcelas de comissao + despesas
+- 4 visoes: diario, semanal, mensal, anual
+- Saldo atual calculado: (comissoes recebidas) - (despesas pagas)
+- Saldo projetado: saldo atual + (comissoes previstas) - (despesas previstas)
+
+### Componentes:
+- `CashFlowTimeline` - linha do tempo com entradas/saidas por dia
+- `CashFlowProjection` - grafico de area com projecao anual
+- `CashFlowSummary` - cards com saldo atual, projetado, risco
+- Destaque visual para meses com risco (saldo negativo projetado)
+
+### Separacao por status:
+- Previsto (azul)
+- Recebido/Pago (verde)
+- Atrasado (vermelho)
+
+---
+
+## 5. Conciliacao Financeira (novo modulo)
+
+### Pagina `src/pages/Reconciliation.tsx`:
+- Registro manual de entradas bancarias
+- Lista de entradas com status conciliado/pendente/divergente
+- Associar entrada bancaria a uma parcela de comissao ou despesa
+- Ao conciliar comissao: atualizar status da parcela para "recebido"
+- Ao conciliar despesa: atualizar status para "pago"
+
+### Componentes:
+- `BankEntryForm` - formulario de registro de entrada
+- `ReconciliationList` - lista com filtros (conta, status, periodo)
+- `ReconciliationMatch` - dialog para associar entrada a comissao/despesa
+- Upload de comprovante por entrada
+
+### Indicadores visuais:
+- Verde: conciliado
+- Amarelo: pendente
+- Vermelho: divergente (valor diferente do previsto)
+
+---
+
+## 6. Dashboard Executivo Avancado
+
+### Novos KPIs:
+- Inadimplencia (total atrasado)
+- Previsao 90 dias (receitas - despesas nos proximos 90 dias)
+
+### Novos graficos:
+- Evolucao mensal (receitas vs despesas ultimos 12 meses) - grafico de linhas
+- Projecao de caixa (proximos 6 meses) - grafico de area
+
+### Seletor de periodo:
+- Mes atual, mes anterior, ano completo, intervalo personalizado
+- Filtrar todos os KPIs e graficos pelo periodo selecionado
+
+### Painel de alertas melhorado:
+- Agrupamento por tipo (comissoes/despesas)
+- Contagem por severidade
+- Link direto para o registro
+
+---
+
+## Secao Tecnica - Estrutura de Arquivos
 
 ```text
-┌─────────────┐
-│  companies   │  ← NEW table (tenant anchor)
-│  id, name,   │
-│  cnpj, logo  │
-└──────┬───────┘
-       │
-       │  company_id (FK)
-       ▼
-┌─────────────┐     ┌──────────────┐
-│  profiles    │────▶│  user_roles  │
-│  + company_id│     │  (unchanged) │
-└──────┬───────┘     └──────────────┘
-       │
-       │  company_id added to ALL data tables
-       ▼
-┌──────────────────────────────────────────┐
-│ commissions, expenses, expense_rules,    │
-│ expense_categories, bank_entries,        │
-│ audit_log                                │
-│ RLS: company_id = user's company         │
-│ (audit_log: shared read, user-only write)│
-└──────────────────────────────────────────┘
+src/
+  hooks/
+    useCommissions.ts        (expandir: edicao, parcelas flexiveis)
+    useExpenses.ts           (expandir: recorrencia, edicao)
+    useExpenseCategories.ts  (novo)
+    useBankEntries.ts        (novo)
+    useCashFlow.ts           (novo)
+    useAuditLog.ts           (novo)
+  components/
+    commissions/
+      CommissionForm.tsx     (expandir parcelas flexiveis)
+      CommissionsList.tsx    (expandir filtros, edicao)
+      CommissionEditDialog.tsx (novo)
+    expenses/
+      ExpenseForm.tsx        (expandir recorrencia, categorias)
+      ExpensesList.tsx       (expandir upload, edicao)
+      ExpenseEditDialog.tsx  (novo)
+      CategoryManager.tsx    (novo)
+    cashflow/
+      CashFlowTimeline.tsx   (novo)
+      CashFlowProjection.tsx (novo)
+      CashFlowSummary.tsx    (novo)
+    reconciliation/
+      BankEntryForm.tsx      (novo)
+      ReconciliationList.tsx (novo)
+      ReconciliationMatch.tsx(novo)
+    dashboard/
+      KpiCards.tsx           (expandir KPIs)
+      DashboardCharts.tsx    (expandir graficos)
+      AlertsPanel.tsx        (expandir)
+      PeriodSelector.tsx     (novo)
+  pages/
+    CashFlow.tsx             (novo)
+    Reconciliation.tsx       (novo)
+    Dashboard.tsx            (expandir)
 ```
 
----
-
-### Phase 1: Database Migration
-
-**1.1 Create `companies` table**
-- id (uuid PK), name, cnpj, logo_url, email, phone, primary_color, secondary_color, created_at, updated_at
-- RLS: members of the company can read/update
-
-**1.2 Add `company_id` column to all data tables**
-- profiles, commissions, expenses, expense_rules, expense_categories, bank_entries, audit_log
-- All nullable initially (to not break existing rows)
-- Add `external_order_id` to commissions (future integrations)
-
-**1.3 Migrate existing data**
-- Create one company per distinct user (using profile data: company_name, cnpj, logo_url)
-- Set `company_id` on all existing rows based on `user_id` mapping
-- Move company fields (cnpj, logo_url, phone, etc.) into `companies` table
-- Make `company_id` NOT NULL after migration
-
-**1.4 Create helper function**
-- `get_user_company_id(_user_id uuid)` — SECURITY DEFINER function that returns the company_id from profiles
-- Used in RLS policies to avoid recursive lookups
-
-**1.5 Update RLS policies**
-- All data tables: `company_id = get_user_company_id(auth.uid())`
-- audit_log: SELECT by company, INSERT by own user_id
-- companies: SELECT/UPDATE by members
-
-**1.6 Add indexes**
-- `company_id` index on all data tables
-
----
-
-### Phase 2: Auth & Invite System
-
-**2.1 Remove public signup**
-- Remove the "Cadastre-se" toggle from `Auth.tsx` — login only
-
-**2.2 Edge function: `invite-user`**
-- Admin calls this function with: email, role, company_id
-- Function uses Supabase Admin API to create user + send invite email (magic link)
-- Sets profile.company_id and user_roles entry
-
-**2.3 Login guard**
-- After login, check if user has `company_id` in profile
-- If not, show "Usuário não vinculado a nenhuma empresa" and block access
-
-**2.4 Update UserManagement component**
-- Add "Adicionar Usuário" button (admin only)
-- Form: name, email, role selection
-- Calls `invite-user` edge function
-
----
-
-### Phase 3: Update All Hooks & Queries
-
-Every data hook currently filters by `user_id` via RLS. After migration, RLS handles company isolation automatically, so queries continue working — but we need to:
-
-- Add `company_id` to all INSERT operations (from user's profile)
-- Create a `useCompany` hook that loads the current user's company_id from profile
-- Update: `useCommissions`, `useExpenses`, `useExpenseRules`, `useExpenseCategories`, `useBankEntries`, `useAuditLog`
-- Update `useCompanySettings` to read/write from `companies` table instead of `profiles`
-
----
-
-### Phase 4: Settings Page Update
-
-- Company settings (name, cnpj, logo, email, phone, colors) now edit the `companies` table
-- Financial settings (day_start, alert_days, currency, default_account) stay on `profiles`
-- User management: add invite button, show company users
-
----
-
-### Phase 5: Responsiveness Pass
-
-- Ensure all pages work on mobile/tablet/desktop
-- Tables with horizontal scroll on mobile
-- Adaptive grids for KPI cards and forms
-
----
-
-### Risk Mitigation
-
-- Migration is additive (add columns, never drop)
-- company_id starts nullable, set via UPDATE, then made NOT NULL
-- Existing RLS policies preserved until new ones are verified
-- No data deletion — company fields in profiles remain as backup
-- Edge function for invite uses service_role_key (already available as secret)
-
----
-
-### Technical Details
-
-**New DB function:**
-```sql
-CREATE FUNCTION get_user_company_id(_user_id uuid)
-RETURNS uuid AS $$
-  SELECT company_id FROM profiles WHERE user_id = _user_id LIMIT 1
-$$ LANGUAGE sql STABLE SECURITY DEFINER;
-```
-
-**New RLS pattern (example for commissions):**
-```sql
-CREATE POLICY "Company members can view commissions"
-ON commissions FOR SELECT
-USING (company_id = get_user_company_id(auth.uid()));
-```
-
-**Edge function `invite-user`:**
-- Receives: `{ email, role, name }`
-- Uses `SUPABASE_SERVICE_ROLE_KEY` to call `supabase.auth.admin.createUser()`
-- Sets `email_confirm: false` to trigger invite email
-- Inserts profile and user_roles records
-
-**Files to create/modify:**
-- New: `supabase/functions/invite-user/index.ts`
-- New: `src/hooks/useCompany.ts`
-- Modified: all data hooks (add company_id to inserts)
-- Modified: `Auth.tsx` (remove signup)
-- Modified: `AuthContext.tsx` (add company check)
-- Modified: `Settings.tsx` + `useCompanySettings.ts` (point to companies table)
-- Modified: `UserManagement.tsx` (add invite form)
-- Migration SQL for schema changes + data migration
+A Fase 2 cobrira: Relatorios (PDF/Excel), Configuracoes (logo, empresa, fabricas, usuarios), e preparacao de APIs para integracoes futuras.
 

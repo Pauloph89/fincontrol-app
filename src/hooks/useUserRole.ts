@@ -13,7 +13,6 @@ export interface UserWithRole {
   created_at: string;
 }
 
-// Permissions map per role
 const permissionsMap: Record<AppRole, {
   modules: string[];
   canEdit: boolean;
@@ -47,7 +46,7 @@ const permissionsMap: Record<AppRole, {
 };
 
 export function useUserRole() {
-  const { user } = useAuth();
+  const { user, companyId } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -62,28 +61,32 @@ export function useUserRole() {
   });
 
   const allUsersQuery = useQuery({
-    queryKey: ["all-users-roles"],
+    queryKey: ["all-users-roles", companyId],
     queryFn: async () => {
-      // Only admins can see all users
-      const { data, error } = await supabase
+      // Get all profiles in same company
+      const { data: profiles, error: profErr } = await supabase
+        .from("profiles")
+        .select("user_id, email, responsible_name")
+        .eq("company_id", companyId!);
+      if (profErr) throw profErr;
+
+      const userIds = (profiles || []).map((p: any) => p.user_id);
+      if (userIds.length === 0) return [];
+
+      // Get roles for these users
+      const { data: roles, error: roleErr } = await supabase
         .from("user_roles")
         .select("*")
+        .in("user_id", userIds)
         .order("created_at", { ascending: true });
-      if (error) throw error;
-
-      // Get profile emails
-      const userIds = (data || []).map((r: any) => r.user_id);
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, email")
-        .in("user_id", userIds);
+      if (roleErr) throw roleErr;
 
       const emailMap = (profiles || []).reduce((acc: Record<string, string>, p: any) => {
-        acc[p.user_id] = p.email || "";
+        acc[p.user_id] = p.email || p.responsible_name || "";
         return acc;
       }, {});
 
-      return (data || []).map((r: any) => ({
+      return (roles || []).map((r: any) => ({
         user_id: r.user_id,
         email: emailMap[r.user_id] || "—",
         role: r.role as AppRole,
@@ -91,7 +94,7 @@ export function useUserRole() {
         created_at: r.created_at,
       })) as UserWithRole[];
     },
-    enabled: !!user && roleQuery.data === "admin",
+    enabled: !!user && !!companyId && roleQuery.data === "admin",
   });
 
   const updateUserRole = useMutation({
@@ -128,6 +131,24 @@ export function useUserRole() {
     },
   });
 
+  const inviteUser = useMutation({
+    mutationFn: async ({ email, role, name }: { email: string; role: AppRole; name?: string }) => {
+      const { data, error } = await supabase.functions.invoke("invite-user", {
+        body: { email, role, name },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["all-users-roles"] });
+      toast({ title: "Convite enviado!", description: "O usuário receberá um e-mail para criar a senha." });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Erro ao convidar", description: err.message, variant: "destructive" });
+    },
+  });
+
   const role = roleQuery.data || "visualizador";
   const permissions = permissionsMap[role];
 
@@ -147,6 +168,7 @@ export function useUserRole() {
     allUsersQuery,
     updateUserRole,
     toggleUserActive,
+    inviteUser,
   };
 }
 
