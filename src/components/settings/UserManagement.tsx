@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useUserRole, roleLabels, AppRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -5,15 +6,23 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, ShieldCheck, ShieldAlert } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Loader2, ShieldCheck, ShieldAlert, UserPlus, Mail } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
+} from "@/components/ui/dialog";
 
 export function UserManagement() {
   const { user } = useAuth();
-  const { allUsersQuery, updateUserRole, toggleUserActive, role: myRole } = useUserRole();
+  const { allUsersQuery, updateUserRole, toggleUserActive, inviteUser, role: myRole } = useUserRole();
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteForm, setInviteForm] = useState({ name: "", email: "", role: "visualizador" as AppRole });
 
   if (myRole !== "admin") {
     return (
@@ -38,14 +47,96 @@ export function UserManagement() {
 
   const users = allUsersQuery.data || [];
 
+  const handleInvite = async () => {
+    if (!inviteForm.email) return;
+    await inviteUser.mutateAsync({
+      email: inviteForm.email,
+      role: inviteForm.role,
+      name: inviteForm.name,
+    });
+    setInviteOpen(false);
+    setInviteForm({ name: "", email: "", role: "visualizador" });
+  };
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <ShieldCheck className="h-5 w-5" />
-          Usuários & Permissões
-        </CardTitle>
-        <CardDescription>Gerencie os perfis de acesso dos usuários do sistema</CardDescription>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <ShieldCheck className="h-5 w-5" />
+              Usuários & Permissões
+            </CardTitle>
+            <CardDescription>Gerencie os perfis de acesso dos usuários da empresa</CardDescription>
+          </div>
+
+          <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="gap-1.5">
+                <UserPlus className="h-4 w-4" />
+                Adicionar Usuário
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Convidar Novo Usuário</DialogTitle>
+                <DialogDescription>
+                  O usuário receberá um e-mail para criar sua senha e acessar o sistema.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Nome</Label>
+                  <Input
+                    placeholder="Nome do usuário"
+                    value={inviteForm.name}
+                    onChange={(e) => setInviteForm((p) => ({ ...p, name: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>E-mail *</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="email"
+                      placeholder="usuario@email.com"
+                      value={inviteForm.email}
+                      onChange={(e) => setInviteForm((p) => ({ ...p, email: e.target.value }))}
+                      className="pl-10"
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Perfil de Acesso</Label>
+                  <Select
+                    value={inviteForm.role}
+                    onValueChange={(v) => setInviteForm((p) => ({ ...p, role: v as AppRole }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(Object.keys(roleLabels) as AppRole[]).map((r) => (
+                        <SelectItem key={r} value={r}>{roleLabels[r]}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancelar</Button>
+                <Button onClick={handleInvite} disabled={inviteUser.isPending || !inviteForm.email}>
+                  {inviteUser.isPending ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Enviando...</>
+                  ) : (
+                    "Enviar Convite"
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </CardHeader>
       <CardContent className="p-0">
         <div className="overflow-x-auto">
