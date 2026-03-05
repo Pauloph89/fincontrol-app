@@ -17,6 +17,7 @@ export type Database = {
       audit_log: {
         Row: {
           action: string
+          company_id: string | null
           created_at: string
           id: string
           new_data: Json | null
@@ -27,6 +28,7 @@ export type Database = {
         }
         Insert: {
           action: string
+          company_id?: string | null
           created_at?: string
           id?: string
           new_data?: Json | null
@@ -37,6 +39,7 @@ export type Database = {
         }
         Update: {
           action?: string
+          company_id?: string | null
           created_at?: string
           id?: string
           new_data?: Json | null
@@ -45,12 +48,21 @@ export type Database = {
           table_name?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "audit_log_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bank_entries: {
         Row: {
           account: string
           commission_installment_id: string | null
+          company_id: string | null
           created_at: string
           date: string
           description: string
@@ -66,6 +78,7 @@ export type Database = {
         Insert: {
           account?: string
           commission_installment_id?: string | null
+          company_id?: string | null
           created_at?: string
           date: string
           description: string
@@ -81,6 +94,7 @@ export type Database = {
         Update: {
           account?: string
           commission_installment_id?: string | null
+          company_id?: string | null
           created_at?: string
           date?: string
           description?: string
@@ -99,6 +113,13 @@ export type Database = {
             columns: ["commission_installment_id"]
             isOneToOne: false
             referencedRelation: "commission_installments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_entries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
           {
@@ -166,8 +187,10 @@ export type Database = {
           client: string
           commission_percent: number
           commission_total: number
+          company_id: string | null
           created_at: string
           crm_deal_id: string | null
+          external_order_id: string | null
           factory: string
           id: string
           observations: string | null
@@ -183,8 +206,10 @@ export type Database = {
           client: string
           commission_percent?: number
           commission_total: number
+          company_id?: string | null
           created_at?: string
           crm_deal_id?: string | null
+          external_order_id?: string | null
           factory: string
           id?: string
           observations?: string | null
@@ -200,8 +225,10 @@ export type Database = {
           client?: string
           commission_percent?: number
           commission_total?: number
+          company_id?: string | null
           created_at?: string
           crm_deal_id?: string | null
+          external_order_id?: string | null
           factory?: string
           id?: string
           observations?: string | null
@@ -212,34 +239,93 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "commissions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      companies: {
+        Row: {
+          cnpj: string | null
+          created_at: string
+          email: string | null
+          id: string
+          logo_url: string | null
+          name: string
+          phone: string | null
+          primary_color: string | null
+          secondary_color: string | null
+          updated_at: string
+        }
+        Insert: {
+          cnpj?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          logo_url?: string | null
+          name?: string
+          phone?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cnpj?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          logo_url?: string | null
+          name?: string
+          phone?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          updated_at?: string
+        }
         Relationships: []
       }
       expense_categories: {
         Row: {
+          company_id: string | null
           created_at: string
           id: string
           name: string
           user_id: string
         }
         Insert: {
+          company_id?: string | null
           created_at?: string
           id?: string
           name: string
           user_id: string
         }
         Update: {
+          company_id?: string | null
           created_at?: string
           id?: string
           name?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "expense_categories_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       expense_rules: {
         Row: {
           account: string
           active: boolean
           category: string
+          company_id: string | null
           created_at: string
           end_date: string | null
           id: string
@@ -255,6 +341,7 @@ export type Database = {
           account?: string
           active?: boolean
           category: string
+          company_id?: string | null
           created_at?: string
           end_date?: string | null
           id?: string
@@ -270,6 +357,7 @@ export type Database = {
           account?: string
           active?: boolean
           category?: string
+          company_id?: string | null
           created_at?: string
           end_date?: string | null
           id?: string
@@ -281,12 +369,21 @@ export type Database = {
           user_id?: string
           value?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "expense_rules_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       expenses: {
         Row: {
           account: string
           category: string
+          company_id: string | null
           created_at: string
           description: string
           due_date: string
@@ -306,6 +403,7 @@ export type Database = {
         Insert: {
           account?: string
           category: string
+          company_id?: string | null
           created_at?: string
           description: string
           due_date: string
@@ -325,6 +423,7 @@ export type Database = {
         Update: {
           account?: string
           category?: string
+          company_id?: string | null
           created_at?: string
           description?: string
           due_date?: string
@@ -342,6 +441,13 @@ export type Database = {
           value?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "expenses_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "expenses_generated_from_rule_id_fkey"
             columns: ["generated_from_rule_id"]
@@ -362,6 +468,7 @@ export type Database = {
         Row: {
           alert_days: number
           cnpj: string | null
+          company_id: string | null
           company_logo_url: string | null
           company_name: string | null
           created_at: string
@@ -380,6 +487,7 @@ export type Database = {
         Insert: {
           alert_days?: number
           cnpj?: string | null
+          company_id?: string | null
           company_logo_url?: string | null
           company_name?: string | null
           created_at?: string
@@ -398,6 +506,7 @@ export type Database = {
         Update: {
           alert_days?: number
           cnpj?: string | null
+          company_id?: string | null
           company_logo_url?: string | null
           company_name?: string | null
           created_at?: string
@@ -413,7 +522,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -447,6 +564,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_user_company_id: { Args: { _user_id: string }; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
