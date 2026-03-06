@@ -20,19 +20,19 @@ const permissionsMap: Record<AppRole, {
   canManageUsers: boolean;
 }> = {
   admin: {
-    modules: ["dashboard", "comissoes", "despesas", "conciliacao", "fluxo-caixa", "projecoes", "relatorios", "configuracoes", "usuarios"],
+    modules: ["dashboard", "pedidos", "comissoes", "despesas", "conciliacao", "fluxo-caixa", "projecoes", "relatorios", "configuracoes", "usuarios"],
     canEdit: true,
     canDelete: true,
     canManageUsers: true,
   },
   financeiro: {
-    modules: ["dashboard", "despesas", "conciliacao", "fluxo-caixa", "projecoes", "relatorios", "configuracoes"],
+    modules: ["dashboard", "pedidos", "comissoes", "despesas", "conciliacao", "fluxo-caixa", "projecoes", "relatorios", "configuracoes"],
     canEdit: true,
     canDelete: false,
     canManageUsers: false,
   },
   comercial: {
-    modules: ["dashboard", "comissoes", "projecoes", "relatorios"],
+    modules: ["dashboard", "pedidos", "comissoes", "projecoes", "relatorios"],
     canEdit: false,
     canDelete: false,
     canManageUsers: false,

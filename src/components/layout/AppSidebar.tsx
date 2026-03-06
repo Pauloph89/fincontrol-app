@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Receipt, Wallet, ArrowLeftRight, TrendingUp,
-  BarChart3, FileBarChart, Settings, LogOut, Building2,
+  BarChart3, FileBarChart, Settings, LogOut, Building2, ShoppingCart,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -13,6 +13,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 
 const allMenuItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard, module: "dashboard" },
+  { title: "Pedidos", url: "/pedidos", icon: ShoppingCart, module: "pedidos" },
   { title: "Comissões", url: "/comissoes", icon: Receipt, module: "comissoes" },
   { title: "Projeções", url: "/projecoes", icon: BarChart3, module: "projecoes" },
   { title: "Despesas", url: "/despesas", icon: Wallet, module: "despesas" },

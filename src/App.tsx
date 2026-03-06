@@ -8,6 +8,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Commissions from "./pages/Commissions";
+import Orders from "./pages/Orders";
 import Expenses from "./pages/Expenses";
 import CashFlow from "./pages/CashFlow";
 import Reconciliation from "./pages/Reconciliation";
@@ -57,6 +58,7 @@ function AppRoutes() {
     <Routes>
       <Route element={<AppLayout />}>
         <Route path="/" element={<Dashboard />} />
+        <Route path="/pedidos" element={<Orders />} />
         <Route path="/comissoes" element={<Commissions />} />
         <Route path="/despesas" element={<Expenses />} />
         <Route path="/conciliacao" element={<Reconciliation />} />
