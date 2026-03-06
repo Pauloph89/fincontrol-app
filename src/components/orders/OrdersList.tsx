@@ -166,7 +166,7 @@ export function OrdersList() {
                             {o.status === "cancelado" && canEdit && (
                               <Tooltip><TooltipTrigger asChild>
                                 <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => reactivateOrder.mutate(o.id)}>
-                                  <RotateCcw className="h-3.5 w-3.5 text-green-600" />
+                                  <RotateCcw className="h-3.5 w-3.5 text-primary" />
                                 </Button>
                               </TooltipTrigger><TooltipContent>Reativar pedido</TooltipContent></Tooltip>
                             )}
