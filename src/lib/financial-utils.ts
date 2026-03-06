@@ -52,6 +52,7 @@ export const statusLabels: Record<string, string> = {
   vencido: "Vencido",
   ativa: "Ativa",
   cancelada: "Cancelada",
+  cancelado: "Cancelado",
   deleted: "Excluída",
   reactivate: "Reativada",
   // Commission lifecycle statuses
