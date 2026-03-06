@@ -20,7 +20,7 @@ const permissionsMap: Record<AppRole, {
   canManageUsers: boolean;
 }> = {
   admin: {
-    modules: ["dashboard", "comissoes", "despesas", "conciliacao", "fluxo-caixa", "projecoes", "relatorios", "configuracoes", "usuarios"],
+    modules: ["dashboard", "pedidos", "comissoes", "despesas", "conciliacao", "fluxo-caixa", "projecoes", "relatorios", "configuracoes", "usuarios"],
     canEdit: true,
     canDelete: true,
     canManageUsers: true,
