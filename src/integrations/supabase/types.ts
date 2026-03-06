@@ -464,6 +464,163 @@ export type Database = {
           },
         ]
       }
+      order_installments: {
+        Row: {
+          commission_value_preposto: number | null
+          commission_value_rep: number
+          created_at: string
+          due_date: string
+          id: string
+          installment_number: number
+          notes: string | null
+          order_id: string
+          paid_date: string | null
+          paid_observation: string | null
+          paid_value: number | null
+          receipt_url: string | null
+          status: string
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          commission_value_preposto?: number | null
+          commission_value_rep?: number
+          created_at?: string
+          due_date: string
+          id?: string
+          installment_number: number
+          notes?: string | null
+          order_id: string
+          paid_date?: string | null
+          paid_observation?: string | null
+          paid_value?: number | null
+          receipt_url?: string | null
+          status?: string
+          updated_at?: string
+          value: number
+        }
+        Update: {
+          commission_value_preposto?: number | null
+          commission_value_rep?: number
+          created_at?: string
+          due_date?: string
+          id?: string
+          installment_number?: number
+          notes?: string | null
+          order_id?: string
+          paid_date?: string | null
+          paid_observation?: string | null
+          paid_value?: number | null
+          receipt_url?: string | null
+          status?: string
+          updated_at?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_installments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          billing_date: string | null
+          client: string
+          client_city: string | null
+          client_cnpj: string | null
+          client_state: string | null
+          commission_base_value: number
+          commission_percent_preposto: number | null
+          commission_percent_rep: number
+          commission_total_preposto: number | null
+          commission_total_rep: number
+          company_id: string | null
+          created_at: string
+          crm_deal_id: string | null
+          external_order_id: string | null
+          factory: string
+          factory_invoice_number: string | null
+          id: string
+          invoice_total_value: number | null
+          observations: string | null
+          order_date: string
+          order_number: string
+          pre_posto: string | null
+          salesperson: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          billing_date?: string | null
+          client: string
+          client_city?: string | null
+          client_cnpj?: string | null
+          client_state?: string | null
+          commission_base_value: number
+          commission_percent_preposto?: number | null
+          commission_percent_rep?: number
+          commission_total_preposto?: number | null
+          commission_total_rep?: number
+          company_id?: string | null
+          created_at?: string
+          crm_deal_id?: string | null
+          external_order_id?: string | null
+          factory: string
+          factory_invoice_number?: string | null
+          id?: string
+          invoice_total_value?: number | null
+          observations?: string | null
+          order_date: string
+          order_number: string
+          pre_posto?: string | null
+          salesperson?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          billing_date?: string | null
+          client?: string
+          client_city?: string | null
+          client_cnpj?: string | null
+          client_state?: string | null
+          commission_base_value?: number
+          commission_percent_preposto?: number | null
+          commission_percent_rep?: number
+          commission_total_preposto?: number | null
+          commission_total_rep?: number
+          company_id?: string | null
+          created_at?: string
+          crm_deal_id?: string | null
+          external_order_id?: string | null
+          factory?: string
+          factory_invoice_number?: string | null
+          id?: string
+          invoice_total_value?: number | null
+          observations?: string | null
+          order_date?: string
+          order_number?: string
+          pre_posto?: string | null
+          salesperson?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           alert_days: number
