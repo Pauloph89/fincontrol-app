@@ -177,7 +177,7 @@ export function OrderEditDialog({ order, open, onOpenChange }: OrderEditDialogPr
                     <span>Pré-posto:</span><span>{formatCurrency(totalPreposto)}</span>
                   </div>
                 )}
-                {valueChanged && <p className="text-xs text-orange-600 mt-1">⚠ Parcelas não recebidas serão recalculadas</p>}
+                {valueChanged && <p className="text-xs text-destructive mt-1">⚠ Parcelas não recebidas serão recalculadas</p>}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
