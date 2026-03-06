@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Receipt, Wallet, ArrowLeftRight, TrendingUp,
-  BarChart3, FileBarChart, Settings, LogOut, Building2,
+  BarChart3, FileBarChart, Settings, LogOut, Building2, ShoppingCart,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
