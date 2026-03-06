@@ -88,21 +88,60 @@ Deno.serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Create user with invite (sends magic link email)
+    // Try to invite by email first
     const { data: newUser, error: createError } =
       await adminClient.auth.admin.inviteUserByEmail(email, {
         data: { name: name || "", company_id: callerProfile.company_id },
       });
 
     if (createError) {
+      // If user already exists, look them up and link to company
+      if (createError.message.includes("already been registered")) {
+        const { data: existingUsers } = await adminClient.auth.admin.listUsers();
+        const existing = existingUsers?.users?.find((u: any) => u.email === email);
+        
+        if (!existing) {
+          return new Response(JSON.stringify({ error: "Usuário existe mas não foi encontrado" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Update profile with company_id
+        await adminClient
+          .from("profiles")
+          .update({
+            company_id: callerProfile.company_id,
+            responsible_name: name || null,
+            email: email,
+          })
+          .eq("user_id", existing.id);
+
+        // Update or insert role
+        await adminClient
+          .from("user_roles")
+          .upsert({ user_id: existing.id, role: role, active: true }, { onConflict: "user_id,role" });
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            user_id: existing.id,
+            message: "Usuário existente vinculado à empresa com sucesso",
+          }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
       return new Response(JSON.stringify({ error: createError.message }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // The handle_new_user trigger creates the profile, but without company_id
-    // Update the profile with company_id and name
+    // New user created — update profile and role
     await adminClient
       .from("profiles")
       .update({
@@ -112,11 +151,9 @@ Deno.serve(async (req) => {
       })
       .eq("user_id", newUser.user.id);
 
-    // Set the role in user_roles (trigger creates default 'visualizador')
     await adminClient
       .from("user_roles")
-      .update({ role: role })
-      .eq("user_id", newUser.user.id);
+      .upsert({ user_id: newUser.user.id, role: role, active: true }, { onConflict: "user_id,role" });
 
     return new Response(
       JSON.stringify({
