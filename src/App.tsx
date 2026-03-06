@@ -58,6 +58,7 @@ function AppRoutes() {
     <Routes>
       <Route element={<AppLayout />}>
         <Route path="/" element={<Dashboard />} />
+        <Route path="/pedidos" element={<Orders />} />
         <Route path="/comissoes" element={<Commissions />} />
         <Route path="/despesas" element={<Expenses />} />
         <Route path="/conciliacao" element={<Reconciliation />} />

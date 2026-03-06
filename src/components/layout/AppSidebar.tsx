@@ -13,6 +13,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 
 const allMenuItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard, module: "dashboard" },
+  { title: "Pedidos", url: "/pedidos", icon: Receipt, module: "pedidos" },
   { title: "Comissões", url: "/comissoes", icon: Receipt, module: "comissoes" },
   { title: "Projeções", url: "/projecoes", icon: BarChart3, module: "projecoes" },
   { title: "Despesas", url: "/despesas", icon: Wallet, module: "despesas" },

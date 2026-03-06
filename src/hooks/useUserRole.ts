@@ -32,7 +32,7 @@ const permissionsMap: Record<AppRole, {
     canManageUsers: false,
   },
   comercial: {
-    modules: ["dashboard", "comissoes", "projecoes", "relatorios"],
+    modules: ["dashboard", "pedidos", "comissoes", "projecoes", "relatorios"],
     canEdit: false,
     canDelete: false,
     canManageUsers: false,
