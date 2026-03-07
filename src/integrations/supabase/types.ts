@@ -131,6 +131,65 @@ export type Database = {
           },
         ]
       }
+      clients: {
+        Row: {
+          cidade: string | null
+          cnpj_cpf: string | null
+          company_id: string | null
+          created_at: string
+          email: string | null
+          endereco: string | null
+          estado: string | null
+          id: string
+          nome_fantasia: string | null
+          observacoes: string | null
+          razao_social: string
+          telefone: string | null
+          updated_at: string
+          vendedor_responsavel: string | null
+        }
+        Insert: {
+          cidade?: string | null
+          cnpj_cpf?: string | null
+          company_id?: string | null
+          created_at?: string
+          email?: string | null
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          nome_fantasia?: string | null
+          observacoes?: string | null
+          razao_social: string
+          telefone?: string | null
+          updated_at?: string
+          vendedor_responsavel?: string | null
+        }
+        Update: {
+          cidade?: string | null
+          cnpj_cpf?: string | null
+          company_id?: string | null
+          created_at?: string
+          email?: string | null
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          nome_fantasia?: string | null
+          observacoes?: string | null
+          razao_social?: string
+          telefone?: string | null
+          updated_at?: string
+          vendedor_responsavel?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       commission_installments: {
         Row: {
           commission_id: string
@@ -464,6 +523,107 @@ export type Database = {
           },
         ]
       }
+      factories: {
+        Row: {
+          comissao_padrao: number
+          company_id: string | null
+          contato_comercial: string | null
+          created_at: string
+          email_financeiro: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          politica_comissao: string | null
+          prazo_pagamento: string | null
+          updated_at: string
+        }
+        Insert: {
+          comissao_padrao?: number
+          company_id?: string | null
+          contato_comercial?: string | null
+          created_at?: string
+          email_financeiro?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          politica_comissao?: string | null
+          prazo_pagamento?: string | null
+          updated_at?: string
+        }
+        Update: {
+          comissao_padrao?: number
+          company_id?: string | null
+          contato_comercial?: string | null
+          created_at?: string
+          email_financeiro?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          politica_comissao?: string | null
+          prazo_pagamento?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "factories_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      factory_import_configs: {
+        Row: {
+          company_id: string | null
+          config_name: string
+          created_at: string
+          factory_id: string
+          field_mapping: Json
+          file_type: string
+          id: string
+          observacoes: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          config_name?: string
+          created_at?: string
+          factory_id: string
+          field_mapping?: Json
+          file_type?: string
+          id?: string
+          observacoes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          config_name?: string
+          created_at?: string
+          factory_id?: string
+          field_mapping?: Json
+          file_type?: string
+          id?: string
+          observacoes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "factory_import_configs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "factory_import_configs_factory_id_fkey"
+            columns: ["factory_id"]
+            isOneToOne: false
+            referencedRelation: "factories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_installments: {
         Row: {
           commission_value_preposto: number | null
@@ -532,6 +692,7 @@ export type Database = {
           client: string
           client_city: string | null
           client_cnpj: string | null
+          client_id: string | null
           client_state: string | null
           commission_base_value: number
           commission_percent_preposto: number | null
@@ -543,6 +704,7 @@ export type Database = {
           crm_deal_id: string | null
           external_order_id: string | null
           factory: string
+          factory_id: string | null
           factory_invoice_number: string | null
           id: string
           invoice_total_value: number | null
@@ -560,6 +722,7 @@ export type Database = {
           client: string
           client_city?: string | null
           client_cnpj?: string | null
+          client_id?: string | null
           client_state?: string | null
           commission_base_value: number
           commission_percent_preposto?: number | null
@@ -571,6 +734,7 @@ export type Database = {
           crm_deal_id?: string | null
           external_order_id?: string | null
           factory: string
+          factory_id?: string | null
           factory_invoice_number?: string | null
           id?: string
           invoice_total_value?: number | null
@@ -588,6 +752,7 @@ export type Database = {
           client?: string
           client_city?: string | null
           client_cnpj?: string | null
+          client_id?: string | null
           client_state?: string | null
           commission_base_value?: number
           commission_percent_preposto?: number | null
@@ -599,6 +764,7 @@ export type Database = {
           crm_deal_id?: string | null
           external_order_id?: string | null
           factory?: string
+          factory_id?: string | null
           factory_invoice_number?: string | null
           id?: string
           invoice_total_value?: number | null
@@ -613,10 +779,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "orders_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "orders_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_factory_id_fkey"
+            columns: ["factory_id"]
+            isOneToOne: false
+            referencedRelation: "factories"
             referencedColumns: ["id"]
           },
         ]
@@ -735,7 +915,13 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "financeiro" | "comercial" | "visualizador"
+      app_role:
+        | "admin"
+        | "financeiro"
+        | "comercial"
+        | "visualizador"
+        | "socio"
+        | "vendedor"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -863,7 +1049,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "financeiro", "comercial", "visualizador"],
+      app_role: [
+        "admin",
+        "financeiro",
+        "comercial",
+        "visualizador",
+        "socio",
+        "vendedor",
+      ],
     },
   },
 } as const
