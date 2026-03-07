@@ -2,6 +2,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Receipt, Wallet, ArrowLeftRight, TrendingUp,
   BarChart3, FileBarChart, Settings, LogOut, Building2, ShoppingCart,
+  Users, Factory, Upload,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -13,12 +14,15 @@ import { useUserRole } from "@/hooks/useUserRole";
 
 const allMenuItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard, module: "dashboard" },
+  { title: "CRM / Clientes", url: "/clientes", icon: Users, module: "clientes" },
+  { title: "Fábricas", url: "/fabricas", icon: Factory, module: "fabricas" },
   { title: "Pedidos", url: "/pedidos", icon: ShoppingCart, module: "pedidos" },
   { title: "Comissões", url: "/comissoes", icon: Receipt, module: "comissoes" },
-  { title: "Projeções", url: "/projecoes", icon: BarChart3, module: "projecoes" },
+  { title: "Importação", url: "/importacao", icon: Upload, module: "importacao" },
   { title: "Despesas", url: "/despesas", icon: Wallet, module: "despesas" },
   { title: "Conciliação", url: "/conciliacao", icon: ArrowLeftRight, module: "conciliacao" },
   { title: "Fluxo de Caixa", url: "/fluxo-caixa", icon: TrendingUp, module: "fluxo-caixa" },
+  { title: "Projeções", url: "/projecoes", icon: BarChart3, module: "projecoes" },
   { title: "Relatórios", url: "/relatorios", icon: FileBarChart, module: "relatorios" },
   { title: "Configurações", url: "/configuracoes", icon: Settings, module: "configuracoes" },
 ];

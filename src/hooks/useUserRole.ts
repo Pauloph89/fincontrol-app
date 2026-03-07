@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
-export type AppRole = "admin" | "financeiro" | "comercial" | "visualizador";
+export type AppRole = "admin" | "financeiro" | "comercial" | "visualizador" | "socio" | "vendedor";
 
 export interface UserWithRole {
   user_id: string;
@@ -20,20 +20,32 @@ const permissionsMap: Record<AppRole, {
   canManageUsers: boolean;
 }> = {
   admin: {
-    modules: ["dashboard", "pedidos", "comissoes", "despesas", "conciliacao", "fluxo-caixa", "projecoes", "relatorios", "configuracoes", "usuarios"],
+    modules: ["dashboard", "clientes", "fabricas", "pedidos", "comissoes", "despesas", "conciliacao", "fluxo-caixa", "projecoes", "relatorios", "importacao", "configuracoes", "usuarios"],
     canEdit: true,
     canDelete: true,
     canManageUsers: true,
   },
+  socio: {
+    modules: ["dashboard", "clientes", "fabricas", "pedidos", "comissoes", "projecoes", "relatorios"],
+    canEdit: false,
+    canDelete: false,
+    canManageUsers: false,
+  },
   financeiro: {
-    modules: ["dashboard", "pedidos", "comissoes", "despesas", "conciliacao", "fluxo-caixa", "projecoes", "relatorios", "configuracoes"],
+    modules: ["dashboard", "pedidos", "comissoes", "despesas", "conciliacao", "fluxo-caixa", "projecoes", "relatorios", "importacao", "configuracoes"],
     canEdit: true,
     canDelete: false,
     canManageUsers: false,
   },
   comercial: {
-    modules: ["dashboard", "pedidos", "comissoes", "projecoes", "relatorios"],
+    modules: ["dashboard", "clientes", "fabricas", "pedidos", "comissoes", "projecoes", "relatorios"],
     canEdit: false,
+    canDelete: false,
+    canManageUsers: false,
+  },
+  vendedor: {
+    modules: ["dashboard", "clientes", "pedidos", "comissoes", "relatorios"],
+    canEdit: true,
     canDelete: false,
     canManageUsers: false,
   },
@@ -63,7 +75,6 @@ export function useUserRole() {
   const allUsersQuery = useQuery({
     queryKey: ["all-users-roles", companyId],
     queryFn: async () => {
-      // Get all profiles in same company
       const { data: profiles, error: profErr } = await supabase
         .from("profiles")
         .select("user_id, email, responsible_name")
@@ -73,7 +84,6 @@ export function useUserRole() {
       const userIds = (profiles || []).map((p: any) => p.user_id);
       if (userIds.length === 0) return [];
 
-      // Get roles for these users
       const { data: roles, error: roleErr } = await supabase
         .from("user_roles")
         .select("*")
@@ -174,7 +184,9 @@ export function useUserRole() {
 
 export const roleLabels: Record<AppRole, string> = {
   admin: "Administrador",
+  socio: "Sócio",
   financeiro: "Financeiro",
   comercial: "Comercial",
+  vendedor: "Vendedor / Representante",
   visualizador: "Visualizador",
 };

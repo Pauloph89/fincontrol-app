@@ -2,43 +2,72 @@ import { useMemo, useState } from "react";
 import { useCommissions } from "@/hooks/useCommissions";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useExpenseProjection } from "@/hooks/useExpenseProjection";
+import { useOrders } from "@/hooks/useOrders";
 import { KpiCards } from "@/components/dashboard/KpiCards";
 import { DashboardCharts } from "@/components/dashboard/DashboardCharts";
 import { AlertsPanel } from "@/components/dashboard/AlertsPanel";
 import { PeriodSelector, getDefaultPeriod, PeriodRange } from "@/components/dashboard/PeriodSelector";
 import { differenceInBusinessDays, isBefore, startOfDay, addDays } from "date-fns";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { formatCurrency } from "@/lib/financial-utils";
 
 export default function Dashboard() {
   const { commissionsQuery } = useCommissions();
   const { expensesQuery } = useExpenses();
   const { projections } = useExpenseProjection();
+  const { ordersQuery } = useOrders();
   const [periodKey, setPeriodKey] = useState("current_month");
   const [period, setPeriod] = useState<PeriodRange>(getDefaultPeriod());
 
   const commissions = commissionsQuery.data || [];
   const expenses = expensesQuery.data || [];
+  const orders = (ordersQuery.data || []).filter((o: any) => o.status !== "deleted" && o.status !== "cancelado");
 
   const stats = useMemo(() => {
     const today = startOfDay(new Date());
     const { start, end } = period;
 
+    // Orders-based sales stats
+    const ordersInPeriod = orders.filter((o: any) => {
+      const d = new Date(o.order_date);
+      return d >= start && d <= end;
+    });
+    const totalSales = ordersInPeriod.reduce((s: number, o: any) => s + Number(o.commission_base_value), 0);
+    const totalCommissionExpected = ordersInPeriod.reduce((s: number, o: any) => s + Number(o.commission_total_rep), 0);
+
+    // Installments from orders
+    const allOrderInstallments = orders.flatMap((o: any) =>
+      (o.order_installments || []).map((i: any) => ({ ...i, factory: o.factory, client: o.client }))
+    );
+
+    const receivedCommission = allOrderInstallments
+      .filter((i: any) => i.status === "recebido" && i.paid_date && new Date(i.paid_date) >= start && new Date(i.paid_date) <= end)
+      .reduce((s: number, i: any) => s + Number(i.commission_value_rep || i.value), 0);
+
+    const pendingCommission = allOrderInstallments
+      .filter((i: any) => i.status !== "recebido" && i.status !== "cancelado")
+      .reduce((s: number, i: any) => s + Number(i.commission_value_rep || i.value), 0);
+
+    // Legacy commissions
     const allInstallments = commissions.flatMap((c: any) =>
       (c.commission_installments || []).map((i: any) => ({ ...i, factory: c.factory, client: c.client }))
     );
 
-    const receivedInPeriod = allInstallments
+    const legacyReceived = allInstallments
       .filter((i: any) => i.status === "recebido" && i.paid_date && new Date(i.paid_date) >= start && new Date(i.paid_date) <= end)
       .reduce((sum: number, i: any) => sum + Number(i.value), 0);
+
+    const totalReceived = receivedCommission + legacyReceived;
 
     const expensesPaidInPeriod = expenses
       .filter((e) => e.status === "pago" && e.payment_date && new Date(e.payment_date) >= start && new Date(e.payment_date) <= end)
       .reduce((sum, e) => sum + Number(e.value), 0);
 
-    const toReceive = allInstallments
+    const toReceive = pendingCommission + allInstallments
       .filter((i: any) => i.status !== "recebido" && i.status !== "cancelado")
       .reduce((sum: number, i: any) => sum + Number(i.value), 0);
 
-    // A Pagar: real unpaid expenses + projected virtual expenses
     const realToPay = expenses
       .filter((e) => e.status !== "pago")
       .reduce((sum, e) => sum + Number(e.value), 0);
@@ -47,7 +76,7 @@ export default function Dashboard() {
       .reduce((sum, p) => sum + p.value, 0);
     const toPay = realToPay + projectedToPay;
 
-    const lateCommissions = allInstallments
+    const lateCommissions = [...allOrderInstallments, ...allInstallments]
       .filter((i: any) => i.status !== "recebido" && i.status !== "cancelado" && isBefore(startOfDay(new Date(i.due_date)), today))
       .reduce((sum: number, i: any) => sum + Number(i.value), 0);
     const lateExpenses = expenses
@@ -55,9 +84,8 @@ export default function Dashboard() {
       .reduce((sum, e) => sum + Number(e.value), 0);
     const inadimplencia = lateCommissions + lateExpenses;
 
-    // Forecast 90 days includes projected expenses
     const in90days = addDays(today, 90);
-    const forecast90in = allInstallments
+    const forecast90in = [...allOrderInstallments, ...allInstallments]
       .filter((i: any) => i.status !== "recebido" && i.status !== "cancelado" && new Date(i.due_date) >= today && new Date(i.due_date) <= in90days)
       .reduce((sum: number, i: any) => sum + Number(i.value), 0);
     const forecast90outReal = expenses
@@ -70,7 +98,7 @@ export default function Dashboard() {
 
     // Alerts
     const alerts: any[] = [];
-    allInstallments.forEach((i: any) => {
+    [...allOrderInstallments, ...allInstallments].forEach((i: any) => {
       if (i.status === "recebido" || i.status === "cancelado") return;
       const due = startOfDay(new Date(i.due_date));
       if (isBefore(due, today)) {
@@ -90,12 +118,14 @@ export default function Dashboard() {
     });
 
     // Charts
+    const allOrdersForCharts = ordersQuery.data || [];
     const revenueByFactory = Object.entries(
-      commissions.reduce((acc: Record<string, number>, c: any) => {
-        acc[c.factory] = (acc[c.factory] || 0) + Number(c.commission_total);
+      allOrdersForCharts.reduce((acc: Record<string, number>, o: any) => {
+        if (o.status === "deleted" || o.status === "cancelado") return acc;
+        acc[o.factory] = (acc[o.factory] || 0) + Number(o.commission_base_value);
         return acc;
       }, {})
-    ).map(([name, value]) => ({ name, value: value as number }));
+    ).map(([name, value]) => ({ name, value: value as number })).sort((a, b) => b.value - a.value);
 
     const expensesByCategory = Object.entries(
       expenses.reduce((acc: Record<string, number>, e) => {
@@ -109,7 +139,7 @@ export default function Dashboard() {
       const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
       const mEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0);
       const label = `${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
-      const mRec = allInstallments
+      const mRec = [...allOrderInstallments, ...allInstallments]
         .filter((inst: any) => inst.status === "recebido" && inst.paid_date && new Date(inst.paid_date) >= d && new Date(inst.paid_date) <= mEnd)
         .reduce((s: number, inst: any) => s + Number(inst.value), 0);
       const mExp = expenses
@@ -118,17 +148,51 @@ export default function Dashboard() {
       monthlyEvolution.push({ month: label, receitas: mRec, despesas: mExp });
     }
 
-    return { receivedInPeriod, expensesPaidInPeriod, toReceive, toPay, inadimplencia, forecast90, alerts, revenueByFactory, expensesByCategory, monthlyEvolution };
-  }, [commissions, expenses, projections, period]);
+    // Rankings
+    const clientRanking = Object.entries(
+      allOrdersForCharts.reduce((acc: Record<string, number>, o: any) => {
+        if (o.status === "deleted" || o.status === "cancelado") return acc;
+        acc[o.client] = (acc[o.client] || 0) + Number(o.commission_base_value);
+        return acc;
+      }, {})
+    ).map(([name, value]) => ({ name, value: value as number })).sort((a, b) => b.value - a.value).slice(0, 10);
+
+    return {
+      totalSales, totalCommissionExpected, receivedInPeriod: totalReceived,
+      expensesPaidInPeriod, toReceive, toPay, inadimplencia, forecast90,
+      pendingCommission, alerts, revenueByFactory, expensesByCategory,
+      monthlyEvolution, clientRanking,
+    };
+  }, [commissions, expenses, projections, period, orders]);
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground text-sm">Visão geral financeira</p>
+          <p className="text-muted-foreground text-sm">Visão geral financeira e de vendas</p>
         </div>
         <PeriodSelector value={periodKey} onChange={(v, r) => { setPeriodKey(v); setPeriod(r); }} />
+      </div>
+
+      {/* Sales KPIs */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <Card className="glass-card"><CardContent className="p-3">
+          <span className="text-[10px] font-medium text-muted-foreground">Vendas do Mês</span>
+          <p className="text-sm font-bold text-foreground">{formatCurrency(stats.totalSales)}</p>
+        </CardContent></Card>
+        <Card className="glass-card"><CardContent className="p-3">
+          <span className="text-[10px] font-medium text-muted-foreground">Comissão Prevista</span>
+          <p className="text-sm font-bold text-info">{formatCurrency(stats.totalCommissionExpected)}</p>
+        </CardContent></Card>
+        <Card className="glass-card"><CardContent className="p-3">
+          <span className="text-[10px] font-medium text-muted-foreground">Comissão Recebida</span>
+          <p className="text-sm font-bold text-success">{formatCurrency(stats.receivedInPeriod)}</p>
+        </CardContent></Card>
+        <Card className="glass-card"><CardContent className="p-3">
+          <span className="text-[10px] font-medium text-muted-foreground">Comissão a Receber</span>
+          <p className="text-sm font-bold text-warning">{formatCurrency(stats.pendingCommission)}</p>
+        </CardContent></Card>
       </div>
 
       <KpiCards
@@ -149,7 +213,33 @@ export default function Dashboard() {
             monthlyEvolution={stats.monthlyEvolution}
           />
         </div>
-        <AlertsPanel alerts={stats.alerts} />
+        <div className="space-y-6">
+          <AlertsPanel alerts={stats.alerts} />
+
+          {/* Client Ranking */}
+          <Card className="glass-card">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Top Clientes (por vendas)</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {stats.clientRanking.length === 0 ? (
+                <p className="text-muted-foreground text-xs">Sem dados</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {stats.clientRanking.map((c, i) => (
+                    <div key={c.name} className="flex items-center justify-between text-xs">
+                      <span className="truncate max-w-[60%]">
+                        <span className="text-muted-foreground mr-1">{i + 1}.</span>
+                        {c.name}
+                      </span>
+                      <span className="font-semibold">{formatCurrency(c.value)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
