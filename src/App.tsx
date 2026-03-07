@@ -7,6 +7,8 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import Clients from "./pages/Clients";
+import Factories from "./pages/Factories";
 import Commissions from "./pages/Commissions";
 import Orders from "./pages/Orders";
 import Expenses from "./pages/Expenses";
@@ -15,6 +17,7 @@ import Reconciliation from "./pages/Reconciliation";
 import Settings from "./pages/Settings";
 import Reports from "./pages/Reports";
 import Projections from "./pages/Projections";
+import ImportData from "./pages/ImportData";
 import Placeholder from "./pages/Placeholder";
 import NotFound from "./pages/NotFound";
 import { Building2 } from "lucide-react";
@@ -58,8 +61,11 @@ function AppRoutes() {
     <Routes>
       <Route element={<AppLayout />}>
         <Route path="/" element={<Dashboard />} />
+        <Route path="/clientes" element={<Clients />} />
+        <Route path="/fabricas" element={<Factories />} />
         <Route path="/pedidos" element={<Orders />} />
         <Route path="/comissoes" element={<Commissions />} />
+        <Route path="/importacao" element={<ImportData />} />
         <Route path="/despesas" element={<Expenses />} />
         <Route path="/conciliacao" element={<Reconciliation />} />
         <Route path="/fluxo-caixa" element={<CashFlow />} />
