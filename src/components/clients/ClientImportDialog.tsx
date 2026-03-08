@@ -272,8 +272,8 @@ export function ClientImportDialog() {
           <Upload className="mr-2 h-4 w-4" />Importar Clientes
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col overflow-hidden p-0">
+        <DialogHeader className="px-6 pt-6 pb-2 shrink-0">
           <DialogTitle>Importar Clientes</DialogTitle>
         </DialogHeader>
 
