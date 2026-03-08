@@ -386,14 +386,14 @@ export function ClientImportDialog() {
                 </div>
               )}
 
-              <div className="flex justify-between pt-2">
-                <Button variant="outline" onClick={() => setStep("choose")}>Voltar</Button>
-                <Button onClick={processMapping} disabled={!columnMapping.razao_social}>
-                  Continuar para Revisão
-                </Button>
-              </div>
             </div>
-          </ScrollArea>
+          </div>
+          <div className="flex justify-between px-6 py-3 border-t shrink-0">
+            <Button variant="outline" onClick={() => setStep("choose")}>Voltar</Button>
+            <Button onClick={processMapping} disabled={!columnMapping.razao_social}>
+              Continuar para Revisão
+            </Button>
+          </div>
         )}
 
         {step === "review" && (
