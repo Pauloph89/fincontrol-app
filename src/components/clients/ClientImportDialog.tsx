@@ -328,7 +328,7 @@ export function ClientImportDialog() {
         )}
 
         {step === "mapping" && (
-          <ScrollArea className="flex-1 -mx-6 px-6">
+          <div className="flex-1 overflow-y-auto px-6 min-h-0">
             <div className="space-y-4 pb-4">
               <div className="flex items-center gap-2 mb-2">
                 <Badge variant="secondary">{sheetRows.length} registros encontrados</Badge>
