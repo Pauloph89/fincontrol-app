@@ -177,6 +177,7 @@ export function useOrders() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["orders"] });
+      qc.invalidateQueries({ queryKey: ["commissions"] });
       toast({ title: "Pedido cadastrado com sucesso!" });
     },
     onError: (err: Error) => {
