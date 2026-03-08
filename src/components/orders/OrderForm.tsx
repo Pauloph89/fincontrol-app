@@ -410,7 +410,7 @@ export function OrderForm() {
                 </TabsContent>
 
                 <TabsContent value="manual" className="space-y-3">
-                  <div className="rounded-lg border border-border overflow-hidden">
+                  <div className="rounded-lg border border-border overflow-hidden max-h-64 overflow-y-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>

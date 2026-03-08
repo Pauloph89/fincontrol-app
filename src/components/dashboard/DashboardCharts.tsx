@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from "recharts";
 import { formatCurrency } from "@/lib/financial-utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const COLORS = [
   "hsl(215, 76%, 56%)",
@@ -21,16 +22,26 @@ interface DashboardChartsProps {
   commissionByFactory?: { name: string; value: number }[];
 }
 
-const renderPieLabel = ({ name, percent, x, y, midAngle }: any) => {
-  const short = name.length > 10 ? name.slice(0, 10) + "…" : name;
+const RADIAN = Math.PI / 180;
+const renderPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, name, percent }: any) => {
+  if (percent < 0.05) return null; // Hide labels for tiny slices
+  const radius = outerRadius + 18;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+  const short = name.length > 12 ? name.slice(0, 12) + "…" : name;
   return (
-    <text x={x} y={y} textAnchor={midAngle > 180 ? "end" : "start"} dominantBaseline="central" className="fill-foreground" style={{ fontSize: 9 }}>
+    <text x={x} y={y} textAnchor={x > cx ? "start" : "end"} dominantBaseline="central" className="fill-foreground" style={{ fontSize: 10, fontWeight: 500 }}>
       {short} {(percent * 100).toFixed(0)}%
     </text>
   );
 };
 
 export function DashboardCharts({ revenueByFactory, expensesByCategory, monthlyEvolution, commissionByVendor, commissionByFactory }: DashboardChartsProps) {
+  const isMobile = useIsMobile();
+  const chartHeight = isMobile ? 200 : 280;
+  const pieOuterRadius = isMobile ? 65 : 85;
+  const pieInnerRadius = isMobile ? 35 : 45;
+
   return (
     <div className="space-y-6">
       {/* Monthly evolution */}
@@ -40,17 +51,17 @@ export function DashboardCharts({ revenueByFactory, expensesByCategory, monthlyE
         </CardHeader>
         <CardContent className="px-2 sm:px-6">
           {monthlyEvolution.every((m) => m.receitas === 0 && m.despesas === 0) ? (
-            <div className="h-[200px] sm:h-[220px] flex items-center justify-center text-muted-foreground text-sm">Sem dados ainda</div>
+            <div className="flex items-center justify-center text-muted-foreground text-sm" style={{ height: chartHeight }}>Sem dados ainda</div>
           ) : (
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="100%" height={chartHeight}>
               <LineChart data={monthlyEvolution}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 20%, 90%)" />
-                <XAxis dataKey="month" tick={{ fontSize: 9 }} interval="preserveStartEnd" />
-                <YAxis tick={{ fontSize: 9 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} width={50} />
-                <Tooltip formatter={(v: number) => formatCurrency(v)} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Line type="monotone" dataKey="receitas" name="Receitas" stroke="hsl(142, 71%, 45%)" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="despesas" name="Despesas" stroke="hsl(0, 72%, 51%)" strokeWidth={2} dot={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 20%, 88%)" />
+                <XAxis dataKey="month" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
+                <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} width={55} />
+                <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={{ fontSize: 12 }} />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Line type="monotone" dataKey="receitas" name="Receitas" stroke="hsl(142, 71%, 45%)" strokeWidth={2.5} dot={false} />
+                <Line type="monotone" dataKey="despesas" name="Despesas" stroke="hsl(0, 72%, 51%)" strokeWidth={2.5} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           )}
@@ -64,14 +75,14 @@ export function DashboardCharts({ revenueByFactory, expensesByCategory, monthlyE
           </CardHeader>
           <CardContent className="px-2 sm:px-6">
             {revenueByFactory.length === 0 ? (
-              <div className="h-[200px] sm:h-[220px] flex items-center justify-center text-muted-foreground text-sm">Sem dados</div>
+              <div className="flex items-center justify-center text-muted-foreground text-sm" style={{ height: chartHeight }}>Sem dados</div>
             ) : (
-              <ResponsiveContainer width="100%" height={220}>
+              <ResponsiveContainer width="100%" height={chartHeight}>
                 <BarChart data={revenueByFactory}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 20%, 90%)" />
-                  <XAxis dataKey="name" tick={{ fontSize: 9 }} interval={0} angle={-25} textAnchor="end" height={50} />
-                  <YAxis tick={{ fontSize: 9 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} width={50} />
-                  <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 20%, 88%)" />
+                  <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} angle={-20} textAnchor="end" height={55} />
+                  <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} width={55} />
+                  <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={{ fontSize: 12 }} />
                   <Bar dataKey="value" fill="hsl(215, 76%, 56%)" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -85,23 +96,33 @@ export function DashboardCharts({ revenueByFactory, expensesByCategory, monthlyE
           </CardHeader>
           <CardContent className="px-2 sm:px-6">
             {expensesByCategory.length === 0 ? (
-              <div className="h-[280px] flex items-center justify-center text-muted-foreground text-sm">Sem dados</div>
+              <div className="flex items-center justify-center text-muted-foreground text-sm" style={{ height: chartHeight }}>Sem dados</div>
             ) : (
               <div className="flex flex-col">
-                <ResponsiveContainer width="100%" height={200}>
+                <ResponsiveContainer width="100%" height={chartHeight - 40}>
                   <PieChart>
-                    <Pie data={expensesByCategory} cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={2} dataKey="value" label={renderPieLabel} labelLine={{ strokeWidth: 0.5 }}>
+                    <Pie
+                      data={expensesByCategory}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={pieInnerRadius}
+                      outerRadius={pieOuterRadius}
+                      paddingAngle={2}
+                      dataKey="value"
+                      label={renderPieLabel}
+                      labelLine={{ strokeWidth: 0.5, stroke: "hsl(215, 20%, 70%)" }}
+                    >
                       {expensesByCategory.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                     </Pie>
-                    <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                    <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={{ fontSize: 12 }} />
                   </PieChart>
                 </ResponsiveContainer>
-                <div className="max-h-20 overflow-y-auto mt-2 px-2">
-                  <div className="flex flex-wrap gap-x-3 gap-y-1">
+                <div className="max-h-24 overflow-y-auto mt-1 px-2">
+                  <div className="flex flex-wrap gap-x-4 gap-y-1.5">
                     {expensesByCategory.map((item, i) => (
-                      <div key={item.name} className="flex items-center gap-1.5 text-[10px] text-muted-foreground whitespace-nowrap">
-                        <span className="inline-block h-2 w-2 rounded-full shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
-                        <span className="truncate max-w-[120px]">{item.name}</span>
+                      <div key={item.name} className="flex items-center gap-1.5 text-[11px] text-muted-foreground whitespace-nowrap">
+                        <span className="inline-block h-2.5 w-2.5 rounded-full shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
+                        <span className="truncate max-w-[140px]">{item.name}</span>
                       </div>
                     ))}
                   </div>
@@ -120,12 +141,12 @@ export function DashboardCharts({ revenueByFactory, expensesByCategory, monthlyE
               <CardTitle className="text-sm font-medium text-muted-foreground">Comissão por Vendedor</CardTitle>
             </CardHeader>
             <CardContent className="px-2 sm:px-6">
-              <ResponsiveContainer width="100%" height={220}>
+              <ResponsiveContainer width="100%" height={Math.max(chartHeight - 40, commissionByVendor.length * 35 + 30)}>
                 <BarChart data={commissionByVendor} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 20%, 90%)" />
-                  <XAxis type="number" tick={{ fontSize: 9 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 9 }} width={80} />
-                  <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 20%, 88%)" />
+                  <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={90} />
+                  <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={{ fontSize: 12 }} />
                   <Bar dataKey="value" fill="hsl(142, 71%, 45%)" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -139,12 +160,12 @@ export function DashboardCharts({ revenueByFactory, expensesByCategory, monthlyE
               <CardTitle className="text-sm font-medium text-muted-foreground">Comissão por Fábrica</CardTitle>
             </CardHeader>
             <CardContent className="px-2 sm:px-6">
-              <ResponsiveContainer width="100%" height={220}>
+              <ResponsiveContainer width="100%" height={Math.max(chartHeight - 40, commissionByFactory.length * 35 + 30)}>
                 <BarChart data={commissionByFactory} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 20%, 90%)" />
-                  <XAxis type="number" tick={{ fontSize: 9 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
-                  <YAxis type="category" dataKey="name" tick={{ fontSize: 9 }} width={80} />
-                  <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 20%, 88%)" />
+                  <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={90} />
+                  <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={{ fontSize: 12 }} />
                   <Bar dataKey="value" fill="hsl(38, 92%, 50%)" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
