@@ -397,7 +397,7 @@ export function ClientImportDialog() {
         )}
 
         {step === "review" && (
-          <ScrollArea className="flex-1 -mx-6 px-6">
+          <div className="flex-1 overflow-y-auto px-6 min-h-0">
             <div className="space-y-4 pb-4">
               <div className="flex gap-2 flex-wrap">
                 <Badge variant="secondary">{parsedClients.length} registros</Badge>
