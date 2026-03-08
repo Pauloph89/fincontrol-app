@@ -78,18 +78,86 @@ async function syncCommissionFromOrder(order: any, userId: string, companyId: st
       status: order.status === "cancelado" ? "cancelada" : "ativa",
     };
 
+    let commissionId: string;
+
     if (existing) {
       await supabase.from("commissions").update(commData).eq("id", existing.id);
+      commissionId = existing.id;
     } else {
       if (order.status === "cancelado" || order.status === "deleted") return;
-      await supabase.from("commissions").insert({
+      const { data: newComm, error: insertErr } = await supabase.from("commissions").insert({
         ...commData,
         user_id: userId,
         company_id: companyId,
-      } as any);
+      } as any).select("id").single();
+      if (insertErr || !newComm) return;
+      commissionId = newComm.id;
     }
+
+    // Sync commission installments from order installments
+    await syncCommissionInstallments(order.id, commissionId, commissionTotal, existing != null);
   } catch (err) {
     console.error("Erro ao sincronizar comissão:", err);
+  }
+}
+
+/**
+ * Create/update commission_installments mirroring order_installments.
+ * Each commission installment value = order installment's commission_value_rep.
+ */
+async function syncCommissionInstallments(orderId: string, commissionId: string, commissionTotal: number, isUpdate: boolean) {
+  try {
+    // Get order installments
+    const { data: orderInst } = await supabase
+      .from("order_installments")
+      .select("*")
+      .eq("order_id", orderId)
+      .order("installment_number", { ascending: true });
+
+    if (!orderInst || orderInst.length === 0) return;
+
+    if (isUpdate) {
+      // Delete non-received commission installments and recreate
+      const { data: existingCI } = await supabase
+        .from("commission_installments")
+        .select("id, status")
+        .eq("commission_id", commissionId);
+
+      const nonReceived = (existingCI || []).filter((ci: any) => ci.status !== "recebido");
+      if (nonReceived.length > 0) {
+        await supabase.from("commission_installments").delete().in("id", nonReceived.map((ci: any) => ci.id));
+      }
+
+      const receivedCount = (existingCI || []).length - nonReceived.length;
+      // Only create installments for non-received order installments
+      const orderInstToSync = orderInst.filter((_: any, i: number) => i >= receivedCount);
+      if (orderInstToSync.length === 0) return;
+
+      const newInstallments = orderInstToSync.map((oi: any, i: number) => ({
+        commission_id: commissionId,
+        installment_number: receivedCount + i + 1,
+        value: Number(oi.commission_value_rep) || Math.round((commissionTotal / orderInst.length) * 100) / 100,
+        due_date: oi.due_date,
+        status: oi.status === "cancelado" ? "cancelado" : "previsto",
+        notes: oi.notes || null,
+      }));
+
+      await supabase.from("commission_installments").insert(newInstallments);
+    } else {
+      // New commission — create all installments
+      const installments = orderInst.map((oi: any) => ({
+        commission_id: commissionId,
+        installment_number: oi.installment_number,
+        value: Number(oi.commission_value_rep) || Math.round((commissionTotal / orderInst.length) * 100) / 100,
+        due_date: oi.due_date,
+        status: "previsto",
+        notes: oi.notes || null,
+      }));
+
+      await supabase.from("commission_installments").insert(installments);
+    }
+  } catch (err) {
+    console.error("Erro ao sincronizar parcelas da comissão:", err);
   }
 }
 
