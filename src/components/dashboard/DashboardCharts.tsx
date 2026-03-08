@@ -9,15 +9,18 @@ const COLORS = [
   "hsl(280, 65%, 60%)",
   "hsl(0, 72%, 51%)",
   "hsl(190, 70%, 50%)",
+  "hsl(340, 65%, 55%)",
+  "hsl(160, 60%, 45%)",
 ];
 
 interface DashboardChartsProps {
   revenueByFactory: { name: string; value: number }[];
   expensesByCategory: { name: string; value: number }[];
   monthlyEvolution: { month: string; receitas: number; despesas: number }[];
+  commissionByVendor?: { name: string; value: number }[];
+  commissionByFactory?: { name: string; value: number }[];
 }
 
-// Custom label for pie chart - compact
 const renderPieLabel = ({ name, percent, x, y, midAngle }: any) => {
   const short = name.length > 10 ? name.slice(0, 10) + "…" : name;
   return (
@@ -27,7 +30,7 @@ const renderPieLabel = ({ name, percent, x, y, midAngle }: any) => {
   );
 };
 
-export function DashboardCharts({ revenueByFactory, expensesByCategory, monthlyEvolution }: DashboardChartsProps) {
+export function DashboardCharts({ revenueByFactory, expensesByCategory, monthlyEvolution, commissionByVendor, commissionByFactory }: DashboardChartsProps) {
   return (
     <div className="space-y-6">
       {/* Monthly evolution */}
@@ -87,25 +90,12 @@ export function DashboardCharts({ revenueByFactory, expensesByCategory, monthlyE
               <div className="flex flex-col">
                 <ResponsiveContainer width="100%" height={200}>
                   <PieChart>
-                    <Pie
-                      data={expensesByCategory}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={40}
-                      outerRadius={70}
-                      paddingAngle={2}
-                      dataKey="value"
-                      label={renderPieLabel}
-                      labelLine={{ strokeWidth: 0.5 }}
-                    >
-                      {expensesByCategory.map((_, i) => (
-                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                      ))}
+                    <Pie data={expensesByCategory} cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={2} dataKey="value" label={renderPieLabel} labelLine={{ strokeWidth: 0.5 }}>
+                      {expensesByCategory.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                     </Pie>
                     <Tooltip formatter={(v: number) => formatCurrency(v)} />
                   </PieChart>
                 </ResponsiveContainer>
-                {/* Scrollable legend */}
                 <div className="max-h-20 overflow-y-auto mt-2 px-2">
                   <div className="flex flex-wrap gap-x-3 gap-y-1">
                     {expensesByCategory.map((item, i) => (
@@ -120,6 +110,47 @@ export function DashboardCharts({ revenueByFactory, expensesByCategory, monthlyE
             )}
           </CardContent>
         </Card>
+      </div>
+
+      {/* Commission charts */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {commissionByVendor && commissionByVendor.length > 0 && (
+          <Card className="glass-card">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Comissão por Vendedor</CardTitle>
+            </CardHeader>
+            <CardContent className="px-2 sm:px-6">
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={commissionByVendor} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 20%, 90%)" />
+                  <XAxis type="number" tick={{ fontSize: 9 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 9 }} width={80} />
+                  <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                  <Bar dataKey="value" fill="hsl(142, 71%, 45%)" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
+
+        {commissionByFactory && commissionByFactory.length > 0 && (
+          <Card className="glass-card">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Comissão por Fábrica</CardTitle>
+            </CardHeader>
+            <CardContent className="px-2 sm:px-6">
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={commissionByFactory} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 20%, 90%)" />
+                  <XAxis type="number" tick={{ fontSize: 9 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 9 }} width={80} />
+                  <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                  <Bar dataKey="value" fill="hsl(38, 92%, 50%)" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

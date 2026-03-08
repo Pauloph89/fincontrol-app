@@ -3,20 +3,22 @@ import { useClients, Client, ClientFormData } from "@/hooks/useClients";
 import { useOrders } from "@/hooks/useOrders";
 import { useUserRole } from "@/hooks/useUserRole";
 import { formatCurrency, formatDate } from "@/lib/financial-utils";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Plus, Pencil, Trash2, Search, Loader2, Users, Eye } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ClientInteractions } from "@/components/clients/ClientInteractions";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const BRAZILIAN_STATES = [
   "AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA",
@@ -68,7 +70,6 @@ export default function Clients() {
 
   const update = (field: keyof ClientFormData, value: string) => setForm((p) => ({ ...p, [field]: value }));
 
-  // Get orders for a client (by name match)
   const getClientOrders = (clientName: string) => {
     return (ordersQuery.data || []).filter((o: any) =>
       o.client.toLowerCase() === clientName.toLowerCase() || o.client_cnpj === clientName
@@ -84,20 +85,18 @@ export default function Clients() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">CRM — Clientes</h1>
-          <p className="text-muted-foreground text-sm">Cadastro e histórico de clientes</p>
+          <p className="text-muted-foreground text-sm">Cadastro, histórico e relacionamento com clientes</p>
         </div>
         {canEdit && (
           <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />Novo Cliente</Button>
         )}
       </div>
 
-      {/* Search */}
       <div className="relative max-w-sm">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input placeholder="Buscar cliente..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
       </div>
 
-      {/* List */}
       {clients.length === 0 ? (
         <Card><CardContent className="py-16 text-center">
           <Users className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
@@ -202,27 +201,33 @@ export default function Clients() {
         </DialogContent>
       </Dialog>
 
-      {/* Detail Dialog */}
+      {/* Detail Dialog with CRM Interactions */}
       <Dialog open={!!detailClient} onOpenChange={() => setDetailClient(null)}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{detailClient?.razao_social}</DialogTitle></DialogHeader>
           {detailClient && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div><span className="text-muted-foreground">Nome Fantasia:</span> {detailClient.nome_fantasia || "—"}</div>
-                <div><span className="text-muted-foreground">CNPJ/CPF:</span> {detailClient.cnpj_cpf || "—"}</div>
-                <div><span className="text-muted-foreground">Telefone:</span> {detailClient.telefone || "—"}</div>
-                <div><span className="text-muted-foreground">E-mail:</span> {detailClient.email || "—"}</div>
-                <div><span className="text-muted-foreground">Cidade/UF:</span> {detailClient.cidade ? `${detailClient.cidade}/${detailClient.estado}` : "—"}</div>
-                <div><span className="text-muted-foreground">Vendedor:</span> {detailClient.vendedor_responsavel || "—"}</div>
-              </div>
-              {detailClient.observacoes && (
-                <div className="text-sm"><span className="text-muted-foreground">Observações:</span> {detailClient.observacoes}</div>
-              )}
+            <Tabs defaultValue="info">
+              <TabsList className="w-full">
+                <TabsTrigger value="info">Dados</TabsTrigger>
+                <TabsTrigger value="orders">Pedidos</TabsTrigger>
+                <TabsTrigger value="interactions">CRM / Interações</TabsTrigger>
+              </TabsList>
 
-              {/* Order history */}
-              <div>
-                <h3 className="font-semibold text-sm mb-2">Histórico de Pedidos</h3>
+              <TabsContent value="info" className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div><span className="text-muted-foreground">Nome Fantasia:</span> {detailClient.nome_fantasia || "—"}</div>
+                  <div><span className="text-muted-foreground">CNPJ/CPF:</span> {detailClient.cnpj_cpf || "—"}</div>
+                  <div><span className="text-muted-foreground">Telefone:</span> {detailClient.telefone || "—"}</div>
+                  <div><span className="text-muted-foreground">E-mail:</span> {detailClient.email || "—"}</div>
+                  <div><span className="text-muted-foreground">Cidade/UF:</span> {detailClient.cidade ? `${detailClient.cidade}/${detailClient.estado}` : "—"}</div>
+                  <div><span className="text-muted-foreground">Vendedor:</span> {detailClient.vendedor_responsavel || "—"}</div>
+                </div>
+                {detailClient.observacoes && (
+                  <div className="text-sm"><span className="text-muted-foreground">Observações:</span> {detailClient.observacoes}</div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="orders" className="space-y-4">
                 {(() => {
                   const orders = getClientOrders(detailClient.razao_social);
                   if (orders.length === 0) return <p className="text-muted-foreground text-sm">Nenhum pedido encontrado.</p>;
@@ -258,8 +263,12 @@ export default function Clients() {
                     </div>
                   );
                 })()}
-              </div>
-            </div>
+              </TabsContent>
+
+              <TabsContent value="interactions">
+                <ClientInteractions clientId={detailClient.id} />
+              </TabsContent>
+            </Tabs>
           )}
         </DialogContent>
       </Dialog>
