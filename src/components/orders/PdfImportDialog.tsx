@@ -268,7 +268,7 @@ export function PdfImportDialog({ trigger }: { trigger?: React.ReactNode }) {
         )}
 
         {step === "review" && form && (
-          <ScrollArea className="flex-1 -mx-6 px-6">
+          <div className="flex-1 overflow-y-auto px-6 min-h-0">
             <div className="space-y-4 pb-4">
               <Badge variant="secondary" className="mb-2">
                 <CheckCircle2 className="mr-1 h-3 w-3" />Dados extraídos — revise e edite antes de salvar
