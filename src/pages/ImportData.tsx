@@ -131,9 +131,16 @@ export default function ImportData() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Importar Relatório</h1>
-        <p className="text-muted-foreground text-sm">Importe dados de fábricas via Excel ou CSV</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Importar Relatório</h1>
+          <p className="text-muted-foreground text-sm">Importe dados de fábricas via Excel, CSV ou PDF</p>
+        </div>
+        <PdfImportDialog trigger={
+          <Button variant="outline">
+            <FileUp className="mr-2 h-4 w-4" />Importar Pedido PDF
+          </Button>
+        } />
       </div>
 
       <Card className="glass-card">
