@@ -222,7 +222,7 @@ export function PdfImportDialog({ trigger }: { trigger?: React.ReactNode }) {
   })();
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetState(); }}>
+    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { resetState(); document.body.style.removeProperty('overflow'); document.body.style.removeProperty('pointer-events'); } }} modal={true}>
       <DialogTrigger asChild>
         {trigger || (
           <Button variant="outline">
