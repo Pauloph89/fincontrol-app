@@ -272,13 +272,13 @@ export function ClientImportDialog() {
           <Upload className="mr-2 h-4 w-4" />Importar Clientes
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col overflow-hidden p-0">
+        <DialogHeader className="px-6 pt-6 pb-2 shrink-0">
           <DialogTitle>Importar Clientes</DialogTitle>
         </DialogHeader>
 
         {step === "choose" && (
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-4 px-6">
             <p className="text-sm text-muted-foreground">Escolha a fonte de importação:</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Card
@@ -328,7 +328,8 @@ export function ClientImportDialog() {
         )}
 
         {step === "mapping" && (
-          <ScrollArea className="flex-1 -mx-6 px-6">
+          <>
+          <div className="flex-1 overflow-y-auto px-6 min-h-0">
             <div className="space-y-4 pb-4">
               <div className="flex items-center gap-2 mb-2">
                 <Badge variant="secondary">{sheetRows.length} registros encontrados</Badge>
@@ -386,18 +387,20 @@ export function ClientImportDialog() {
                 </div>
               )}
 
-              <div className="flex justify-between pt-2">
-                <Button variant="outline" onClick={() => setStep("choose")}>Voltar</Button>
-                <Button onClick={processMapping} disabled={!columnMapping.razao_social}>
-                  Continuar para Revisão
-                </Button>
-              </div>
             </div>
-          </ScrollArea>
+          </div>
+          <div className="flex justify-between px-6 py-3 border-t shrink-0">
+            <Button variant="outline" onClick={() => setStep("choose")}>Voltar</Button>
+            <Button onClick={processMapping} disabled={!columnMapping.razao_social}>
+              Continuar para Revisão
+            </Button>
+          </div>
+          </>
         )}
 
         {step === "review" && (
-          <ScrollArea className="flex-1 -mx-6 px-6">
+          <>
+          <div className="flex-1 overflow-y-auto px-6 min-h-0">
             <div className="space-y-4 pb-4">
               <div className="flex gap-2 flex-wrap">
                 <Badge variant="secondary">{parsedClients.length} registros</Badge>
@@ -449,22 +452,23 @@ export function ClientImportDialog() {
                 </TableBody>
               </Table>
 
-              <div className="flex justify-between pt-2 sticky bottom-0 bg-background pb-2">
-                <Button variant="outline" onClick={() => setStep(sheetColumns.length > 0 ? "mapping" : "choose")}>Voltar</Button>
-                <Button onClick={handleImport} disabled={saving}>
-                  {saving ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Importando...</>
-                  ) : (
-                    <><CheckCircle2 className="mr-2 h-4 w-4" />Importar {parsedClients.filter((c) => c._action !== "skip").length} clientes</>
-                  )}
-                </Button>
-              </div>
             </div>
-          </ScrollArea>
+          </div>
+          <div className="flex justify-between px-6 py-3 border-t shrink-0">
+            <Button variant="outline" onClick={() => setStep(sheetColumns.length > 0 ? "mapping" : "choose")}>Voltar</Button>
+            <Button onClick={handleImport} disabled={saving}>
+              {saving ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Importando...</>
+              ) : (
+                <><CheckCircle2 className="mr-2 h-4 w-4" />Importar {parsedClients.filter((c) => c._action !== "skip").length} clientes</>
+              )}
+            </Button>
+          </div>
+          </>
         )}
 
         {step === "result" && (
-          <div className="space-y-6 py-6 text-center">
+          <div className="space-y-6 py-6 text-center px-6">
             <CheckCircle2 className="mx-auto h-16 w-16 text-green-500" />
             <h3 className="text-lg font-semibold">Importação Concluída!</h3>
             <div className="grid grid-cols-3 gap-4">

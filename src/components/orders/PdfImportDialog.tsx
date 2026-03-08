@@ -230,8 +230,8 @@ export function PdfImportDialog({ trigger }: { trigger?: React.ReactNode }) {
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] flex flex-col overflow-hidden p-0">
+        <DialogHeader className="px-6 pt-6 pb-2 shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
             Importar Pedido via PDF
@@ -239,7 +239,7 @@ export function PdfImportDialog({ trigger }: { trigger?: React.ReactNode }) {
         </DialogHeader>
 
         {step === "upload" && (
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-4 px-6">
             <div className="border-2 border-dashed border-border rounded-lg p-8 text-center space-y-4">
               <FileUp className="mx-auto h-12 w-12 text-muted-foreground" />
               <div>
@@ -268,7 +268,8 @@ export function PdfImportDialog({ trigger }: { trigger?: React.ReactNode }) {
         )}
 
         {step === "review" && form && (
-          <ScrollArea className="flex-1 -mx-6 px-6">
+          <>
+          <div className="flex-1 overflow-y-auto px-6 min-h-0">
             <div className="space-y-4 pb-4">
               <Badge variant="secondary" className="mb-2">
                 <CheckCircle2 className="mr-1 h-3 w-3" />Dados extraídos — revise e edite antes de salvar
@@ -478,20 +479,21 @@ export function PdfImportDialog({ trigger }: { trigger?: React.ReactNode }) {
                 <Textarea value={form.observations || ""} onChange={(e) => update("observations", e.target.value)} rows={2} className="text-sm" />
               </div>
 
-              <div className="flex justify-between pt-2 sticky bottom-0 bg-background pb-2">
-                <Button variant="outline" onClick={() => { resetState(); }}>
-                  Voltar
-                </Button>
-                <Button onClick={handleSave} disabled={saving}>
-                  {saving ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Salvando...</>
-                  ) : (
-                    <><CheckCircle2 className="mr-2 h-4 w-4" />Salvar Pedido</>
-                  )}
-                </Button>
-              </div>
             </div>
-          </ScrollArea>
+          </div>
+          <div className="flex justify-between px-6 py-3 border-t shrink-0">
+            <Button variant="outline" onClick={() => { resetState(); }}>
+              Voltar
+            </Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Salvando...</>
+              ) : (
+                <><CheckCircle2 className="mr-2 h-4 w-4" />Salvar Pedido</>
+              )}
+            </Button>
+          </div>
+          </>
         )}
       </DialogContent>
     </Dialog>
