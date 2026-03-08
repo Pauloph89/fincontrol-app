@@ -34,7 +34,22 @@ Deno.serve(async (req) => {
     const arrayBuffer = await file.arrayBuffer();
     const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
 
-    const systemPrompt = `Você é um assistente especializado em extrair dados de pedidos comerciais a partir de PDFs.
+    const isClientExtraction = extractionType === "clients";
+
+    const systemPrompt = isClientExtraction
+      ? `Você é um assistente especializado em extrair dados de clientes/empresas de PDFs.
+Analise o documento e extraia uma lista de clientes encontrados. Para cada cliente, extraia:
+- name: nome da empresa/razão social
+- cnpj: CNPJ se disponível
+- phone: telefone
+- email: email
+- city: cidade
+- state: UF/estado (sigla de 2 letras)
+- address: endereço completo
+
+Retorne APENAS JSON válido com a chave "clients" contendo um array de objetos.
+Exemplo: {"clients": [{"name": "Empresa X", "cnpj": "12.345.678/0001-00", "phone": "(11) 1234-5678", ...}]}`
+      : `Você é um assistente especializado em extrair dados de pedidos comerciais a partir de PDFs.
 Analise o conteúdo do documento e extraia os seguintes campos quando disponíveis:
 - order_number: número do pedido
 - client: nome do cliente (razão social ou nome fantasia)
