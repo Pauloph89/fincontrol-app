@@ -87,6 +87,8 @@ export function useClients() {
           estado: form.estado || null,
           observacoes: form.observacoes || null,
           vendedor_responsavel: form.vendedor_responsavel || null,
+          categoria: form.categoria || 'outros',
+          status_funil: form.status_funil || 'lead',
         } as any)
         .select()
         .single();
