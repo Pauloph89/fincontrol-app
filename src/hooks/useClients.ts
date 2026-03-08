@@ -3,6 +3,21 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
+export const FUNNEL_STAGES = [
+  { value: "lead", label: "Lead" },
+  { value: "contato_realizado", label: "Contato realizado" },
+  { value: "apresentacao_feita", label: "Apresentação feita" },
+  { value: "negociacao", label: "Negociação" },
+  { value: "pedido_enviado", label: "Pedido enviado" },
+  { value: "cliente_ativo", label: "Cliente ativo" },
+  { value: "perdido", label: "Perdido" },
+] as const;
+
+export const CLIENT_CATEGORIES = [
+  "Varejo", "Atacado", "Distribuidor", "Construtora",
+  "Arquitetura", "Representante", "Outros",
+] as const;
+
 export interface Client {
   id: string;
   company_id: string | null;
@@ -16,6 +31,8 @@ export interface Client {
   estado: string | null;
   observacoes: string | null;
   vendedor_responsavel: string | null;
+  categoria: string | null;
+  status_funil: string | null;
   created_at: string;
   updated_at: string;
 }
