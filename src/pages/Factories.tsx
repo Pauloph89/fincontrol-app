@@ -150,8 +150,9 @@ export default function Factories() {
             <div className="space-y-2"><Label>Prazo de Pagamento</Label><Input value={form.prazo_pagamento || ""} onChange={(e) => update("prazo_pagamento", e.target.value)} placeholder="Ex: 30/60/90 DDL" /></div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2"><Label>Contato Comercial</Label><Input value={form.contato_comercial || ""} onChange={(e) => update("contato_comercial", e.target.value)} /></div>
-              <div className="space-y-2"><Label>E-mail Financeiro</Label><Input type="email" value={form.email_financeiro || ""} onChange={(e) => update("email_financeiro", e.target.value)} /></div>
+              <div className="space-y-2"><Label>Telefone</Label><Input value={(form as any).telefone || ""} onChange={(e) => update("telefone" as any, e.target.value)} placeholder="(11) 99999-9999" /></div>
             </div>
+            <div className="space-y-2"><Label>E-mail Financeiro</Label><Input type="email" value={form.email_financeiro || ""} onChange={(e) => update("email_financeiro", e.target.value)} /></div>
             <div className="space-y-2"><Label>Política de Comissão</Label><Textarea value={form.politica_comissao || ""} onChange={(e) => update("politica_comissao", e.target.value)} rows={2} /></div>
             <div className="space-y-2"><Label>Observações</Label><Textarea value={form.observacoes || ""} onChange={(e) => update("observacoes", e.target.value)} rows={2} /></div>
           </div>
