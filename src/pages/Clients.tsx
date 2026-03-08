@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useClients, Client, ClientFormData } from "@/hooks/useClients";
+import { ClientImportDialog } from "@/components/clients/ClientImportDialog";
 import { useOrders } from "@/hooks/useOrders";
 import { useUserRole } from "@/hooks/useUserRole";
 import { formatCurrency, formatDate } from "@/lib/financial-utils";
