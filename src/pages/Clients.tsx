@@ -89,7 +89,10 @@ export default function Clients() {
           <p className="text-muted-foreground text-sm">Cadastro, histórico e relacionamento com clientes</p>
         </div>
         {canEdit && (
-          <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />Novo Cliente</Button>
+          <div className="flex gap-2">
+            <ClientImportDialog />
+            <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />Novo Cliente</Button>
+          </div>
         )}
       </div>
 
