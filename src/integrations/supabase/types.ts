@@ -187,6 +187,7 @@ export type Database = {
       }
       clients: {
         Row: {
+          categoria: string | null
           cidade: string | null
           cnpj_cpf: string | null
           company_id: string | null
@@ -198,11 +199,13 @@ export type Database = {
           nome_fantasia: string | null
           observacoes: string | null
           razao_social: string
+          status_funil: string | null
           telefone: string | null
           updated_at: string
           vendedor_responsavel: string | null
         }
         Insert: {
+          categoria?: string | null
           cidade?: string | null
           cnpj_cpf?: string | null
           company_id?: string | null
@@ -214,11 +217,13 @@ export type Database = {
           nome_fantasia?: string | null
           observacoes?: string | null
           razao_social: string
+          status_funil?: string | null
           telefone?: string | null
           updated_at?: string
           vendedor_responsavel?: string | null
         }
         Update: {
+          categoria?: string | null
           cidade?: string | null
           cnpj_cpf?: string | null
           company_id?: string | null
@@ -230,6 +235,7 @@ export type Database = {
           nome_fantasia?: string | null
           observacoes?: string | null
           razao_social?: string
+          status_funil?: string | null
           telefone?: string | null
           updated_at?: string
           vendedor_responsavel?: string | null
