@@ -286,6 +286,21 @@ export function useOrders() {
       // Auto-generate commission record from order
       await syncCommissionFromOrder(order, user.id, companyId);
 
+      // Auto-update client funnel status to "cliente_ativo"
+      if (order.client_id) {
+        await supabase.from("clients").update({ status_funil: "cliente_ativo" } as any).eq("id", order.client_id);
+      } else {
+        // Try to find client by name match
+        const { data: matchedClients } = await supabase
+          .from("clients")
+          .select("id")
+          .eq("company_id", companyId)
+          .ilike("razao_social", order.client);
+        if (matchedClients && matchedClients.length > 0) {
+          await supabase.from("clients").update({ status_funil: "cliente_ativo" } as any).eq("id", matchedClients[0].id);
+        }
+      }
+
       return order;
     },
     onSuccess: () => {

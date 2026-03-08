@@ -1,6 +1,8 @@
-import { useState } from "react";
-import { useClients, Client, ClientFormData } from "@/hooks/useClients";
+import { useState, useMemo } from "react";
+import { useClients, Client, ClientFormData, CLIENT_CATEGORIES, FUNNEL_STAGES } from "@/hooks/useClients";
 import { ClientImportDialog } from "@/components/clients/ClientImportDialog";
+import { ClientFilters, ClientFilterValues, emptyFilters } from "@/components/clients/ClientFilters";
+import { ClientFunnel } from "@/components/clients/ClientFunnel";
 import { useOrders } from "@/hooks/useOrders";
 import { useUserRole } from "@/hooks/useUserRole";
 import { formatCurrency, formatDate } from "@/lib/financial-utils";
@@ -16,7 +18,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Search, Loader2, Users, Eye } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Users, Eye, LayoutList, Columns3 } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ClientInteractions } from "@/components/clients/ClientInteractions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -28,24 +30,47 @@ const BRAZILIAN_STATES = [
 
 const emptyForm: ClientFormData = {
   razao_social: "", nome_fantasia: "", cnpj_cpf: "", telefone: "",
-  email: "", endereco: "", cidade: "", estado: "", observacoes: "", vendedor_responsavel: "",
+  email: "", endereco: "", cidade: "", estado: "", observacoes: "",
+  vendedor_responsavel: "", categoria: "outros", status_funil: "lead",
 };
 
 export default function Clients() {
   const { clientsQuery, createClient, updateClient, deleteClient } = useClients();
   const { ordersQuery } = useOrders();
   const { canEdit, canDelete } = useUserRole();
-  const [search, setSearch] = useState("");
+  const [filters, setFilters] = useState<ClientFilterValues>({ ...emptyFilters });
+  const [viewMode, setViewMode] = useState<"list" | "funnel">("list");
   const [formOpen, setFormOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [detailClient, setDetailClient] = useState<Client | null>(null);
   const [form, setForm] = useState<ClientFormData>({ ...emptyForm });
 
-  const clients = (clientsQuery.data || []).filter((c) => {
-    if (!search) return true;
-    const s = search.toLowerCase();
-    return c.razao_social.toLowerCase().includes(s) || (c.nome_fantasia || "").toLowerCase().includes(s) || (c.cnpj_cpf || "").includes(s);
-  });
+  const allClients = clientsQuery.data || [];
+
+  const vendedores = useMemo(() => {
+    const set = new Set(allClients.map((c) => c.vendedor_responsavel).filter(Boolean) as string[]);
+    return Array.from(set).sort();
+  }, [allClients]);
+
+  const cidades = useMemo(() => {
+    const set = new Set(allClients.map((c) => c.cidade).filter(Boolean) as string[]);
+    return Array.from(set).sort();
+  }, [allClients]);
+
+  const clients = useMemo(() => {
+    return allClients.filter((c) => {
+      if (filters.search) {
+        const s = filters.search.toLowerCase();
+        if (!c.razao_social.toLowerCase().includes(s) && !(c.nome_fantasia || "").toLowerCase().includes(s) && !(c.cnpj_cpf || "").includes(s)) return false;
+      }
+      if (filters.estado && c.estado !== filters.estado) return false;
+      if (filters.cidade && c.cidade !== filters.cidade) return false;
+      if (filters.categoria && (c.categoria || "outros") !== filters.categoria) return false;
+      if (filters.vendedor && c.vendedor_responsavel !== filters.vendedor) return false;
+      if (filters.status_funil && (c.status_funil || "lead") !== filters.status_funil) return false;
+      return true;
+    });
+  }, [allClients, filters]);
 
   const openCreate = () => { setEditingClient(null); setForm({ ...emptyForm }); setFormOpen(true); };
   const openEdit = (c: Client) => {
@@ -55,6 +80,7 @@ export default function Clients() {
       telefone: c.telefone || "", email: c.email || "", endereco: c.endereco || "",
       cidade: c.cidade || "", estado: c.estado || "", observacoes: c.observacoes || "",
       vendedor_responsavel: c.vendedor_responsavel || "",
+      categoria: c.categoria || "outros", status_funil: c.status_funil || "lead",
     });
     setFormOpen(true);
   };
@@ -69,6 +95,10 @@ export default function Clients() {
     setFormOpen(false);
   };
 
+  const handleMoveClient = async (clientId: string, newStatus: string) => {
+    await updateClient.mutateAsync({ id: clientId, data: { status_funil: newStatus } });
+  };
+
   const update = (field: keyof ClientFormData, value: string) => setForm((p) => ({ ...p, [field]: value }));
 
   const getClientOrders = (clientName: string) => {
@@ -77,35 +107,50 @@ export default function Clients() {
     );
   };
 
+  const getFunnelLabel = (value: string | null) =>
+    FUNNEL_STAGES.find((s) => s.value === (value || "lead"))?.label || value;
+
   if (clientsQuery.isLoading) {
     return <div className="flex items-center justify-center py-12 text-muted-foreground gap-2"><Loader2 className="h-5 w-5 animate-spin" />Carregando clientes...</div>;
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">CRM — Clientes</h1>
           <p className="text-muted-foreground text-sm">Cadastro, histórico e relacionamento com clientes</p>
         </div>
-        {canEdit && (
-          <div className="flex gap-2">
-            <ClientImportDialog />
-            <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />Novo Cliente</Button>
+        <div className="flex items-center gap-2">
+          <div className="flex border rounded-md overflow-hidden">
+            <Button size="sm" variant={viewMode === "list" ? "default" : "ghost"} className="rounded-none h-8" onClick={() => setViewMode("list")}>
+              <LayoutList className="h-4 w-4 mr-1" /> Lista
+            </Button>
+            <Button size="sm" variant={viewMode === "funnel" ? "default" : "ghost"} className="rounded-none h-8" onClick={() => setViewMode("funnel")}>
+              <Columns3 className="h-4 w-4 mr-1" /> Funil
+            </Button>
           </div>
-        )}
+          {canEdit && (
+            <>
+              <ClientImportDialog />
+              <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />Novo Cliente</Button>
+            </>
+          )}
+        </div>
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Buscar cliente..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
-      </div>
+      {/* Filters */}
+      <ClientFilters filters={filters} onChange={setFilters} vendedores={vendedores} cidades={cidades} />
 
-      {clients.length === 0 ? (
+      {/* Views */}
+      {viewMode === "funnel" ? (
+        <ClientFunnel clients={clients} onMoveClient={handleMoveClient} onClickClient={setDetailClient} />
+      ) : clients.length === 0 ? (
         <Card><CardContent className="py-16 text-center">
           <Users className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-          <h3 className="font-semibold text-lg mb-1">Nenhum cliente cadastrado</h3>
-          <p className="text-muted-foreground text-sm">Clique em "Novo Cliente" para começar.</p>
+          <h3 className="font-semibold text-lg mb-1">Nenhum cliente encontrado</h3>
+          <p className="text-muted-foreground text-sm">Ajuste os filtros ou clique em "Novo Cliente" para começar.</p>
         </CardContent></Card>
       ) : (
         <Card>
@@ -118,7 +163,9 @@ export default function Clients() {
                     <TableHead className="hidden sm:table-cell">Nome Fantasia</TableHead>
                     <TableHead className="hidden md:table-cell">CNPJ/CPF</TableHead>
                     <TableHead className="hidden lg:table-cell">Cidade/UF</TableHead>
-                    <TableHead className="hidden lg:table-cell">Vendedor</TableHead>
+                    <TableHead className="hidden lg:table-cell">Categoria</TableHead>
+                    <TableHead className="hidden lg:table-cell">Status</TableHead>
+                    <TableHead className="hidden xl:table-cell">Vendedor</TableHead>
                     <TableHead className="w-24"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -129,7 +176,11 @@ export default function Clients() {
                       <TableCell className="hidden sm:table-cell text-sm">{c.nome_fantasia || "—"}</TableCell>
                       <TableCell className="hidden md:table-cell text-xs">{c.cnpj_cpf || "—"}</TableCell>
                       <TableCell className="hidden lg:table-cell text-xs">{c.cidade ? `${c.cidade}/${c.estado}` : "—"}</TableCell>
-                      <TableCell className="hidden lg:table-cell text-xs">{c.vendedor_responsavel || "—"}</TableCell>
+                      <TableCell className="hidden lg:table-cell text-xs">{c.categoria || "—"}</TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        <Badge variant="outline" className="text-[10px]">{getFunnelLabel(c.status_funil)}</Badge>
+                      </TableCell>
+                      <TableCell className="hidden xl:table-cell text-xs">{c.vendedor_responsavel || "—"}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-0.5">
                           <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setDetailClient(c)}>
@@ -192,6 +243,20 @@ export default function Clients() {
                 </Select>
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2"><Label>Categoria</Label>
+                <Select value={form.categoria || "outros"} onValueChange={(v) => update("categoria", v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{CLIENT_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2"><Label>Status Funil</Label>
+                <Select value={form.status_funil || "lead"} onValueChange={(v) => update("status_funil", v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{FUNNEL_STAGES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
             <div className="space-y-2"><Label>Vendedor Responsável</Label><Input value={form.vendedor_responsavel || ""} onChange={(e) => update("vendedor_responsavel", e.target.value)} /></div>
             <div className="space-y-2"><Label>Observações</Label><Textarea value={form.observacoes || ""} onChange={(e) => update("observacoes", e.target.value)} rows={2} /></div>
           </div>
@@ -205,7 +270,7 @@ export default function Clients() {
         </DialogContent>
       </Dialog>
 
-      {/* Detail Dialog with CRM Interactions */}
+      {/* Detail Dialog */}
       <Dialog open={!!detailClient} onOpenChange={() => setDetailClient(null)}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{detailClient?.razao_social}</DialogTitle></DialogHeader>
@@ -225,6 +290,8 @@ export default function Clients() {
                   <div><span className="text-muted-foreground">E-mail:</span> {detailClient.email || "—"}</div>
                   <div><span className="text-muted-foreground">Cidade/UF:</span> {detailClient.cidade ? `${detailClient.cidade}/${detailClient.estado}` : "—"}</div>
                   <div><span className="text-muted-foreground">Vendedor:</span> {detailClient.vendedor_responsavel || "—"}</div>
+                  <div><span className="text-muted-foreground">Categoria:</span> {detailClient.categoria || "—"}</div>
+                  <div><span className="text-muted-foreground">Status:</span> <Badge variant="outline">{getFunnelLabel(detailClient.status_funil)}</Badge></div>
                 </div>
                 {detailClient.observacoes && (
                   <div className="text-sm"><span className="text-muted-foreground">Observações:</span> {detailClient.observacoes}</div>
