@@ -328,6 +328,7 @@ export function ClientImportDialog() {
         )}
 
         {step === "mapping" && (
+          <>
           <div className="flex-1 overflow-y-auto px-6 min-h-0">
             <div className="space-y-4 pb-4">
               <div className="flex items-center gap-2 mb-2">

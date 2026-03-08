@@ -493,6 +493,7 @@ export function PdfImportDialog({ trigger }: { trigger?: React.ReactNode }) {
               )}
             </Button>
           </div>
+          </>
         )}
       </DialogContent>
     </Dialog>
