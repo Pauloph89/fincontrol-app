@@ -19,7 +19,7 @@ import { Plus, Pencil, Trash2, Search, Loader2, Factory as FactoryIcon, Eye } fr
 
 const emptyForm: FactoryFormData = {
   nome: "", comissao_padrao: 8, prazo_pagamento: "", contato_comercial: "",
-  email_financeiro: "", politica_comissao: "", observacoes: "",
+  email_financeiro: "", politica_comissao: "", observacoes: "", telefone: "",
 };
 
 export default function Factories() {
