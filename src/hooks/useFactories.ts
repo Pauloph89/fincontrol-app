@@ -13,6 +13,7 @@ export interface Factory {
   email_financeiro: string | null;
   politica_comissao: string | null;
   observacoes: string | null;
+  telefone: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -25,6 +26,7 @@ export interface FactoryFormData {
   email_financeiro?: string;
   politica_comissao?: string;
   observacoes?: string;
+  telefone?: string;
 }
 
 export function useFactories() {
