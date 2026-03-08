@@ -464,7 +464,7 @@ export function ClientImportDialog() {
         )}
 
         {step === "result" && (
-          <div className="space-y-6 py-6 text-center">
+          <div className="space-y-6 py-6 text-center px-6">
             <CheckCircle2 className="mx-auto h-16 w-16 text-green-500" />
             <h3 className="text-lg font-semibold">Importação Concluída!</h3>
             <div className="grid grid-cols-3 gap-4">

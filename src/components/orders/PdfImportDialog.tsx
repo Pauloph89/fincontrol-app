@@ -478,20 +478,20 @@ export function PdfImportDialog({ trigger }: { trigger?: React.ReactNode }) {
                 <Textarea value={form.observations || ""} onChange={(e) => update("observations", e.target.value)} rows={2} className="text-sm" />
               </div>
 
-              <div className="flex justify-between pt-2 sticky bottom-0 bg-background pb-2">
-                <Button variant="outline" onClick={() => { resetState(); }}>
-                  Voltar
-                </Button>
-                <Button onClick={handleSave} disabled={saving}>
-                  {saving ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Salvando...</>
-                  ) : (
-                    <><CheckCircle2 className="mr-2 h-4 w-4" />Salvar Pedido</>
-                  )}
-                </Button>
-              </div>
             </div>
-          </ScrollArea>
+          </div>
+          <div className="flex justify-between px-6 py-3 border-t shrink-0">
+            <Button variant="outline" onClick={() => { resetState(); }}>
+              Voltar
+            </Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Salvando...</>
+              ) : (
+                <><CheckCircle2 className="mr-2 h-4 w-4" />Salvar Pedido</>
+              )}
+            </Button>
+          </div>
         )}
       </DialogContent>
     </Dialog>
