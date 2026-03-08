@@ -156,9 +156,15 @@ Exemplo de resposta:
       }
     }
 
-    // Normalize to always have orders array
-    if (!parsed.orders) {
-      parsed = { orders: Array.isArray(parsed) ? parsed : [parsed] };
+    // Normalize response
+    if (isClientExtraction) {
+      if (!parsed.clients) {
+        parsed = { clients: Array.isArray(parsed) ? parsed : [parsed] };
+      }
+    } else {
+      if (!parsed.orders) {
+        parsed = { orders: Array.isArray(parsed) ? parsed : [parsed] };
+      }
     }
 
     return new Response(JSON.stringify(parsed), {
