@@ -364,7 +364,7 @@ export function OrderForm() {
                       </Select>
                     </div>
                   </div>
-                  <div className="rounded-lg border border-border p-3 space-y-1">
+                  <div className="rounded-lg border border-border p-3 max-h-48 overflow-y-auto space-y-1">
                     {editingAutoDates ? (
                       editableDates.map((date, i) => (
                         <div key={i} className="flex justify-between items-center text-xs gap-2">
