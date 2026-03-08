@@ -239,7 +239,7 @@ export function PdfImportDialog({ trigger }: { trigger?: React.ReactNode }) {
         </DialogHeader>
 
         {step === "upload" && (
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-4 px-6">
             <div className="border-2 border-dashed border-border rounded-lg p-8 text-center space-y-4">
               <FileUp className="mx-auto h-12 w-12 text-muted-foreground" />
               <div>
