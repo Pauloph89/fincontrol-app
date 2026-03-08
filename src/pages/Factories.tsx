@@ -44,6 +44,7 @@ export default function Factories() {
       nome: f.nome, comissao_padrao: f.comissao_padrao, prazo_pagamento: f.prazo_pagamento || "",
       contato_comercial: f.contato_comercial || "", email_financeiro: f.email_financeiro || "",
       politica_comissao: f.politica_comissao || "", observacoes: f.observacoes || "",
+      telefone: (f as any).telefone || "",
     });
     setFormOpen(true);
   };
