@@ -11,8 +11,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, FileSpreadsheet, Loader2, CheckCircle2, AlertTriangle, Trash2 } from "lucide-react";
+import { Upload, FileSpreadsheet, Loader2, CheckCircle2, AlertTriangle, Trash2, FileUp } from "lucide-react";
 import { formatCurrency } from "@/lib/financial-utils";
+import { PdfImportDialog } from "@/components/orders/PdfImportDialog";
 import * as XLSX from "xlsx";
 
 interface ParsedRow {
