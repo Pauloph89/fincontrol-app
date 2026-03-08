@@ -464,6 +464,7 @@ export function ClientImportDialog() {
               )}
             </Button>
           </div>
+          </>
         )}
 
         {step === "result" && (
