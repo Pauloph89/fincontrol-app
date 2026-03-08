@@ -3,13 +3,13 @@ import { useCommissions } from "@/hooks/useCommissions";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useExpenseProjection } from "@/hooks/useExpenseProjection";
 import { useOrders } from "@/hooks/useOrders";
+import { useUserRole } from "@/hooks/useUserRole";
 import { KpiCards } from "@/components/dashboard/KpiCards";
 import { DashboardCharts } from "@/components/dashboard/DashboardCharts";
 import { AlertsPanel } from "@/components/dashboard/AlertsPanel";
 import { PeriodSelector, getDefaultPeriod, PeriodRange } from "@/components/dashboard/PeriodSelector";
 import { differenceInBusinessDays, isBefore, startOfDay, addDays } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatCurrency } from "@/lib/financial-utils";
 
 export default function Dashboard() {
@@ -17,6 +17,7 @@ export default function Dashboard() {
   const { expensesQuery } = useExpenses();
   const { projections } = useExpenseProjection();
   const { ordersQuery } = useOrders();
+  const { role } = useUserRole();
   const [periodKey, setPeriodKey] = useState("current_month");
   const [period, setPeriod] = useState<PeriodRange>(getDefaultPeriod());
 
@@ -28,17 +29,16 @@ export default function Dashboard() {
     const today = startOfDay(new Date());
     const { start, end } = period;
 
-    // Orders-based sales stats
     const ordersInPeriod = orders.filter((o: any) => {
       const d = new Date(o.order_date);
       return d >= start && d <= end;
     });
     const totalSales = ordersInPeriod.reduce((s: number, o: any) => s + Number(o.commission_base_value), 0);
     const totalCommissionExpected = ordersInPeriod.reduce((s: number, o: any) => s + Number(o.commission_total_rep), 0);
+    const totalOrdersCount = ordersInPeriod.length;
 
-    // Installments from orders
     const allOrderInstallments = orders.flatMap((o: any) =>
-      (o.order_installments || []).map((i: any) => ({ ...i, factory: o.factory, client: o.client }))
+      (o.order_installments || []).map((i: any) => ({ ...i, factory: o.factory, client: o.client, salesperson: o.salesperson }))
     );
 
     const receivedCommission = allOrderInstallments
@@ -49,7 +49,6 @@ export default function Dashboard() {
       .filter((i: any) => i.status !== "recebido" && i.status !== "cancelado")
       .reduce((s: number, i: any) => s + Number(i.commission_value_rep || i.value), 0);
 
-    // Legacy commissions
     const allInstallments = commissions.flatMap((c: any) =>
       (c.commission_installments || []).map((i: any) => ({ ...i, factory: c.factory, client: c.client }))
     );
@@ -68,12 +67,8 @@ export default function Dashboard() {
       .filter((i: any) => i.status !== "recebido" && i.status !== "cancelado")
       .reduce((sum: number, i: any) => sum + Number(i.value), 0);
 
-    const realToPay = expenses
-      .filter((e) => e.status !== "pago")
-      .reduce((sum, e) => sum + Number(e.value), 0);
-    const projectedToPay = projections
-      .filter((p) => new Date(p.due_date) >= today)
-      .reduce((sum, p) => sum + p.value, 0);
+    const realToPay = expenses.filter((e) => e.status !== "pago").reduce((sum, e) => sum + Number(e.value), 0);
+    const projectedToPay = projections.filter((p) => new Date(p.due_date) >= today).reduce((sum, p) => sum + p.value, 0);
     const toPay = realToPay + projectedToPay;
 
     const lateCommissions = [...allOrderInstallments, ...allInstallments]
@@ -157,11 +152,42 @@ export default function Dashboard() {
       }, {})
     ).map(([name, value]) => ({ name, value: value as number })).sort((a, b) => b.value - a.value).slice(0, 10);
 
+    // Commission by vendor
+    const commissionByVendor = Object.entries(
+      allOrdersForCharts.reduce((acc: Record<string, number>, o: any) => {
+        if (o.status === "deleted" || o.status === "cancelado") return acc;
+        const vendor = o.salesperson || "Sem vendedor";
+        acc[vendor] = (acc[vendor] || 0) + Number(o.commission_total_rep);
+        return acc;
+      }, {})
+    ).map(([name, value]) => ({ name, value: value as number })).sort((a, b) => b.value - a.value).slice(0, 10);
+
+    // Commission by factory
+    const commissionByFactory = Object.entries(
+      allOrdersForCharts.reduce((acc: Record<string, number>, o: any) => {
+        if (o.status === "deleted" || o.status === "cancelado") return acc;
+        acc[o.factory] = (acc[o.factory] || 0) + Number(o.commission_total_rep);
+        return acc;
+      }, {})
+    ).map(([name, value]) => ({ name, value: value as number })).sort((a, b) => b.value - a.value).slice(0, 10);
+
+    // Vendor ranking (by sales)
+    const vendorRanking = Object.entries(
+      allOrdersForCharts.reduce((acc: Record<string, { vendas: number; comissao: number }>, o: any) => {
+        if (o.status === "deleted" || o.status === "cancelado") return acc;
+        const vendor = o.salesperson || "Sem vendedor";
+        if (!acc[vendor]) acc[vendor] = { vendas: 0, comissao: 0 };
+        acc[vendor].vendas += Number(o.commission_base_value);
+        acc[vendor].comissao += Number(o.commission_total_rep);
+        return acc;
+      }, {})
+    ).map(([name, data]) => ({ name, ...(data as { vendas: number; comissao: number }) })).sort((a, b) => b.vendas - a.vendas).slice(0, 10);
+
     return {
       totalSales, totalCommissionExpected, receivedInPeriod: totalReceived,
       expensesPaidInPeriod, toReceive, toPay, inadimplencia, forecast90,
-      pendingCommission, alerts, revenueByFactory, expensesByCategory,
-      monthlyEvolution, clientRanking,
+      pendingCommission, totalOrdersCount, alerts, revenueByFactory, expensesByCategory,
+      monthlyEvolution, clientRanking, commissionByVendor, commissionByFactory, vendorRanking,
     };
   }, [commissions, expenses, projections, period, orders]);
 
@@ -176,10 +202,14 @@ export default function Dashboard() {
       </div>
 
       {/* Sales KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <Card className="glass-card"><CardContent className="p-3">
           <span className="text-[10px] font-medium text-muted-foreground">Vendas do Mês</span>
           <p className="text-sm font-bold text-foreground">{formatCurrency(stats.totalSales)}</p>
+        </CardContent></Card>
+        <Card className="glass-card"><CardContent className="p-3">
+          <span className="text-[10px] font-medium text-muted-foreground">Pedidos do Mês</span>
+          <p className="text-sm font-bold text-foreground">{stats.totalOrdersCount}</p>
         </CardContent></Card>
         <Card className="glass-card"><CardContent className="p-3">
           <span className="text-[10px] font-medium text-muted-foreground">Comissão Prevista</span>
@@ -211,6 +241,8 @@ export default function Dashboard() {
             revenueByFactory={stats.revenueByFactory}
             expensesByCategory={stats.expensesByCategory}
             monthlyEvolution={stats.monthlyEvolution}
+            commissionByVendor={stats.commissionByVendor}
+            commissionByFactory={stats.commissionByFactory}
           />
         </div>
         <div className="space-y-6">
@@ -233,6 +265,33 @@ export default function Dashboard() {
                         {c.name}
                       </span>
                       <span className="font-semibold">{formatCurrency(c.value)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Vendor Ranking */}
+          <Card className="glass-card">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">Ranking Vendedores</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {stats.vendorRanking.length === 0 ? (
+                <p className="text-muted-foreground text-xs">Sem dados</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {stats.vendorRanking.map((v, i) => (
+                    <div key={v.name} className="flex items-center justify-between text-xs">
+                      <span className="truncate max-w-[45%]">
+                        <span className="text-muted-foreground mr-1">{i + 1}.</span>
+                        {v.name}
+                      </span>
+                      <div className="text-right">
+                        <span className="font-semibold">{formatCurrency(v.vendas)}</span>
+                        <span className="text-muted-foreground ml-1 text-[10px]">({formatCurrency(v.comissao)} com.)</span>
+                      </div>
                     </div>
                   ))}
                 </div>
