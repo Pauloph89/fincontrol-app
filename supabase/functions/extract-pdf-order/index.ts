@@ -102,7 +102,9 @@ Exemplo de resposta:
               content: [
                 {
                   type: "text",
-                  text: "Extraia os dados de pedido deste documento PDF. Retorne apenas JSON válido.",
+                  text: isClientExtraction
+                    ? "Extraia os dados de clientes deste documento PDF. Retorne apenas JSON válido."
+                    : "Extraia os dados de pedido deste documento PDF. Retorne apenas JSON válido.",
                 },
                 {
                   type: "image_url",
