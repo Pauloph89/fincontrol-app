@@ -14,6 +14,7 @@ Deno.serve(async (req) => {
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
+    const extractionType = formData.get("type") as string | null; // "clients" or default "orders"
     if (!file) {
       return new Response(JSON.stringify({ error: "No file provided" }), {
         status: 400,
