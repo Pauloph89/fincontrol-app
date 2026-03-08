@@ -8,19 +8,22 @@ export interface ReportFilterValues {
   factory: string;
   account: string;
   status: string;
+  vendor: string;
 }
 
 interface Props {
   filters: ReportFilterValues;
   onChange: (filters: ReportFilterValues) => void;
   factories: string[];
+  vendors?: string[];
   showFactory?: boolean;
   showAccount?: boolean;
   showStatus?: boolean;
+  showVendor?: boolean;
   statusOptions?: { value: string; label: string }[];
 }
 
-export function ReportFilters({ filters, onChange, factories, showFactory = true, showAccount = true, showStatus = true, statusOptions }: Props) {
+export function ReportFilters({ filters, onChange, factories, vendors, showFactory = true, showAccount = true, showStatus = true, showVendor = false, statusOptions }: Props) {
   const update = (field: keyof ReportFilterValues, value: string) => {
     onChange({ ...filters, [field]: value });
   };
@@ -34,7 +37,7 @@ export function ReportFilters({ filters, onChange, factories, showFactory = true
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+    <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
       <div className="space-y-1">
         <Label className="text-xs">Data Início</Label>
         <Input type="date" value={filters.startDate} onChange={(e) => update("startDate", e.target.value)} className="h-9" />
@@ -51,6 +54,18 @@ export function ReportFilters({ filters, onChange, factories, showFactory = true
             <SelectContent>
               <SelectItem value="all">Todas</SelectItem>
               {factories.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+      {showVendor && vendors && (
+        <div className="space-y-1">
+          <Label className="text-xs">Vendedor</Label>
+          <Select value={filters.vendor || "all"} onValueChange={(v) => update("vendor", v)}>
+            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {vendors.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>

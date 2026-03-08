@@ -131,6 +131,60 @@ export type Database = {
           },
         ]
       }
+      client_interactions: {
+        Row: {
+          client_id: string
+          company_id: string | null
+          created_at: string
+          date: string
+          description: string
+          id: string
+          notes: string | null
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          company_id?: string | null
+          created_at?: string
+          date?: string
+          description: string
+          id?: string
+          notes?: string | null
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          company_id?: string | null
+          created_at?: string
+          date?: string
+          description?: string
+          id?: string
+          notes?: string | null
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_interactions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_interactions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           cidade: string | null
@@ -535,6 +589,7 @@ export type Database = {
           observacoes: string | null
           politica_comissao: string | null
           prazo_pagamento: string | null
+          telefone: string | null
           updated_at: string
         }
         Insert: {
@@ -548,6 +603,7 @@ export type Database = {
           observacoes?: string | null
           politica_comissao?: string | null
           prazo_pagamento?: string | null
+          telefone?: string | null
           updated_at?: string
         }
         Update: {
@@ -561,6 +617,7 @@ export type Database = {
           observacoes?: string | null
           politica_comissao?: string | null
           prazo_pagamento?: string | null
+          telefone?: string | null
           updated_at?: string
         }
         Relationships: [
