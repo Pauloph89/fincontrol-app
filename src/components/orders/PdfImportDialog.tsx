@@ -268,6 +268,7 @@ export function PdfImportDialog({ trigger }: { trigger?: React.ReactNode }) {
         )}
 
         {step === "review" && form && (
+          <>
           <div className="flex-1 overflow-y-auto px-6 min-h-0">
             <div className="space-y-4 pb-4">
               <Badge variant="secondary" className="mb-2">
