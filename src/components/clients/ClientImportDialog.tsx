@@ -449,18 +449,18 @@ export function ClientImportDialog() {
                 </TableBody>
               </Table>
 
-              <div className="flex justify-between pt-2 sticky bottom-0 bg-background pb-2">
-                <Button variant="outline" onClick={() => setStep(sheetColumns.length > 0 ? "mapping" : "choose")}>Voltar</Button>
-                <Button onClick={handleImport} disabled={saving}>
-                  {saving ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Importando...</>
-                  ) : (
-                    <><CheckCircle2 className="mr-2 h-4 w-4" />Importar {parsedClients.filter((c) => c._action !== "skip").length} clientes</>
-                  )}
-                </Button>
-              </div>
             </div>
-          </ScrollArea>
+          </div>
+          <div className="flex justify-between px-6 py-3 border-t shrink-0">
+            <Button variant="outline" onClick={() => setStep(sheetColumns.length > 0 ? "mapping" : "choose")}>Voltar</Button>
+            <Button onClick={handleImport} disabled={saving}>
+              {saving ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Importando...</>
+              ) : (
+                <><CheckCircle2 className="mr-2 h-4 w-4" />Importar {parsedClients.filter((c) => c._action !== "skip").length} clientes</>
+              )}
+            </Button>
+          </div>
         )}
 
         {step === "result" && (
