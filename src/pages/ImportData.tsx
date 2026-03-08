@@ -11,8 +11,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, FileSpreadsheet, Loader2, CheckCircle2, AlertTriangle, Trash2 } from "lucide-react";
+import { Upload, FileSpreadsheet, Loader2, CheckCircle2, AlertTriangle, Trash2, FileUp } from "lucide-react";
 import { formatCurrency } from "@/lib/financial-utils";
+import { PdfImportDialog } from "@/components/orders/PdfImportDialog";
 import * as XLSX from "xlsx";
 
 interface ParsedRow {
@@ -130,9 +131,16 @@ export default function ImportData() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Importar Relatório</h1>
-        <p className="text-muted-foreground text-sm">Importe dados de fábricas via Excel ou CSV</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Importar Relatório</h1>
+          <p className="text-muted-foreground text-sm">Importe dados de fábricas via Excel, CSV ou PDF</p>
+        </div>
+        <PdfImportDialog trigger={
+          <Button variant="outline">
+            <FileUp className="mr-2 h-4 w-4" />Importar Pedido PDF
+          </Button>
+        } />
       </div>
 
       <Card className="glass-card">
