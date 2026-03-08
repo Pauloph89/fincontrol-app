@@ -275,10 +275,14 @@ export function useOrders() {
         new_data: updated,
       } as any);
 
+      // Sync commission on update
+      await syncCommissionFromOrder(updated, user.id, companyId);
+
       return updated;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["orders"] });
+      qc.invalidateQueries({ queryKey: ["commissions"] });
       toast({ title: "Pedido atualizado!" });
     },
     onError: (err: Error) => {
