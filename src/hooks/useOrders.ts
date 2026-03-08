@@ -48,6 +48,51 @@ export function calcCommissions(baseValue: number, percentRep: number, percentPr
   return { totalRep, totalPreposto, netRep: Math.round((totalRep - totalPreposto) * 100) / 100 };
 }
 
+/**
+ * Auto-sync a commission record from an order.
+ * Creates or updates the commission in the commissions table.
+ */
+async function syncCommissionFromOrder(order: any, userId: string, companyId: string) {
+  try {
+    // Check if a commission already exists for this order
+    const { data: existing } = await supabase
+      .from("commissions")
+      .select("id")
+      .eq("external_order_id", order.id)
+      .maybeSingle();
+
+    const commissionTotal = Number(order.commission_total_rep) || 0;
+    const commissionPercent = Number(order.commission_percent_rep) || 8;
+
+    const commData: any = {
+      factory: order.factory,
+      client: order.client,
+      order_number: order.order_number,
+      sale_value: Number(order.commission_base_value),
+      commission_percent: commissionPercent,
+      commission_total: commissionTotal,
+      sale_date: order.order_date,
+      billing_date: order.billing_date || null,
+      observations: `Gerado automaticamente do pedido ${order.order_number}`,
+      external_order_id: order.id,
+      status: order.status === "cancelado" ? "cancelada" : "ativa",
+    };
+
+    if (existing) {
+      await supabase.from("commissions").update(commData).eq("id", existing.id);
+    } else {
+      if (order.status === "cancelado" || order.status === "deleted") return;
+      await supabase.from("commissions").insert({
+        ...commData,
+        user_id: userId,
+        company_id: companyId,
+      } as any);
+    }
+  } catch (err) {
+    console.error("Erro ao sincronizar comissão:", err);
+  }
+}
+
 export function useOrders() {
   const { user, companyId } = useAuth();
   const { toast } = useToast();
@@ -170,10 +215,14 @@ export function useOrders() {
         new_data: order,
       } as any);
 
+      // Auto-generate commission record from order
+      await syncCommissionFromOrder(order, user.id, companyId);
+
       return order;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["orders"] });
+      qc.invalidateQueries({ queryKey: ["commissions"] });
       toast({ title: "Pedido cadastrado com sucesso!" });
     },
     onError: (err: Error) => {
@@ -271,10 +320,14 @@ export function useOrders() {
         new_data: updated,
       } as any);
 
+      // Sync commission on update
+      await syncCommissionFromOrder(updated, user.id, companyId);
+
       return updated;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["orders"] });
+      qc.invalidateQueries({ queryKey: ["commissions"] });
       toast({ title: "Pedido atualizado!" });
     },
     onError: (err: Error) => {

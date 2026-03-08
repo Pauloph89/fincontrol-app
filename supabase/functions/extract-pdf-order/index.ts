@@ -48,14 +48,26 @@ Analise o conteúdo do documento e extraia os seguintes campos quando disponíve
 - invoice_total_value: valor total da nota fiscal
 - salesperson: nome do vendedor/representante
 - observations: informações adicionais relevantes
+- payment_terms: condição de pagamento encontrada no documento (ex: "30/60/90 DDL", "45DDL", "30-60-90", etc.)
 - products: lista de produtos encontrados (array de objetos com name, quantity, unit_price, total)
+
+REGRAS DE DATAS:
+- Aceite e converta qualquer formato de data: DD/MM/AAAA, DD/MM/AA, DD-MM-AAAA, DD.MM.AAAA
+- Para datas com ano de 2 dígitos (DD/MM/AA), considere 20XX se XX <= 50, senão 19XX
+- Sempre retorne datas no formato YYYY-MM-DD
+- Se não encontrar a data, retorne null
+
+REGRAS DE PRAZOS DE PAGAMENTO:
+- Identifique prazos como "30DDL", "45DDL", "30/60/90 DDL", "30-60-90", "30,60,90 dias", etc.
+- Retorne o campo payment_terms exatamente como aparece no documento
+- DDL significa "Dias Da Liquidação" (dias após faturamento/entrega)
 
 Retorne APENAS um JSON válido com os campos encontrados. Campos não encontrados devem ser null.
 Se houver múltiplos pedidos no documento, retorne um array de objetos.
 Sempre retorne o resultado dentro de um objeto com chave "orders" que é um array.
 
 Exemplo de resposta:
-{"orders": [{"order_number": "12345", "client": "Empresa X", "commission_base_value": 1500.00, ...}]}`;
+{"orders": [{"order_number": "12345", "client": "Empresa X", "commission_base_value": 1500.00, "payment_terms": "30/60/90 DDL", ...}]}`;
 
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",

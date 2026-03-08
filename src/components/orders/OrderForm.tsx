@@ -364,7 +364,7 @@ export function OrderForm() {
                       </Select>
                     </div>
                   </div>
-                  <div className="rounded-lg border border-border p-3 space-y-1">
+                  <div className="rounded-lg border border-border p-3 max-h-48 overflow-y-auto space-y-1">
                     {editingAutoDates ? (
                       editableDates.map((date, i) => (
                         <div key={i} className="flex justify-between items-center text-xs gap-2">
@@ -394,11 +394,11 @@ export function OrderForm() {
                 <TabsContent value="custom_days" className="space-y-3">
                   <div className="space-y-2">
                     <Label>Dias após faturamento (separados por vírgula)</Label>
-                    <Input placeholder="Ex: 31, 46, 61, 76" value={customDaysInput} onChange={(e) => setCustomDaysInput(e.target.value)} />
-                    <p className="text-xs text-muted-foreground">Informe os dias corridos após a data base. Ex: 31,46,61,76</p>
+                    <Input placeholder="Ex: 30, 60, 90 ou 45DDL" value={customDaysInput} onChange={(e) => setCustomDaysInput(e.target.value)} />
+                    <p className="text-xs text-muted-foreground">Informe os dias corridos (DDL). Ex: 30,60,90 ou 45DDL</p>
                   </div>
                   {customDaysPreview.length > 0 && (
-                    <div className="rounded-lg border border-border p-3 space-y-1">
+                    <div className="rounded-lg border border-border p-3 max-h-48 overflow-y-auto space-y-1">
                       {customDaysPreview.map((inst, i) => (
                         <div key={i} className="flex justify-between text-xs text-muted-foreground">
                           <span>Parcela {inst.number}</span>
@@ -410,7 +410,7 @@ export function OrderForm() {
                 </TabsContent>
 
                 <TabsContent value="manual" className="space-y-3">
-                  <div className="rounded-lg border border-border overflow-hidden">
+                  <div className="rounded-lg border border-border overflow-hidden max-h-64 overflow-y-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
