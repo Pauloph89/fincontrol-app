@@ -48,6 +48,8 @@ export interface ClientFormData {
   estado?: string;
   observacoes?: string;
   vendedor_responsavel?: string;
+  categoria?: string;
+  status_funil?: string;
 }
 
 export function useClients() {
