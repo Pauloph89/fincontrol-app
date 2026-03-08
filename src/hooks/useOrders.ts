@@ -170,6 +170,9 @@ export function useOrders() {
         new_data: order,
       } as any);
 
+      // Auto-generate commission record from order
+      await syncCommissionFromOrder(order, user.id, companyId);
+
       return order;
     },
     onSuccess: () => {
