@@ -144,7 +144,7 @@ export function useUserRole() {
   const inviteUser = useMutation({
     mutationFn: async ({ email, role, name }: { email: string; role: AppRole; name?: string }) => {
       const { data, error } = await supabase.functions.invoke("invite-user", {
-        body: { email, role, name },
+        body: { email, role, name, origin: window.location.origin },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);

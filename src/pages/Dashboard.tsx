@@ -3,10 +3,12 @@ import { useCommissions } from "@/hooks/useCommissions";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useExpenseProjection } from "@/hooks/useExpenseProjection";
 import { useOrders } from "@/hooks/useOrders";
+import { useClients } from "@/hooks/useClients";
 import { useUserRole } from "@/hooks/useUserRole";
 import { KpiCards } from "@/components/dashboard/KpiCards";
 import { DashboardCharts } from "@/components/dashboard/DashboardCharts";
 import { AlertsPanel } from "@/components/dashboard/AlertsPanel";
+import { CommercialAgenda } from "@/components/dashboard/CommercialAgenda";
 import { PeriodSelector, getDefaultPeriod, PeriodRange } from "@/components/dashboard/PeriodSelector";
 import { differenceInBusinessDays, isBefore, startOfDay, addDays } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +19,7 @@ export default function Dashboard() {
   const { expensesQuery } = useExpenses();
   const { projections } = useExpenseProjection();
   const { ordersQuery } = useOrders();
+  const { clientsQuery } = useClients();
   const { role } = useUserRole();
   const [periodKey, setPeriodKey] = useState("current_month");
   const [period, setPeriod] = useState<PeriodRange>(getDefaultPeriod());
@@ -24,11 +27,13 @@ export default function Dashboard() {
   const commissions = commissionsQuery.data || [];
   const expenses = expensesQuery.data || [];
   const orders = (ordersQuery.data || []).filter((o: any) => o.status !== "deleted" && o.status !== "cancelado");
+  const clients = clientsQuery.data || [];
 
   const stats = useMemo(() => {
     const today = startOfDay(new Date());
     const { start, end } = period;
 
+    // --- SALES metrics from orders ---
     const ordersInPeriod = orders.filter((o: any) => {
       const d = new Date(o.order_date);
       return d >= start && d <= end;
@@ -37,41 +42,36 @@ export default function Dashboard() {
     const totalCommissionExpected = ordersInPeriod.reduce((s: number, o: any) => s + Number(o.commission_total_rep), 0);
     const totalOrdersCount = ordersInPeriod.length;
 
-    const allOrderInstallments = orders.flatMap((o: any) =>
-      (o.order_installments || []).map((i: any) => ({ ...i, factory: o.factory, client: o.client, salesperson: o.salesperson }))
-    );
+    // --- COMMISSION metrics from commission_installments ONLY ---
+    const allCommissionInstallments = commissions
+      .filter((c: any) => c.status !== "deleted" && c.status !== "cancelada")
+      .flatMap((c: any) =>
+        (c.commission_installments || []).map((i: any) => ({
+          ...i,
+          factory: c.factory,
+          client: c.client,
+        }))
+      );
 
-    const receivedCommission = allOrderInstallments
+    const receivedCommission = allCommissionInstallments
       .filter((i: any) => i.status === "recebido" && i.paid_date && new Date(i.paid_date) >= start && new Date(i.paid_date) <= end)
-      .reduce((s: number, i: any) => s + Number(i.commission_value_rep || i.value), 0);
+      .reduce((s: number, i: any) => s + Number(i.value), 0);
 
-    const pendingCommission = allOrderInstallments
+    const pendingCommission = allCommissionInstallments
       .filter((i: any) => i.status !== "recebido" && i.status !== "cancelado")
-      .reduce((s: number, i: any) => s + Number(i.commission_value_rep || i.value), 0);
-
-    const allInstallments = commissions.flatMap((c: any) =>
-      (c.commission_installments || []).map((i: any) => ({ ...i, factory: c.factory, client: c.client }))
-    );
-
-    const legacyReceived = allInstallments
-      .filter((i: any) => i.status === "recebido" && i.paid_date && new Date(i.paid_date) >= start && new Date(i.paid_date) <= end)
-      .reduce((sum: number, i: any) => sum + Number(i.value), 0);
-
-    const totalReceived = receivedCommission + legacyReceived;
+      .reduce((s: number, i: any) => s + Number(i.value), 0);
 
     const expensesPaidInPeriod = expenses
       .filter((e) => e.status === "pago" && e.payment_date && new Date(e.payment_date) >= start && new Date(e.payment_date) <= end)
       .reduce((sum, e) => sum + Number(e.value), 0);
 
-    const toReceive = pendingCommission + allInstallments
-      .filter((i: any) => i.status !== "recebido" && i.status !== "cancelado")
-      .reduce((sum: number, i: any) => sum + Number(i.value), 0);
+    const toReceive = pendingCommission;
 
     const realToPay = expenses.filter((e) => e.status !== "pago").reduce((sum, e) => sum + Number(e.value), 0);
     const projectedToPay = projections.filter((p) => new Date(p.due_date) >= today).reduce((sum, p) => sum + p.value, 0);
     const toPay = realToPay + projectedToPay;
 
-    const lateCommissions = [...allOrderInstallments, ...allInstallments]
+    const lateCommissions = allCommissionInstallments
       .filter((i: any) => i.status !== "recebido" && i.status !== "cancelado" && isBefore(startOfDay(new Date(i.due_date)), today))
       .reduce((sum: number, i: any) => sum + Number(i.value), 0);
     const lateExpenses = expenses
@@ -79,8 +79,15 @@ export default function Dashboard() {
       .reduce((sum, e) => sum + Number(e.value), 0);
     const inadimplencia = lateCommissions + lateExpenses;
 
+    // Forecast next 30 and 90 days
+    const in30days = addDays(today, 30);
     const in90days = addDays(today, 90);
-    const forecast90in = [...allOrderInstallments, ...allInstallments]
+
+    const forecast30commission = allCommissionInstallments
+      .filter((i: any) => i.status !== "recebido" && i.status !== "cancelado" && new Date(i.due_date) >= today && new Date(i.due_date) <= in30days)
+      .reduce((sum: number, i: any) => sum + Number(i.value), 0);
+
+    const forecast90in = allCommissionInstallments
       .filter((i: any) => i.status !== "recebido" && i.status !== "cancelado" && new Date(i.due_date) >= today && new Date(i.due_date) <= in90days)
       .reduce((sum: number, i: any) => sum + Number(i.value), 0);
     const forecast90outReal = expenses
@@ -91,9 +98,9 @@ export default function Dashboard() {
       .reduce((sum, p) => sum + p.value, 0);
     const forecast90 = forecast90in - forecast90outReal - forecast90outProjected;
 
-    // Alerts
+    // Alerts — ONLY from commission_installments
     const alerts: any[] = [];
-    [...allOrderInstallments, ...allInstallments].forEach((i: any) => {
+    allCommissionInstallments.forEach((i: any) => {
       if (i.status === "recebido" || i.status === "cancelado") return;
       const due = startOfDay(new Date(i.due_date));
       if (isBefore(due, today)) {
@@ -110,6 +117,33 @@ export default function Dashboard() {
       } else if (differenceInBusinessDays(due, today) <= 3) {
         alerts.push({ type: "expense_soon", description: e.description, value: Number(e.value), date: e.due_date });
       }
+    });
+
+    // Idle clients alert (no order in 90+ days)
+    const idleClients = clients.filter((c) => {
+      if (c.status_funil !== "cliente_ativo") return false;
+      const clientOrders = orders.filter(
+        (o: any) => (o.client_id === c.id || o.client?.toLowerCase() === c.razao_social?.toLowerCase())
+      );
+      if (clientOrders.length === 0) return false;
+      const lastOrder = new Date(Math.max(...clientOrders.map((o: any) => new Date(o.order_date).getTime())));
+      return differenceInBusinessDays(today, startOfDay(lastOrder)) >= 90;
+    });
+
+    idleClients.forEach((c) => {
+      alerts.push({ type: "commission_soon", description: `${c.razao_social} — sem pedido há 90+ dias`, value: 0, date: c.updated_at });
+    });
+
+    // Stale leads alert
+    const staleLeads = clients.filter((c) => {
+      const staleStatuses = ["negociacao", "apresentacao_feita"];
+      if (!staleStatuses.includes(c.status_funil || "")) return false;
+      const daysSince = differenceInBusinessDays(today, startOfDay(new Date(c.updated_at)));
+      return daysSince >= 14;
+    });
+
+    staleLeads.forEach((c) => {
+      alerts.push({ type: "commission_soon", description: `Lead parado: ${c.razao_social}`, value: 0, date: c.updated_at });
     });
 
     // Charts
@@ -134,7 +168,7 @@ export default function Dashboard() {
       const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
       const mEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0);
       const label = `${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
-      const mRec = [...allOrderInstallments, ...allInstallments]
+      const mRec = allCommissionInstallments
         .filter((inst: any) => inst.status === "recebido" && inst.paid_date && new Date(inst.paid_date) >= d && new Date(inst.paid_date) <= mEnd)
         .reduce((s: number, inst: any) => s + Number(inst.value), 0);
       const mExp = expenses
@@ -162,7 +196,7 @@ export default function Dashboard() {
       }, {})
     ).map(([name, value]) => ({ name, value: value as number })).sort((a, b) => b.value - a.value).slice(0, 10);
 
-    // Commission by factory
+    // Commission by factory ranking
     const commissionByFactory = Object.entries(
       allOrdersForCharts.reduce((acc: Record<string, number>, o: any) => {
         if (o.status === "deleted" || o.status === "cancelado") return acc;
@@ -171,7 +205,7 @@ export default function Dashboard() {
       }, {})
     ).map(([name, value]) => ({ name, value: value as number })).sort((a, b) => b.value - a.value).slice(0, 10);
 
-    // Vendor ranking (by sales)
+    // Vendor ranking
     const vendorRanking = Object.entries(
       allOrdersForCharts.reduce((acc: Record<string, { vendas: number; comissao: number }>, o: any) => {
         if (o.status === "deleted" || o.status === "cancelado") return acc;
@@ -184,12 +218,13 @@ export default function Dashboard() {
     ).map(([name, data]) => ({ name, ...(data as { vendas: number; comissao: number }) })).sort((a, b) => b.vendas - a.vendas).slice(0, 10);
 
     return {
-      totalSales, totalCommissionExpected, receivedInPeriod: totalReceived,
+      totalSales, totalCommissionExpected, receivedInPeriod: receivedCommission,
       expensesPaidInPeriod, toReceive, toPay, inadimplencia, forecast90,
       pendingCommission, totalOrdersCount, alerts, revenueByFactory, expensesByCategory,
       monthlyEvolution, clientRanking, commissionByVendor, commissionByFactory, vendorRanking,
+      forecast30commission, lateCommissions,
     };
-  }, [commissions, expenses, projections, period, orders]);
+  }, [commissions, expenses, projections, period, orders, clients]);
 
   return (
     <div className="space-y-6">
@@ -202,13 +237,13 @@ export default function Dashboard() {
       </div>
 
       {/* Sales KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
         <Card className="glass-card"><CardContent className="p-3">
-          <span className="text-[10px] font-medium text-muted-foreground">Vendas do Mês</span>
+          <span className="text-[10px] font-medium text-muted-foreground">Vendas do Período</span>
           <p className="text-sm font-bold text-foreground">{formatCurrency(stats.totalSales)}</p>
         </CardContent></Card>
         <Card className="glass-card"><CardContent className="p-3">
-          <span className="text-[10px] font-medium text-muted-foreground">Pedidos do Mês</span>
+          <span className="text-[10px] font-medium text-muted-foreground">Pedidos</span>
           <p className="text-sm font-bold text-foreground">{stats.totalOrdersCount}</p>
         </CardContent></Card>
         <Card className="glass-card"><CardContent className="p-3">
@@ -220,8 +255,14 @@ export default function Dashboard() {
           <p className="text-sm font-bold text-success">{formatCurrency(stats.receivedInPeriod)}</p>
         </CardContent></Card>
         <Card className="glass-card"><CardContent className="p-3">
-          <span className="text-[10px] font-medium text-muted-foreground">Comissão a Receber</span>
-          <p className="text-sm font-bold text-warning">{formatCurrency(stats.pendingCommission)}</p>
+          <span className="text-[10px] font-medium text-muted-foreground">A Receber (30d)</span>
+          <p className="text-sm font-bold text-warning">{formatCurrency(stats.forecast30commission)}</p>
+        </CardContent></Card>
+        <Card className="glass-card"><CardContent className="p-3">
+          <span className="text-[10px] font-medium text-muted-foreground">Atrasadas</span>
+          <p className={`text-sm font-bold ${stats.lateCommissions > 0 ? "text-destructive" : "text-success"}`}>
+            {formatCurrency(stats.lateCommissions)}
+          </p>
         </CardContent></Card>
       </div>
 
@@ -247,6 +288,7 @@ export default function Dashboard() {
         </div>
         <div className="space-y-6">
           <AlertsPanel alerts={stats.alerts} />
+          <CommercialAgenda clients={clients} orders={orders} />
 
           {/* Client Ranking */}
           <Card className="glass-card">

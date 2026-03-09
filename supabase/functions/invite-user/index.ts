@@ -20,7 +20,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Create client with caller's token to verify they're admin
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -39,7 +38,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check caller is admin
     const { data: isAdmin } = await callerClient.rpc("has_role", {
       _user_id: caller.id,
       _role: "admin",
@@ -54,7 +52,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get caller's company_id
     const { data: callerProfile } = await callerClient
       .from("profiles")
       .select("company_id")
@@ -71,7 +68,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { email, role, name } = await req.json();
+    const { email, role, name, origin } = await req.json();
 
     if (!email || !role) {
       return new Response(
@@ -83,20 +80,24 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Use service role client to create user
     const adminClient = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Try to invite by email first
+    // Create user with random password (email confirmed) instead of inviteUserByEmail
+    // This avoids the Supabase invite email which redirects to Lovable workspace
+    const tempPassword = crypto.randomUUID();
     const { data: newUser, error: createError } =
-      await adminClient.auth.admin.inviteUserByEmail(email, {
-        data: { name: name || "", company_id: callerProfile.company_id },
+      await adminClient.auth.admin.createUser({
+        email,
+        password: tempPassword,
+        email_confirm: true,
+        user_metadata: { name: name || "", company_id: callerProfile.company_id },
       });
 
     if (createError) {
       // If user already exists, look them up and link to company
-      if (createError.message.includes("already been registered")) {
+      if (createError.message.includes("already been registered") || createError.message.includes("already exists")) {
         const { data: existingUsers } = await adminClient.auth.admin.listUsers();
         const existing = existingUsers?.users?.find((u: any) => u.email === email);
         
@@ -141,7 +142,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // New user created — update profile and role
+    // Update profile and role for new user
     await adminClient
       .from("profiles")
       .update({
@@ -155,11 +156,51 @@ Deno.serve(async (req) => {
       .from("user_roles")
       .upsert({ user_id: newUser.user.id, role: role, active: true }, { onConflict: "user_id,role" });
 
+    // Generate a recovery link so the user can set their own password
+    const redirectTo = origin || "https://id-preview--c1762944-3425-4044-923b-768e9aae320f.lovable.app";
+    const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+      type: "recovery",
+      email,
+      options: {
+        redirectTo: redirectTo + "/reset-password",
+      },
+    });
+
+    if (linkError) {
+      console.error("Error generating recovery link:", linkError);
+      // User was created but recovery link failed - still return success
+      return new Response(
+        JSON.stringify({
+          success: true,
+          user_id: newUser.user.id,
+          message: "Usuário criado. Peça para usar 'Esqueci minha senha' no login para definir a senha.",
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Send password reset email via Supabase REST API
+    // This sends the built-in recovery email to the user
+    const resetRes = await fetch(`${supabaseUrl}/auth/v1/recover`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": anonKey,
+      },
+      body: JSON.stringify({
+        email,
+        gotrue_meta_security: {},
+      }),
+    });
+
     return new Response(
       JSON.stringify({
         success: true,
         user_id: newUser.user.id,
-        message: "Convite enviado com sucesso",
+        message: "Usuário criado! Um e-mail para definir a senha foi enviado.",
       }),
       {
         status: 200,
