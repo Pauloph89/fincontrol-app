@@ -2,10 +2,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
 import Factories from "./pages/Factories";
@@ -44,6 +45,12 @@ function NoCompanyGuard() {
 
 function AppRoutes() {
   const { session, loading, companyId, companyLoading } = useAuth();
+  const location = useLocation();
+
+  // Allow /reset-password without auth
+  if (location.pathname === "/reset-password") {
+    return <ResetPassword />;
+  }
 
   if (loading || companyLoading) {
     return (

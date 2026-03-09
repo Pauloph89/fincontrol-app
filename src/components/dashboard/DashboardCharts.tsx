@@ -23,14 +23,14 @@ interface DashboardChartsProps {
 }
 
 const RADIAN = Math.PI / 180;
-const renderPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, name, percent }: any) => {
-  if (percent < 0.05) return null; // Hide labels for tiny slices
-  const radius = outerRadius + 18;
+const renderPieLabel = ({ cx, cy, midAngle, outerRadius, name, percent }: any) => {
+  if (percent < 0.05) return null;
+  const radius = outerRadius + 20;
   const x = cx + radius * Math.cos(-midAngle * RADIAN);
   const y = cy + radius * Math.sin(-midAngle * RADIAN);
-  const short = name.length > 12 ? name.slice(0, 12) + "…" : name;
+  const short = name.length > 14 ? name.slice(0, 14) + "…" : name;
   return (
-    <text x={x} y={y} textAnchor={x > cx ? "start" : "end"} dominantBaseline="central" className="fill-foreground" style={{ fontSize: 10, fontWeight: 500 }}>
+    <text x={x} y={y} textAnchor={x > cx ? "start" : "end"} dominantBaseline="central" className="fill-foreground" style={{ fontSize: 11, fontWeight: 500 }}>
       {short} {(percent * 100).toFixed(0)}%
     </text>
   );
@@ -38,9 +38,10 @@ const renderPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, name, perc
 
 export function DashboardCharts({ revenueByFactory, expensesByCategory, monthlyEvolution, commissionByVendor, commissionByFactory }: DashboardChartsProps) {
   const isMobile = useIsMobile();
-  const chartHeight = isMobile ? 200 : 280;
-  const pieOuterRadius = isMobile ? 65 : 85;
-  const pieInnerRadius = isMobile ? 35 : 45;
+  const chartHeight = isMobile ? 220 : 300;
+  const pieSize = isMobile ? 220 : 300;
+  const pieOuterRadius = isMobile ? 70 : 100;
+  const pieInnerRadius = isMobile ? 38 : 55;
 
   return (
     <div className="space-y-6">
@@ -94,12 +95,12 @@ export function DashboardCharts({ revenueByFactory, expensesByCategory, monthlyE
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">Despesas por Categoria</CardTitle>
           </CardHeader>
-          <CardContent className="px-2 sm:px-6">
+          <CardContent className="px-0 sm:px-4">
             {expensesByCategory.length === 0 ? (
               <div className="flex items-center justify-center text-muted-foreground text-sm" style={{ height: chartHeight }}>Sem dados</div>
             ) : (
-              <div className="flex flex-col">
-                <ResponsiveContainer width="100%" height={chartHeight - 40}>
+              <div className="flex flex-col items-center">
+                <ResponsiveContainer width="100%" height={pieSize}>
                   <PieChart>
                     <Pie
                       data={expensesByCategory}
@@ -109,20 +110,21 @@ export function DashboardCharts({ revenueByFactory, expensesByCategory, monthlyE
                       outerRadius={pieOuterRadius}
                       paddingAngle={2}
                       dataKey="value"
-                      label={renderPieLabel}
-                      labelLine={{ strokeWidth: 0.5, stroke: "hsl(215, 20%, 70%)" }}
+                      label={!isMobile ? renderPieLabel : false}
+                      labelLine={!isMobile ? { strokeWidth: 0.5, stroke: "hsl(215, 20%, 70%)" } : false}
                     >
                       {expensesByCategory.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                     </Pie>
                     <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={{ fontSize: 12 }} />
                   </PieChart>
                 </ResponsiveContainer>
-                <div className="max-h-24 overflow-y-auto mt-1 px-2">
-                  <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                <div className="max-h-28 overflow-y-auto mt-1 px-3 w-full">
+                  <div className="flex flex-wrap gap-x-4 gap-y-1.5 justify-center">
                     {expensesByCategory.map((item, i) => (
                       <div key={item.name} className="flex items-center gap-1.5 text-[11px] text-muted-foreground whitespace-nowrap">
                         <span className="inline-block h-2.5 w-2.5 rounded-full shrink-0" style={{ background: COLORS[i % COLORS.length] }} />
                         <span className="truncate max-w-[140px]">{item.name}</span>
+                        <span className="font-medium text-foreground">{formatCurrency(item.value)}</span>
                       </div>
                     ))}
                   </div>
