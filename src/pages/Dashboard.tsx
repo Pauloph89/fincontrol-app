@@ -226,6 +226,35 @@ export default function Dashboard() {
     };
   }, [commissions, expenses, projections, period, orders, clients]);
 
+  // Count leads
+  const leadsCount = clients.filter((c) => c.status_funil === "lead" || c.status_funil === "contato_realizado" || c.status_funil === "negociacao").length;
+
+  // Commission monthly evolution for dedicated chart
+  const commissionMonthlyEvolution = useMemo(() => {
+    const today = new Date();
+    const allCommissionInstallments = commissions
+      .filter((c: any) => c.status !== "deleted" && c.status !== "cancelada")
+      .flatMap((c: any) => (c.commission_installments || []));
+
+    const months: { month: string; recebido: number; previsto: number }[] = [];
+    for (let i = 5; i >= -3; i--) {
+      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      const mEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+      const label = `${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+
+      const recebido = allCommissionInstallments
+        .filter((inst: any) => inst.status === "recebido" && inst.paid_date && new Date(inst.paid_date) >= d && new Date(inst.paid_date) <= mEnd)
+        .reduce((s: number, inst: any) => s + Number(inst.value), 0);
+
+      const previsto = allCommissionInstallments
+        .filter((inst: any) => inst.status !== "recebido" && inst.status !== "cancelado" && new Date(inst.due_date) >= d && new Date(inst.due_date) <= mEnd)
+        .reduce((s: number, inst: any) => s + Number(inst.value), 0);
+
+      months.push({ month: label, recebido, previsto });
+    }
+    return months;
+  }, [commissions]);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -236,36 +265,6 @@ export default function Dashboard() {
         <PeriodSelector value={periodKey} onChange={(v, r) => { setPeriodKey(v); setPeriod(r); }} />
       </div>
 
-      {/* Sales KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-        <Card className="glass-card"><CardContent className="p-3">
-          <span className="text-[10px] font-medium text-muted-foreground">Vendas do Período</span>
-          <p className="text-sm font-bold text-foreground">{formatCurrency(stats.totalSales)}</p>
-        </CardContent></Card>
-        <Card className="glass-card"><CardContent className="p-3">
-          <span className="text-[10px] font-medium text-muted-foreground">Pedidos</span>
-          <p className="text-sm font-bold text-foreground">{stats.totalOrdersCount}</p>
-        </CardContent></Card>
-        <Card className="glass-card"><CardContent className="p-3">
-          <span className="text-[10px] font-medium text-muted-foreground">Comissão Prevista</span>
-          <p className="text-sm font-bold text-info">{formatCurrency(stats.totalCommissionExpected)}</p>
-        </CardContent></Card>
-        <Card className="glass-card"><CardContent className="p-3">
-          <span className="text-[10px] font-medium text-muted-foreground">Comissão Recebida</span>
-          <p className="text-sm font-bold text-success">{formatCurrency(stats.receivedInPeriod)}</p>
-        </CardContent></Card>
-        <Card className="glass-card"><CardContent className="p-3">
-          <span className="text-[10px] font-medium text-muted-foreground">A Receber (30d)</span>
-          <p className="text-sm font-bold text-warning">{formatCurrency(stats.forecast30commission)}</p>
-        </CardContent></Card>
-        <Card className="glass-card"><CardContent className="p-3">
-          <span className="text-[10px] font-medium text-muted-foreground">Atrasadas</span>
-          <p className={`text-sm font-bold ${stats.lateCommissions > 0 ? "text-destructive" : "text-success"}`}>
-            {formatCurrency(stats.lateCommissions)}
-          </p>
-        </CardContent></Card>
-      </div>
-
       <KpiCards
         revenue={stats.receivedInPeriod}
         expenses={stats.expensesPaidInPeriod}
@@ -274,6 +273,13 @@ export default function Dashboard() {
         inadimplencia={stats.inadimplencia}
         forecast90={stats.forecast90}
         alerts={stats.alerts.length}
+        totalSales={stats.totalSales}
+        totalOrdersCount={stats.totalOrdersCount}
+        leadsCount={leadsCount}
+        commissionExpected={stats.totalCommissionExpected}
+        commissionReceived={stats.receivedInPeriod}
+        forecast30={stats.forecast30commission}
+        lateCommissions={stats.lateCommissions}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -284,6 +290,7 @@ export default function Dashboard() {
             monthlyEvolution={stats.monthlyEvolution}
             commissionByVendor={stats.commissionByVendor}
             commissionByFactory={stats.commissionByFactory}
+            commissionMonthlyEvolution={commissionMonthlyEvolution}
           />
         </div>
         <div className="space-y-6">

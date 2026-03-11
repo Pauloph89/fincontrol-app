@@ -15,6 +15,7 @@ import {
 import { CheckCircle2, ChevronDown, ChevronRight, Pencil, Search, XCircle, Trash2, RotateCcw, Paperclip, Loader2, Undo2 } from "lucide-react";
 import { useState, useMemo, useRef } from "react";
 import { CommissionEditDialog } from "./CommissionEditDialog";
+import { ReceiptDialog } from "./ReceiptDialog";
 
 const ITEMS_PER_PAGE = 15;
 
@@ -29,6 +30,7 @@ export function CommissionsList() {
   const [page, setPage] = useState(1);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingInstId, setUploadingInstId] = useState<string | null>(null);
+  const [receiptInst, setReceiptInst] = useState<{ id: string; value: number; installment_number: number } | null>(null);
 
   const toggleExpand = (id: string) => {
     setExpanded((prev) => {
@@ -56,7 +58,6 @@ export function CommissionsList() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const commissions = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
-  // Reset page when filters change
   useMemo(() => { setPage(1); }, [search, filterFactory, filterStatus]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -66,6 +67,17 @@ export function CommissionsList() {
       setUploadingInstId(null);
     }
     if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleReceiptConfirm = (data: { id: string; paid_date: string; paid_value: number; observation: string }) => {
+    updateInstallmentStatus.mutate({
+      id: data.id,
+      status: "recebido",
+      paid_date: data.paid_date,
+      paid_value: data.paid_value,
+      paid_observation: data.observation,
+    });
+    setReceiptInst(null);
   };
 
   if (commissionsQuery.isLoading) {
@@ -92,6 +104,13 @@ export function CommissionsList() {
   return (
     <>
       <input ref={fileInputRef} type="file" accept=".pdf,image/*" className="hidden" onChange={handleFileChange} />
+      <ReceiptDialog
+        open={!!receiptInst}
+        onOpenChange={(open) => !open && setReceiptInst(null)}
+        installment={receiptInst}
+        onConfirm={handleReceiptConfirm}
+        isPending={updateInstallmentStatus.isPending}
+      />
       <Card>
         <CardHeader className="pb-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -102,18 +121,14 @@ export function CommissionsList() {
                 <Input placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9 w-full sm:w-48" />
               </div>
               <Select value={filterFactory} onValueChange={setFilterFactory}>
-                <SelectTrigger className="h-9 w-full sm:w-40">
-                  <SelectValue placeholder="Fábrica" />
-                </SelectTrigger>
+                <SelectTrigger className="h-9 w-full sm:w-40"><SelectValue placeholder="Fábrica" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas</SelectItem>
                   {factories.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}
                 </SelectContent>
               </Select>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="h-9 w-full sm:w-40">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
+                <SelectTrigger className="h-9 w-full sm:w-40"><SelectValue placeholder="Status" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
                   {commissionStatusFlow.map((s) => (
@@ -235,6 +250,15 @@ export function CommissionsList() {
                                       <div className="text-xs opacity-75">Venc.: {formatDate(inst.due_date)}</div>
                                       {inst.notes && <div className="text-xs opacity-60 mt-1 italic">{inst.notes}</div>}
 
+                                      {/* Received details */}
+                                      {inst.status === "recebido" && (
+                                        <div className="mt-1.5 text-xs space-y-0.5">
+                                          {inst.paid_date && <div className="text-success">Recebido em: {formatDate(inst.paid_date)}</div>}
+                                          {inst.paid_value != null && <div className="text-success">Valor: {formatCurrency(inst.paid_value)}</div>}
+                                          {inst.paid_observation && <div className="italic text-muted-foreground">{inst.paid_observation}</div>}
+                                        </div>
+                                      )}
+
                                       {/* Buttons for non-received installments */}
                                       {inst.status !== "recebido" && inst.status !== "cancelado" && canEdit && (
                                         <div className="flex flex-wrap gap-1 mt-2">
@@ -244,11 +268,7 @@ export function CommissionsList() {
                                             className="h-7 text-xs flex-1 min-w-0"
                                             onClick={(e) => {
                                               e.stopPropagation();
-                                              updateInstallmentStatus.mutate({
-                                                id: inst.id,
-                                                status: "recebido",
-                                                paid_date: new Date().toISOString().split("T")[0],
-                                              });
+                                              setReceiptInst({ id: inst.id, value: inst.value, installment_number: inst.installment_number });
                                             }}
                                           >
                                             <CheckCircle2 className="mr-1 h-3 w-3 shrink-0" />
@@ -299,7 +319,7 @@ export function CommissionsList() {
                                               <AlertDialogHeader>
                                                 <AlertDialogTitle>Desfazer recebimento?</AlertDialogTitle>
                                                 <AlertDialogDescription>
-                                                  A parcela {inst.installment_number} voltará ao status "Pendente" e a data de recebimento será removida. Esta ação será registrada no log de auditoria.
+                                                  A parcela {inst.installment_number} voltará ao status "Pendente" e os dados de recebimento serão removidos.
                                                 </AlertDialogDescription>
                                               </AlertDialogHeader>
                                               <AlertDialogFooter>

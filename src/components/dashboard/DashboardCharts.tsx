@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend, LabelList } from "recharts";
 import { formatCurrency } from "@/lib/financial-utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -20,6 +20,7 @@ interface DashboardChartsProps {
   monthlyEvolution: { month: string; receitas: number; despesas: number }[];
   commissionByVendor?: { name: string; value: number }[];
   commissionByFactory?: { name: string; value: number }[];
+  commissionMonthlyEvolution?: { month: string; recebido: number; previsto: number }[];
 }
 
 const RADIAN = Math.PI / 180;
@@ -36,7 +37,13 @@ const renderPieLabel = ({ cx, cy, midAngle, outerRadius, name, percent }: any) =
   );
 };
 
-export function DashboardCharts({ revenueByFactory, expensesByCategory, monthlyEvolution, commissionByVendor, commissionByFactory }: DashboardChartsProps) {
+const formatBarLabel = (v: number) => {
+  if (v === 0) return "";
+  if (v >= 1000) return `R$${(v / 1000).toFixed(0)}k`;
+  return `R$${v.toFixed(0)}`;
+};
+
+export function DashboardCharts({ revenueByFactory, expensesByCategory, monthlyEvolution, commissionByVendor, commissionByFactory, commissionMonthlyEvolution }: DashboardChartsProps) {
   const isMobile = useIsMobile();
   const chartHeight = isMobile ? 220 : 300;
   const pieSize = isMobile ? 220 : 300;
@@ -45,10 +52,32 @@ export function DashboardCharts({ revenueByFactory, expensesByCategory, monthlyE
 
   return (
     <div className="space-y-6">
+      {/* Commission Monthly Evolution */}
+      {commissionMonthlyEvolution && commissionMonthlyEvolution.some((m) => m.recebido > 0 || m.previsto > 0) && (
+        <Card className="glass-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Evolução Mensal de Comissões</CardTitle>
+          </CardHeader>
+          <CardContent className="px-2 sm:px-6">
+            <ResponsiveContainer width="100%" height={chartHeight}>
+              <BarChart data={commissionMonthlyEvolution}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 20%, 88%)" />
+                <XAxis dataKey="month" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
+                <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} width={55} />
+                <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={{ fontSize: 12 }} />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Bar dataKey="recebido" name="Recebido" fill="hsl(142, 71%, 45%)" radius={[4, 4, 0, 0]} stackId="a" />
+                <Bar dataKey="previsto" name="Previsto" fill="hsl(215, 76%, 56%)" radius={[4, 4, 0, 0]} stackId="a" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Monthly evolution */}
       <Card className="glass-card">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Evolução Mensal (12 meses)</CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground">Evolução Mensal — Receitas × Despesas (12 meses)</CardTitle>
         </CardHeader>
         <CardContent className="px-2 sm:px-6">
           {monthlyEvolution.every((m) => m.receitas === 0 && m.despesas === 0) ? (
@@ -84,7 +113,9 @@ export function DashboardCharts({ revenueByFactory, expensesByCategory, monthlyE
                   <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} angle={-20} textAnchor="end" height={55} />
                   <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} width={55} />
                   <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="value" fill="hsl(215, 76%, 56%)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="value" fill="hsl(215, 76%, 56%)" radius={[4, 4, 0, 0]}>
+                    <LabelList dataKey="value" position="top" formatter={formatBarLabel} style={{ fontSize: 9, fill: "hsl(215, 20%, 40%)" }} />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -149,7 +180,9 @@ export function DashboardCharts({ revenueByFactory, expensesByCategory, monthlyE
                   <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
                   <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={90} />
                   <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="value" fill="hsl(142, 71%, 45%)" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="value" fill="hsl(142, 71%, 45%)" radius={[0, 4, 4, 0]}>
+                    <LabelList dataKey="value" position="right" formatter={formatBarLabel} style={{ fontSize: 9, fill: "hsl(215, 20%, 40%)" }} />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -168,7 +201,9 @@ export function DashboardCharts({ revenueByFactory, expensesByCategory, monthlyE
                   <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
                   <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={90} />
                   <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="value" fill="hsl(38, 92%, 50%)" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="value" fill="hsl(38, 92%, 50%)" radius={[0, 4, 4, 0]}>
+                    <LabelList dataKey="value" position="right" formatter={formatBarLabel} style={{ fontSize: 9, fill: "hsl(215, 20%, 40%)" }} />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>

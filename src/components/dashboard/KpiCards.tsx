@@ -1,5 +1,5 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, DollarSign, AlertTriangle, ArrowDownLeft, ArrowUpRight, ShieldAlert, Calendar } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TrendingUp, TrendingDown, DollarSign, AlertTriangle, ArrowDownLeft, ArrowUpRight, ShieldAlert, Calendar, ShoppingCart, Users, BarChart3 } from "lucide-react";
 import { formatCurrency } from "@/lib/financial-utils";
 
 interface KpiCardsProps {
@@ -10,36 +10,76 @@ interface KpiCardsProps {
   inadimplencia: number;
   forecast90: number;
   alerts: number;
+  totalSales?: number;
+  totalOrdersCount?: number;
+  leadsCount?: number;
+  commissionExpected?: number;
+  commissionReceived?: number;
+  forecast30?: number;
+  lateCommissions?: number;
 }
 
-export function KpiCards({ revenue, expenses, toReceive, toPay, inadimplencia, forecast90, alerts }: KpiCardsProps) {
+function KpiCard({ title, value, icon: Icon, color, isCurrency = true }: {
+  title: string; value: number; icon: any; color: string; isCurrency?: boolean;
+}) {
+  return (
+    <Card className="glass-card">
+      <CardContent className="p-3">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-[10px] font-medium text-muted-foreground leading-tight">{title}</span>
+          <Icon className={`h-3.5 w-3.5 ${color}`} />
+        </div>
+        <p className="text-sm font-bold">
+          {isCurrency ? formatCurrency(value) : value}
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+export function KpiCards({
+  revenue, expenses, toReceive, toPay, inadimplencia, forecast90, alerts,
+  totalSales = 0, totalOrdersCount = 0, leadsCount = 0,
+  commissionExpected = 0, commissionReceived = 0, forecast30 = 0, lateCommissions = 0,
+}: KpiCardsProps) {
   const profit = revenue - expenses;
-  const cards = [
-    { title: "Receita", value: revenue, icon: ArrowDownLeft, color: "text-success" },
-    { title: "Despesas", value: expenses, icon: ArrowUpRight, color: "text-destructive" },
-    { title: "Lucro Líquido", value: profit, icon: profit >= 0 ? TrendingUp : TrendingDown, color: profit >= 0 ? "text-success" : "text-destructive" },
-    { title: "A Receber", value: toReceive, icon: DollarSign, color: "text-info" },
-    { title: "A Pagar", value: toPay, icon: DollarSign, color: "text-warning" },
-    { title: "Inadimplência", value: inadimplencia, icon: ShieldAlert, color: inadimplencia > 0 ? "text-destructive" : "text-success" },
-    { title: "Previsão 90d", value: forecast90, icon: Calendar, color: forecast90 >= 0 ? "text-success" : "text-destructive" },
-    { title: "Alertas", value: alerts, icon: AlertTriangle, color: alerts > 0 ? "text-destructive" : "text-muted-foreground", isCurrency: false },
-  ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-8 gap-3">
-      {cards.map((card) => (
-        <Card key={card.title} className="glass-card">
-          <CardContent className="p-3">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] font-medium text-muted-foreground leading-tight">{card.title}</span>
-              <card.icon className={`h-3.5 w-3.5 ${card.color}`} />
-            </div>
-            <p className="text-sm font-bold">
-              {card.isCurrency === false ? card.value : formatCurrency(card.value)}
-            </p>
-          </CardContent>
-        </Card>
-      ))}
+    <div className="space-y-4">
+      {/* Comercial */}
+      <div>
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">📊 Comercial</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <KpiCard title="Vendas do Período" value={totalSales} icon={ShoppingCart} color="text-foreground" />
+          <KpiCard title="Pedidos" value={totalOrdersCount} icon={BarChart3} color="text-foreground" isCurrency={false} />
+          <KpiCard title="Leads" value={leadsCount} icon={Users} color="text-info" isCurrency={false} />
+        </div>
+      </div>
+
+      {/* Comissões */}
+      <div>
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">💰 Comissões</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <KpiCard title="Comissão Prevista" value={commissionExpected} icon={DollarSign} color="text-info" />
+          <KpiCard title="Comissão Recebida" value={commissionReceived} icon={ArrowDownLeft} color="text-success" />
+          <KpiCard title="A Receber (30d)" value={forecast30} icon={Calendar} color="text-warning" />
+          <KpiCard title="Atrasadas" value={lateCommissions} icon={ShieldAlert} color={lateCommissions > 0 ? "text-destructive" : "text-success"} />
+        </div>
+      </div>
+
+      {/* Financeiro */}
+      <div>
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">📈 Financeiro</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-3">
+          <KpiCard title="Receita" value={revenue} icon={ArrowDownLeft} color="text-success" />
+          <KpiCard title="Despesas" value={expenses} icon={ArrowUpRight} color="text-destructive" />
+          <KpiCard title="Lucro Líquido" value={profit} icon={profit >= 0 ? TrendingUp : TrendingDown} color={profit >= 0 ? "text-success" : "text-destructive"} />
+          <KpiCard title="A Receber" value={toReceive} icon={DollarSign} color="text-info" />
+          <KpiCard title="A Pagar" value={toPay} icon={DollarSign} color="text-warning" />
+          <KpiCard title="Inadimplência" value={inadimplencia} icon={ShieldAlert} color={inadimplencia > 0 ? "text-destructive" : "text-success"} />
+          <KpiCard title="Previsão 90d" value={forecast90} icon={Calendar} color={forecast90 >= 0 ? "text-success" : "text-destructive"} />
+        </div>
+      </div>
     </div>
   );
 }
