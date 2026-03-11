@@ -259,6 +259,8 @@ export type Database = {
           installment_number: number
           notes: string | null
           paid_date: string | null
+          paid_observation: string | null
+          paid_value: number | null
           receipt_url: string | null
           status: string
           updated_at: string
@@ -272,6 +274,8 @@ export type Database = {
           installment_number: number
           notes?: string | null
           paid_date?: string | null
+          paid_observation?: string | null
+          paid_value?: number | null
           receipt_url?: string | null
           status?: string
           updated_at?: string
@@ -285,6 +289,8 @@ export type Database = {
           installment_number?: number
           notes?: string | null
           paid_date?: string | null
+          paid_observation?: string | null
+          paid_value?: number | null
           receipt_url?: string | null
           status?: string
           updated_at?: string
