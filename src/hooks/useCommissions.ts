@@ -294,7 +294,7 @@ export function useCommissions() {
   });
 
   const updateInstallmentStatus = useMutation({
-    mutationFn: async ({ id, status, paid_date }: { id: string; status: string; paid_date?: string }) => {
+    mutationFn: async ({ id, status, paid_date, paid_value, paid_observation }: { id: string; status: string; paid_date?: string; paid_value?: number; paid_observation?: string }) => {
       if (!user || !companyId) throw new Error("Not authenticated");
       const { data: oldInst } = await supabase
         .from("commission_installments")
@@ -302,9 +302,18 @@ export function useCommissions() {
         .eq("id", id)
         .single();
 
+      const updatePayload: any = { status, paid_date: paid_date ?? null };
+      if (paid_value !== undefined) updatePayload.paid_value = paid_value;
+      if (paid_observation !== undefined) updatePayload.paid_observation = paid_observation;
+      // Clear paid fields when reverting
+      if (status === "previsto") {
+        updatePayload.paid_value = null;
+        updatePayload.paid_observation = null;
+      }
+
       const { error } = await supabase
         .from("commission_installments")
-        .update({ status, paid_date: paid_date ?? null })
+        .update(updatePayload)
         .eq("id", id);
       if (error) throw error;
 
