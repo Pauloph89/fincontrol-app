@@ -273,6 +273,13 @@ export default function Dashboard() {
         inadimplencia={stats.inadimplencia}
         forecast90={stats.forecast90}
         alerts={stats.alerts.length}
+        totalSales={stats.totalSales}
+        totalOrdersCount={stats.totalOrdersCount}
+        leadsCount={leadsCount}
+        commissionExpected={stats.totalCommissionExpected}
+        commissionReceived={stats.receivedInPeriod}
+        forecast30={stats.forecast30commission}
+        lateCommissions={stats.lateCommissions}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -283,6 +290,7 @@ export default function Dashboard() {
             monthlyEvolution={stats.monthlyEvolution}
             commissionByVendor={stats.commissionByVendor}
             commissionByFactory={stats.commissionByFactory}
+            commissionMonthlyEvolution={commissionMonthlyEvolution}
           />
         </div>
         <div className="space-y-6">
