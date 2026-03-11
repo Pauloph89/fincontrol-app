@@ -4,6 +4,7 @@ import { ClientImportDialog } from "@/components/clients/ClientImportDialog";
 import { ClientFilters, ClientFilterValues, emptyFilters } from "@/components/clients/ClientFilters";
 import { ClientFunnel } from "@/components/clients/ClientFunnel";
 import { useOrders } from "@/hooks/useOrders";
+import { useClientInteractions } from "@/hooks/useClientInteractions";
 import { useUserRole } from "@/hooks/useUserRole";
 import { formatCurrency, formatDate } from "@/lib/financial-utils";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,10 +19,11 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Loader2, Users, Eye, LayoutList, Columns3 } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Users, Eye, LayoutList, Columns3, Phone, MapPin, Handshake, ShoppingCart } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ClientInteractions } from "@/components/clients/ClientInteractions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useNavigate } from "react-router-dom";
 
 const BRAZILIAN_STATES = [
   "AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA",
@@ -34,10 +36,91 @@ const emptyForm: ClientFormData = {
   vendedor_responsavel: "", categoria: "outros", status_funil: "lead",
 };
 
+function formatCnpjCpf(value: string | null): string {
+  if (!value) return "—";
+  const digits = value.replace(/\D/g, "");
+  if (digits.length === 14) {
+    return digits.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
+  }
+  if (digits.length === 11) {
+    return digits.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
+  }
+  return value;
+}
+
+function QuickContactButtons({ clientId, onDone }: { clientId: string; onDone?: () => void }) {
+  const { createInteraction } = useClientInteractions(clientId);
+
+  const registerContact = async (type: string, description: string) => {
+    await createInteraction.mutateAsync({
+      client_id: clientId,
+      type,
+      description,
+      date: new Date().toISOString().split("T")[0],
+      notes: "",
+    });
+    onDone?.();
+  };
+
+  return (
+    <div className="flex gap-1">
+      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => registerContact("ligacao", "Ligação realizada")}>
+        <Phone className="mr-1 h-3 w-3" />Ligação
+      </Button>
+      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => registerContact("visita", "Visita realizada")}>
+        <MapPin className="mr-1 h-3 w-3" />Visita
+      </Button>
+      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => registerContact("negociacao", "Negociação registrada")}>
+        <Handshake className="mr-1 h-3 w-3" />Negociação
+      </Button>
+    </div>
+  );
+}
+
+function ClientTimeline({ clientId, clientName, orders }: { clientId: string; clientName: string; orders: any[] }) {
+  const { interactionsQuery } = useClientInteractions(clientId);
+  const interactions = interactionsQuery.data || [];
+
+  const timeline = useMemo(() => {
+    const items: { date: string; type: string; description: string }[] = [];
+
+    interactions.forEach((i) => {
+      items.push({ date: i.date, type: i.type, description: i.description });
+    });
+
+    orders.forEach((o: any) => {
+      items.push({ date: o.order_date, type: "pedido", description: `Pedido ${o.order_number} — ${o.factory} — ${formatCurrency(o.commission_base_value)}` });
+    });
+
+    return items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 30);
+  }, [interactions, orders]);
+
+  const typeIcons: Record<string, string> = {
+    ligacao: "📞", visita: "📍", email: "✉️", negociacao: "🤝", contato: "💬", pedido: "📦",
+  };
+
+  if (timeline.length === 0) return <p className="text-muted-foreground text-xs">Nenhuma atividade registrada.</p>;
+
+  return (
+    <div className="max-h-72 overflow-y-auto space-y-1.5">
+      {timeline.map((item, i) => (
+        <div key={i} className="flex items-start gap-2 text-xs border-l-2 border-border pl-3 py-1">
+          <span className="shrink-0">{typeIcons[item.type] || "📌"}</span>
+          <div className="flex-1 min-w-0">
+            <p className="font-medium">{item.description}</p>
+            <p className="text-muted-foreground">{formatDate(item.date)}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function Clients() {
   const { clientsQuery, createClient, updateClient, deleteClient } = useClients();
   const { ordersQuery } = useOrders();
   const { canEdit, canDelete } = useUserRole();
+  const navigate = useNavigate();
   const [filters, setFilters] = useState<ClientFilterValues>({ ...emptyFilters });
   const [viewMode, setViewMode] = useState<"list" | "funnel">("list");
   const [formOpen, setFormOpen] = useState(false);
@@ -46,6 +129,7 @@ export default function Clients() {
   const [form, setForm] = useState<ClientFormData>({ ...emptyForm });
 
   const allClients = clientsQuery.data || [];
+  const allOrders = ordersQuery.data || [];
 
   const vendedores = useMemo(() => {
     const set = new Set(allClients.map((c) => c.vendedor_responsavel).filter(Boolean) as string[]);
@@ -71,6 +155,20 @@ export default function Clients() {
       return true;
     });
   }, [allClients, filters]);
+
+  // Compute total sold per client and last interaction date
+  const clientStats = useMemo(() => {
+    const stats: Record<string, { totalSold: number; lastContact: string | null }> = {};
+    allClients.forEach((c) => {
+      const clientOrders = allOrders.filter((o: any) =>
+        o.status !== "deleted" && o.status !== "cancelado" &&
+        (o.client_id === c.id || o.client?.toLowerCase() === c.razao_social?.toLowerCase())
+      );
+      const totalSold = clientOrders.reduce((s: number, o: any) => s + Number(o.commission_base_value), 0);
+      stats[c.id] = { totalSold, lastContact: null };
+    });
+    return stats;
+  }, [allClients, allOrders]);
 
   const openCreate = () => { setEditingClient(null); setForm({ ...emptyForm }); setFormOpen(true); };
   const openEdit = (c: Client) => {
@@ -101,9 +199,10 @@ export default function Clients() {
 
   const update = (field: keyof ClientFormData, value: string) => setForm((p) => ({ ...p, [field]: value }));
 
-  const getClientOrders = (clientName: string) => {
-    return (ordersQuery.data || []).filter((o: any) =>
-      o.client.toLowerCase() === clientName.toLowerCase() || o.client_cnpj === clientName
+  const getClientOrders = (client: Client) => {
+    return (allOrders || []).filter((o: any) =>
+      o.status !== "deleted" && o.status !== "cancelado" &&
+      (o.client_id === client.id || o.client?.toLowerCase() === client.razao_social?.toLowerCase())
     );
   };
 
@@ -165,8 +264,8 @@ export default function Clients() {
                     <TableHead className="hidden lg:table-cell">Cidade/UF</TableHead>
                     <TableHead className="hidden lg:table-cell">Categoria</TableHead>
                     <TableHead className="hidden lg:table-cell">Status</TableHead>
-                    <TableHead className="hidden xl:table-cell">Vendedor</TableHead>
-                    <TableHead className="w-24"></TableHead>
+                    <TableHead className="hidden xl:table-cell text-right">Total Vendido</TableHead>
+                    <TableHead className="w-28"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -174,13 +273,15 @@ export default function Clients() {
                     <TableRow key={c.id}>
                       <TableCell className="font-medium text-sm">{c.razao_social}</TableCell>
                       <TableCell className="hidden sm:table-cell text-sm">{c.nome_fantasia || "—"}</TableCell>
-                      <TableCell className="hidden md:table-cell text-xs">{c.cnpj_cpf || "—"}</TableCell>
+                      <TableCell className="hidden md:table-cell text-xs font-mono">{formatCnpjCpf(c.cnpj_cpf)}</TableCell>
                       <TableCell className="hidden lg:table-cell text-xs">{c.cidade ? `${c.cidade}/${c.estado}` : "—"}</TableCell>
                       <TableCell className="hidden lg:table-cell text-xs">{c.categoria || "—"}</TableCell>
                       <TableCell className="hidden lg:table-cell">
                         <Badge variant="outline" className="text-[10px]">{getFunnelLabel(c.status_funil)}</Badge>
                       </TableCell>
-                      <TableCell className="hidden xl:table-cell text-xs">{c.vendedor_responsavel || "—"}</TableCell>
+                      <TableCell className="hidden xl:table-cell text-right text-xs font-semibold">
+                        {clientStats[c.id]?.totalSold ? formatCurrency(clientStats[c.id].totalSold) : "—"}
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-0.5">
                           <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setDetailClient(c)}>
@@ -279,13 +380,14 @@ export default function Clients() {
               <TabsList className="w-full">
                 <TabsTrigger value="info">Dados</TabsTrigger>
                 <TabsTrigger value="orders">Pedidos</TabsTrigger>
-                <TabsTrigger value="interactions">CRM / Interações</TabsTrigger>
+                <TabsTrigger value="timeline">Timeline</TabsTrigger>
+                <TabsTrigger value="interactions">Interações</TabsTrigger>
               </TabsList>
 
               <TabsContent value="info" className="space-y-4">
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div><span className="text-muted-foreground">Nome Fantasia:</span> {detailClient.nome_fantasia || "—"}</div>
-                  <div><span className="text-muted-foreground">CNPJ/CPF:</span> {detailClient.cnpj_cpf || "—"}</div>
+                  <div><span className="text-muted-foreground">CNPJ/CPF:</span> <span className="font-mono">{formatCnpjCpf(detailClient.cnpj_cpf)}</span></div>
                   <div><span className="text-muted-foreground">Telefone:</span> {detailClient.telefone || "—"}</div>
                   <div><span className="text-muted-foreground">E-mail:</span> {detailClient.email || "—"}</div>
                   <div><span className="text-muted-foreground">Cidade/UF:</span> {detailClient.cidade ? `${detailClient.cidade}/${detailClient.estado}` : "—"}</div>
@@ -296,11 +398,26 @@ export default function Clients() {
                 {detailClient.observacoes && (
                   <div className="text-sm"><span className="text-muted-foreground">Observações:</span> {detailClient.observacoes}</div>
                 )}
+
+                {/* Quick actions */}
+                {canEdit && (
+                  <div className="space-y-2 pt-2 border-t border-border">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase">Ações rápidas</p>
+                    <QuickContactButtons clientId={detailClient.id} />
+                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => {
+                      setDetailClient(null);
+                      // Navigate to orders with client pre-filled (via URL param)
+                      navigate(`/pedidos?client=${encodeURIComponent(detailClient.razao_social)}&client_id=${detailClient.id}`);
+                    }}>
+                      <ShoppingCart className="mr-1 h-3 w-3" />Criar Pedido
+                    </Button>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="orders" className="space-y-4">
                 {(() => {
-                  const orders = getClientOrders(detailClient.razao_social);
+                  const orders = getClientOrders(detailClient);
                   if (orders.length === 0) return <p className="text-muted-foreground text-sm">Nenhum pedido encontrado.</p>;
                   const totalVendas = orders.reduce((s: number, o: any) => s + Number(o.commission_base_value), 0);
                   const totalComissao = orders.reduce((s: number, o: any) => s + Number(o.commission_total_rep), 0);
@@ -334,6 +451,14 @@ export default function Clients() {
                     </div>
                   );
                 })()}
+              </TabsContent>
+
+              <TabsContent value="timeline">
+                <ClientTimeline
+                  clientId={detailClient.id}
+                  clientName={detailClient.razao_social}
+                  orders={getClientOrders(detailClient)}
+                />
               </TabsContent>
 
               <TabsContent value="interactions">
