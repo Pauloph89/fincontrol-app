@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, DollarSign, AlertTriangle, ArrowDownLeft, ArrowUpRight, ShieldAlert, Calendar, ShoppingCart, Users, BarChart3 } from "lucide-react";
 import { formatCurrency } from "@/lib/financial-utils";
 
@@ -19,8 +19,8 @@ interface KpiCardsProps {
   lateCommissions?: number;
 }
 
-function KpiCard({ title, value, icon: Icon, color, isCurrency = true }: {
-  title: string; value: number; icon: any; color: string; isCurrency?: boolean;
+function KpiCard({ title, value, icon: Icon, color, isCurrency = true, subtitle }: {
+  title: string; value: number; icon: any; color: string; isCurrency?: boolean; subtitle?: string;
 }) {
   return (
     <Card className="glass-card">
@@ -32,6 +32,9 @@ function KpiCard({ title, value, icon: Icon, color, isCurrency = true }: {
         <p className="text-sm font-bold">
           {isCurrency ? formatCurrency(value) : value}
         </p>
+        {subtitle && (
+          <p className="text-[9px] text-muted-foreground leading-tight mt-0.5">{subtitle}</p>
+        )}
       </CardContent>
     </Card>
   );
@@ -60,9 +63,11 @@ export function KpiCards({
       <div>
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">💰 Comissões</h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <KpiCard title="Comissão Prevista" value={commissionExpected} icon={DollarSign} color="text-info" />
-          <KpiCard title="Comissão Recebida" value={commissionReceived} icon={ArrowDownLeft} color="text-success" />
-          <KpiCard title="A Receber (30d)" value={forecast30} icon={Calendar} color="text-warning" />
+          <KpiCard title="Comissão Prevista" value={commissionExpected} icon={DollarSign} color="text-info"
+            subtitle="Valor total das comissões geradas no período" />
+          <KpiCard title="Comissão Recebida" value={commissionReceived} icon={ArrowDownLeft} color="text-success"
+            subtitle="Valor efetivamente recebido no período" />
+          <KpiCard title="Previsão 30 dias" value={forecast30} icon={Calendar} color="text-warning" />
           <KpiCard title="Atrasadas" value={lateCommissions} icon={ShieldAlert} color={lateCommissions > 0 ? "text-destructive" : "text-success"} />
         </div>
       </div>
@@ -74,7 +79,7 @@ export function KpiCards({
           <KpiCard title="Receita" value={revenue} icon={ArrowDownLeft} color="text-success" />
           <KpiCard title="Despesas" value={expenses} icon={ArrowUpRight} color="text-destructive" />
           <KpiCard title="Lucro Líquido" value={profit} icon={profit >= 0 ? TrendingUp : TrendingDown} color={profit >= 0 ? "text-success" : "text-destructive"} />
-          <KpiCard title="A Receber" value={toReceive} icon={DollarSign} color="text-info" />
+          <KpiCard title="Total a Receber" value={toReceive} icon={DollarSign} color="text-info" />
           <KpiCard title="A Pagar" value={toPay} icon={DollarSign} color="text-warning" />
           <KpiCard title="Inadimplência" value={inadimplencia} icon={ShieldAlert} color={inadimplencia > 0 ? "text-destructive" : "text-success"} />
           <KpiCard title="Previsão 90d" value={forecast90} icon={Calendar} color={forecast90 >= 0 ? "text-success" : "text-destructive"} />

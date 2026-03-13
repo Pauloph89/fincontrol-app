@@ -96,13 +96,19 @@ export function useUserRole() {
         return acc;
       }, {});
 
-      return (roles || []).map((r: any) => ({
-        user_id: r.user_id,
-        email: emailMap[r.user_id] || "—",
-        role: r.role as AppRole,
-        active: r.active,
-        created_at: r.created_at,
-      })) as UserWithRole[];
+      // Deduplicate by user_id — keep the most recent role entry
+      const userMap = new Map<string, UserWithRole>();
+      (roles || []).forEach((r: any) => {
+        userMap.set(r.user_id, {
+          user_id: r.user_id,
+          email: emailMap[r.user_id] || "—",
+          role: r.role as AppRole,
+          active: r.active,
+          created_at: r.created_at,
+        });
+      });
+
+      return Array.from(userMap.values());
     },
     enabled: !!user && !!companyId && roleQuery.data === "admin",
   });

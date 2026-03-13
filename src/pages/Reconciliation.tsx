@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Link2, Paperclip, CheckCircle2, AlertCircle, Clock, DollarSign } from "lucide-react";
+import { Plus, Link2, Paperclip, CheckCircle2, AlertCircle, Clock, DollarSign, InboxIcon } from "lucide-react";
 
 function BankEntryForm({ onClose }: { onClose: () => void }) {
   const { createBankEntry } = useBankEntries();
@@ -174,6 +174,8 @@ export default function Reconciliation() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const isEmpty = entries.length === 0;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -192,124 +194,141 @@ export default function Reconciliation() {
         </Dialog>
       </div>
 
-      {/* Summary */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card className="glass-card">
-          <CardContent className="p-4 flex items-center gap-3">
-            <CheckCircle2 className="h-8 w-8 text-success" />
-            <div>
-              <p className="text-xs text-muted-foreground">Conciliados</p>
-              <p className="text-xl font-bold">{entries.filter((e: any) => e.reconciled).length}</p>
-            </div>
+      {isEmpty ? (
+        <Card>
+          <CardContent className="py-16 text-center space-y-3">
+            <InboxIcon className="h-12 w-12 mx-auto text-muted-foreground" />
+            <h3 className="font-semibold text-lg">Nenhuma entrada bancária registrada</h3>
+            <p className="text-muted-foreground text-sm max-w-md mx-auto">
+              Aqui você compara os pagamentos recebidos na sua conta bancária com as comissões registradas no sistema. Clique em Nova Entrada para começar.
+            </p>
+            <Button onClick={() => setFormOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" /> Nova Entrada
+            </Button>
           </CardContent>
         </Card>
-        <Card className="glass-card">
-          <CardContent className="p-4 flex items-center gap-3">
-            <Clock className="h-8 w-8 text-warning" />
-            <div>
-              <p className="text-xs text-muted-foreground">Pendentes</p>
-              <p className="text-xl font-bold">{entries.filter((e: any) => !e.reconciled).length}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="glass-card">
-          <CardContent className="p-4 flex items-center gap-3">
-            <DollarSign className="h-8 w-8 text-info" />
-            <div>
-              <p className="text-xs text-muted-foreground">Total Registrado</p>
-              <p className="text-xl font-bold">{formatCurrency(entries.reduce((s: number, e: any) => s + (e.type === "entrada" ? Number(e.value) : -Number(e.value)), 0))}</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Filters & Table */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Entradas Bancárias</CardTitle>
-            <div className="flex gap-2">
-              <Select value={filterAccount} onValueChange={setFilterAccount}>
-                <SelectTrigger className="h-9 w-32"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas</SelectItem>
-                  <SelectItem value="cnpj">CNPJ</SelectItem>
-                  <SelectItem value="pessoal">Pessoal</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="h-9 w-36"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="conciliado">Conciliados</SelectItem>
-                  <SelectItem value="pendente">Pendentes</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+      ) : (
+        <>
+          {/* Summary */}
+          <div className="grid grid-cols-3 gap-4">
+            <Card className="glass-card">
+              <CardContent className="p-4 flex items-center gap-3">
+                <CheckCircle2 className="h-8 w-8 text-success" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Conciliados</p>
+                  <p className="text-xl font-bold">{entries.filter((e: any) => e.reconciled).length}</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="glass-card">
+              <CardContent className="p-4 flex items-center gap-3">
+                <Clock className="h-8 w-8 text-warning" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Pendentes</p>
+                  <p className="text-xl font-bold">{entries.filter((e: any) => !e.reconciled).length}</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="glass-card">
+              <CardContent className="p-4 flex items-center gap-3">
+                <DollarSign className="h-8 w-8 text-info" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Total Registrado</p>
+                  <p className="text-xl font-bold">{formatCurrency(entries.reduce((s: number, e: any) => s + (e.type === "entrada" ? Number(e.value) : -Number(e.value)), 0))}</p>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <input ref={fileInputRef} type="file" accept=".pdf,image/*" className="hidden" onChange={handleFileChange} />
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Data</TableHead>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Conta</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-24"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                    Nenhuma entrada bancária. Clique em "Nova Entrada" para começar.
-                  </TableCell>
-                </TableRow>
-              ) : filtered.map((entry: any) => (
-                <TableRow key={entry.id}>
-                  <TableCell>{formatDate(entry.date)}</TableCell>
-                  <TableCell className="font-medium">{entry.description}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="text-xs">
-                      {entry.type === "entrada" ? "Entrada" : "Saída"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-xs uppercase">{entry.account}</TableCell>
-                  <TableCell className={`text-right font-semibold ${entry.type === "entrada" ? "text-success" : "text-destructive"}`}>
-                    {formatCurrency(entry.value)}
-                  </TableCell>
-                  <TableCell>
-                    {entry.reconciled ? (
-                      <span className="inline-flex items-center gap-1 text-xs text-success"><CheckCircle2 className="h-3 w-3" /> Conciliado</span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-xs text-warning"><Clock className="h-3 w-3" /> Pendente</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-0.5">
-                      {!entry.reconciled && (
-                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setReconcileEntry(entry)} title="Conciliar">
-                          <Link2 className="h-4 w-4 text-info" />
-                        </Button>
-                      )}
-                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { setUploadingId(entry.id); fileInputRef.current?.click(); }} title="Comprovante">
-                        <Paperclip className="h-4 w-4 text-muted-foreground" />
-                      </Button>
-                      {entry.receipt_url && (
-                        <a href={entry.receipt_url} target="_blank" rel="noopener noreferrer" className="text-xs text-info underline">Ver</a>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+
+          {/* Filters & Table */}
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">Entradas Bancárias</CardTitle>
+                <div className="flex gap-2">
+                  <Select value={filterAccount} onValueChange={setFilterAccount}>
+                    <SelectTrigger className="h-9 w-32"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todas</SelectItem>
+                      <SelectItem value="cnpj">CNPJ</SelectItem>
+                      <SelectItem value="pessoal">Pessoal</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={filterStatus} onValueChange={setFilterStatus}>
+                    <SelectTrigger className="h-9 w-36"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos</SelectItem>
+                      <SelectItem value="conciliado">Conciliados</SelectItem>
+                      <SelectItem value="pendente">Pendentes</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <input ref={fileInputRef} type="file" accept=".pdf,image/*" className="hidden" onChange={handleFileChange} />
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Conta</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-24"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                        Nenhuma entrada encontrada com os filtros selecionados.
+                      </TableCell>
+                    </TableRow>
+                  ) : filtered.map((entry: any) => (
+                    <TableRow key={entry.id}>
+                      <TableCell>{formatDate(entry.date)}</TableCell>
+                      <TableCell className="font-medium">{entry.description}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs">
+                          {entry.type === "entrada" ? "Entrada" : "Saída"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs uppercase">{entry.account}</TableCell>
+                      <TableCell className={`text-right font-semibold ${entry.type === "entrada" ? "text-success" : "text-destructive"}`}>
+                        {formatCurrency(entry.value)}
+                      </TableCell>
+                      <TableCell>
+                        {entry.reconciled ? (
+                          <span className="inline-flex items-center gap-1 text-xs text-success"><CheckCircle2 className="h-3 w-3" /> Conciliado</span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-xs text-warning"><Clock className="h-3 w-3" /> Pendente</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-0.5">
+                          {!entry.reconciled && (
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setReconcileEntry(entry)} title="Conciliar">
+                              <Link2 className="h-4 w-4 text-info" />
+                            </Button>
+                          )}
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { setUploadingId(entry.id); fileInputRef.current?.click(); }} title="Comprovante">
+                            <Paperclip className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                          {entry.receipt_url && (
+                            <a href={entry.receipt_url} target="_blank" rel="noopener noreferrer" className="text-xs text-info underline">Ver</a>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </>
+      )}
 
       {/* Reconcile dialog */}
       <Dialog open={!!reconcileEntry} onOpenChange={(open) => !open && setReconcileEntry(null)}>
