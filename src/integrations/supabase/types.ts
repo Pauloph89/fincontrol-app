@@ -257,6 +257,7 @@ export type Database = {
           due_date: string
           id: string
           installment_number: number
+          lot_id: string | null
           notes: string | null
           paid_date: string | null
           paid_observation: string | null
@@ -272,6 +273,7 @@ export type Database = {
           due_date: string
           id?: string
           installment_number: number
+          lot_id?: string | null
           notes?: string | null
           paid_date?: string | null
           paid_observation?: string | null
@@ -287,6 +289,7 @@ export type Database = {
           due_date?: string
           id?: string
           installment_number?: number
+          lot_id?: string | null
           notes?: string | null
           paid_date?: string | null
           paid_observation?: string | null
@@ -302,6 +305,13 @@ export type Database = {
             columns: ["commission_id"]
             isOneToOne: false
             referencedRelation: "commissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_installments_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "order_billing_lots"
             referencedColumns: ["id"]
           },
         ]
@@ -689,6 +699,53 @@ export type Database = {
             columns: ["factory_id"]
             isOneToOne: false
             referencedRelation: "factories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_billing_lots: {
+        Row: {
+          billed_value: number
+          billing_date: string
+          commission_percent: number
+          commission_value: number
+          created_at: string
+          id: string
+          lot_number: number
+          notes: string | null
+          order_id: string
+          updated_at: string
+        }
+        Insert: {
+          billed_value: number
+          billing_date: string
+          commission_percent?: number
+          commission_value?: number
+          created_at?: string
+          id?: string
+          lot_number: number
+          notes?: string | null
+          order_id: string
+          updated_at?: string
+        }
+        Update: {
+          billed_value?: number
+          billing_date?: string
+          commission_percent?: number
+          commission_value?: number
+          created_at?: string
+          id?: string
+          lot_number?: number
+          notes?: string | null
+          order_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_billing_lots_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
         ]
