@@ -15,7 +15,9 @@ export const FUNNEL_STAGES = [
 
 export const CLIENT_CATEGORIES = [
   "Varejo", "Atacado", "Distribuidor", "Construtora",
-  "Arquitetura", "Representante", "Outros",
+  "Arquitetura", "Representante", "Supermercado", "Padaria",
+  "Restaurante", "Distribuidora", "Indústria", "Papelaria",
+  "Farmácia", "Pet Shop", "Outros",
 ] as const;
 
 export interface Client {

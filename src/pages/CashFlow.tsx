@@ -7,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend } from "recharts";
-import { TrendingUp, TrendingDown, DollarSign, AlertTriangle, ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LineChart, Line, Legend } from "recharts";
+import { TrendingUp, TrendingDown, DollarSign, AlertTriangle, ArrowDownLeft, ArrowUpRight, Info } from "lucide-react";
 import { startOfDay, startOfWeek, startOfMonth, addMonths, format, isSameMonth, isBefore } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -19,6 +20,7 @@ interface CashFlowEntry {
   value: number;
   status: string;
   source: "comissao" | "despesa" | "projecao";
+  _dedupeKey?: string;
 }
 
 export default function CashFlow() {
@@ -33,11 +35,15 @@ export default function CashFlow() {
   const { entries, currentBalance, projectedBalance, riskMonths, monthlyData } = useMemo(() => {
     const today = startOfDay(new Date());
     const allEntries: CashFlowEntry[] = [];
+    const seenKeys = new Set<string>();
 
-    // Commission installments
+    // Commission installments — deduplicate by installment id
     commissions.forEach((c: any) => {
       (c.commission_installments || []).forEach((inst: any) => {
         if (inst.status === "cancelado") return;
+        const key = `comm_${inst.id}`;
+        if (seenKeys.has(key)) return;
+        seenKeys.add(key);
         allEntries.push({
           date: inst.paid_date || inst.due_date,
           description: `${c.factory} - ${c.client} (P${inst.installment_number})`,
@@ -45,6 +51,7 @@ export default function CashFlow() {
           value: Number(inst.value),
           status: inst.status === "recebido" ? "recebido" : (isBefore(startOfDay(new Date(inst.due_date)), today) ? "atrasado" : "previsto"),
           source: "comissao",
+          _dedupeKey: key,
         });
       });
     });
@@ -61,7 +68,7 @@ export default function CashFlow() {
       });
     });
 
-    // Projected expenses from rules (virtual, future only, exclude duplicates with real)
+    // Projected expenses from rules
     const realExpenseKeys = new Set(expenses.map((e) => `${(e as any).generated_from_rule_id}_${e.due_date}`));
     projections.forEach((p) => {
       if (new Date(p.due_date) < today) return;
@@ -98,7 +105,8 @@ export default function CashFlow() {
       months.push({ month: monthLabel, entradas: monthIn, saidas: monthOut, saldo: i === 0 ? currentBalance : runningBalance });
     }
 
-    const riskMonths = months.filter((m) => m.saldo < 0).map((m) => m.month);
+    // Risk months: only months where projected balance (entradas - saidas) is negative
+    const riskMonths = months.filter((m) => (m.entradas - m.saidas) < 0).map((m) => m.month);
     return { entries: allEntries, currentBalance, projectedBalance, riskMonths, monthlyData: months };
   }, [commissions, expenses, projections]);
 
@@ -157,7 +165,13 @@ export default function CashFlow() {
         <Card className="glass-card">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-muted-foreground">Meses em Risco</span>
+              <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                Meses em Risco
+                <Tooltip>
+                  <TooltipTrigger><Info className="h-3 w-3" /></TooltipTrigger>
+                  <TooltipContent>Meses onde o saldo projetado de entradas menos saídas é negativo.</TooltipContent>
+                </Tooltip>
+              </span>
               <AlertTriangle className={`h-4 w-4 ${riskMonths.length > 0 ? "text-warning" : "text-success"}`} />
             </div>
             <p className="text-lg font-bold">{riskMonths.length > 0 ? riskMonths.join(", ") : "Nenhum"}</p>
@@ -176,7 +190,7 @@ export default function CashFlow() {
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 20%, 90%)" />
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
-                <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                <RechartsTooltip formatter={(v: number) => formatCurrency(v)} />
                 <Area type="monotone" dataKey="saldo" stroke="hsl(215, 76%, 56%)" fill="hsl(215, 76%, 56%)" fillOpacity={0.15} strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
@@ -192,7 +206,7 @@ export default function CashFlow() {
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 20%, 90%)" />
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
-                <Tooltip formatter={(v: number) => formatCurrency(v)} />
+                <RechartsTooltip formatter={(v: number) => formatCurrency(v)} />
                 <Legend />
                 <Line type="monotone" dataKey="entradas" name="Entradas" stroke="hsl(142, 71%, 45%)" strokeWidth={2} dot={false} />
                 <Line type="monotone" dataKey="saidas" name="Saídas" stroke="hsl(0, 72%, 51%)" strokeWidth={2} dot={false} />
@@ -230,7 +244,7 @@ export default function CashFlow() {
             <TableBody>
               {Object.entries(groupedEntries).slice(0, 50).map(([group, items]) => (
                 items.map((entry, i) => (
-                  <TableRow key={`${group}-${i}`} className={entry.source === "projecao" ? "opacity-60" : ""}>
+                  <TableRow key={`${group}-${i}-${entry._dedupeKey || entry.description}`} className={entry.source === "projecao" ? "opacity-60" : ""}>
                     {i === 0 && <TableCell rowSpan={items.length} className="font-medium align-top border-r">{group}</TableCell>}
                     <TableCell>{entry.description}</TableCell>
                     <TableCell>

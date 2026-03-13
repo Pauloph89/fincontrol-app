@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useFactories, Factory, FactoryFormData } from "@/hooks/useFactories";
 import { useOrders } from "@/hooks/useOrders";
+import { useCommissions } from "@/hooks/useCommissions";
 import { useUserRole } from "@/hooks/useUserRole";
 import { formatCurrency } from "@/lib/financial-utils";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,9 +23,23 @@ const emptyForm: FactoryFormData = {
   email_financeiro: "", politica_comissao: "", observacoes: "", telefone: "",
 };
 
+function PaymentTermBadges({ term }: { term: string | null }) {
+  if (!term) return <span>—</span>;
+  const parts = term.split("/").map((p) => p.trim()).filter(Boolean);
+  if (parts.length <= 1) return <span>{term}</span>;
+  return (
+    <div className="flex flex-wrap gap-1">
+      {parts.map((p, i) => (
+        <Badge key={i} variant="secondary" className="text-[10px] h-5">{p}</Badge>
+      ))}
+    </div>
+  );
+}
+
 export default function Factories() {
   const { factoriesQuery, createFactory, updateFactory, deleteFactory } = useFactories();
   const { ordersQuery } = useOrders();
+  const { commissionsQuery } = useCommissions();
   const { canEdit, canDelete } = useUserRole();
   const [search, setSearch] = useState("");
   const [formOpen, setFormOpen] = useState(false);
@@ -36,6 +51,17 @@ export default function Factories() {
     if (!search) return true;
     return f.nome.toLowerCase().includes(search.toLowerCase());
   });
+
+  // Compute total commission per factory
+  const factoryCommissionTotals = useMemo(() => {
+    const totals: Record<string, number> = {};
+    (commissionsQuery.data || []).forEach((c: any) => {
+      if (c.status === "deleted" || c.status === "cancelada") return;
+      const key = c.factory.toLowerCase();
+      totals[key] = (totals[key] || 0) + Number(c.commission_total);
+    });
+    return totals;
+  }, [commissionsQuery.data]);
 
   const openCreate = () => { setEditingFactory(null); setForm({ ...emptyForm }); setFormOpen(true); };
   const openEdit = (f: Factory) => {
@@ -99,18 +125,25 @@ export default function Factories() {
               <TableHead className="hidden sm:table-cell">Prazo Pagamento</TableHead>
               <TableHead className="hidden md:table-cell">Contato</TableHead>
               <TableHead className="hidden lg:table-cell">Pedidos</TableHead>
+              <TableHead className="hidden lg:table-cell text-right">Total Comissão</TableHead>
               <TableHead className="w-24"></TableHead>
             </TableRow></TableHeader>
             <TableBody>
               {factories.map((f) => {
                 const orders = getFactoryOrders(f.nome);
+                const totalComm = factoryCommissionTotals[f.nome.toLowerCase()] || 0;
                 return (
                   <TableRow key={f.id}>
                     <TableCell className="font-medium text-sm">{f.nome}</TableCell>
                     <TableCell><Badge variant="outline">{f.comissao_padrao}%</Badge></TableCell>
-                    <TableCell className="hidden sm:table-cell text-xs">{f.prazo_pagamento || "—"}</TableCell>
+                    <TableCell className="hidden sm:table-cell text-xs">
+                      <PaymentTermBadges term={f.prazo_pagamento} />
+                    </TableCell>
                     <TableCell className="hidden md:table-cell text-xs">{f.contato_comercial || "—"}</TableCell>
                     <TableCell className="hidden lg:table-cell text-xs">{orders.length}</TableCell>
+                    <TableCell className="hidden lg:table-cell text-right text-xs font-semibold">
+                      {totalComm > 0 ? formatCurrency(totalComm) : "—"}
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-0.5">
                         <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setDetailFactory(f)}><Eye className="h-3.5 w-3.5" /></Button>
@@ -140,7 +173,7 @@ export default function Factories() {
 
       {/* Form Dialog */}
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editingFactory ? "Editar Fábrica" : "Nova Fábrica"}</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
