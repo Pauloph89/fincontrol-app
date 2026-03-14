@@ -266,6 +266,19 @@ export default function Reports() {
               </div>
               <ReportTable data={cashflowData} columns={["dateFormatted", "type", "description", "valueFormatted", "status"]}
                 headers={["Data", "Tipo", "Descrição", "Valor", "Status"]} emptyMessage="Nenhuma movimentação encontrada." />
+              {cashflowData.length > 0 && (() => {
+                const totalReceitas = cashflowData.filter(r => r.type === "Receita").reduce((s, r) => s + r.value, 0);
+                const totalDespesas = cashflowData.filter(r => r.type === "Despesa").reduce((s, r) => s + Math.abs(r.value), 0);
+                return (
+                  <div className="flex flex-wrap gap-4 justify-end">
+                    <div className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold">Receitas: {formatCurrency(totalReceitas)}</div>
+                    <div className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold">Despesas: {formatCurrency(totalDespesas)}</div>
+                    <div className={`rounded-lg px-4 py-2 text-sm font-semibold ${totalReceitas - totalDespesas >= 0 ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
+                      Saldo: {formatCurrency(totalReceitas - totalDespesas)}
+                    </div>
+                  </div>
+                );
+              })()}
             </TabsContent>
 
             <TabsContent value="received" className="space-y-4">

@@ -358,6 +358,13 @@ export function OrdersList() {
             </Table>
           </div>
 
+          {/* Footer Totals */}
+          <div className="flex flex-wrap items-center gap-4 border-t border-border bg-muted/50 px-4 py-3 text-sm font-semibold">
+            <span>{filteredTotals.count} pedidos</span>
+            <span>Valor Base: {formatCurrency(filteredTotals.baseValue)}</span>
+            <span>Comissão Rep.: {formatCurrency(filteredTotals.commissionRep)}</span>
+          </div>
+
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between border-t border-border px-4 py-3">
