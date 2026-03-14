@@ -24,7 +24,8 @@ export function OrdersList() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [editOrder, setEditOrder] = useState<any>(null);
   const [search, setSearch] = useState("");
-  const [filterFactory, setFilterFactory] = useState("all");
+  const [filterDateStart, setFilterDateStart] = useState("");
+  const [filterDateEnd, setFilterDateEnd] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [page, setPage] = useState(1);
   const fileInputRef = useRef<HTMLInputElement>(null);
