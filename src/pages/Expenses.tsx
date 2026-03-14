@@ -1,4 +1,5 @@
 import { ExpenseForm } from "@/components/expenses/ExpenseForm";
+import { ExpensePdfImport } from "@/components/expenses/ExpensePdfImport";
 import { ExpenseRuleForm } from "@/components/expenses/ExpenseRuleForm";
 import { PeriodExpensesList } from "@/components/expenses/PeriodExpensesList";
 import { ExpenseRulesList } from "@/components/expenses/ExpenseRulesList";
