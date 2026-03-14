@@ -274,7 +274,7 @@ export default function Clients() {
                 <TableBody>
                   {clients.map((c) => (
                     <TableRow key={c.id}>
-                      <TableCell className="font-medium text-sm">{c.razao_social}</TableCell>
+                      <TableCell className="font-medium text-sm">{normalizeDisplayName(c.razao_social)}</TableCell>
                       <TableCell className="hidden sm:table-cell text-sm">{c.nome_fantasia || "—"}</TableCell>
                       <TableCell className="hidden md:table-cell text-xs font-mono">{formatCnpjCpf(c.cnpj_cpf)}</TableCell>
                       <TableCell className="hidden lg:table-cell text-xs">{c.cidade ? `${c.cidade}/${c.estado}` : "—"}</TableCell>
