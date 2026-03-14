@@ -247,7 +247,7 @@ export default function Clients() {
 
       {/* Views */}
       {viewMode === "funnel" ? (
-        <ClientFunnel clients={clients} onMoveClient={handleMoveClient} onClickClient={setDetailClient} />
+        <ClientFunnel clients={clients} orders={allOrders} commissions={commissionsQuery.data || []} onMoveClient={handleMoveClient} onClickClient={setDetailClient} />
       ) : clients.length === 0 ? (
         <Card><CardContent className="py-16 text-center">
           <Users className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
