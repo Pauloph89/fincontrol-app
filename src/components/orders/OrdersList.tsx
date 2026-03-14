@@ -43,17 +43,26 @@ export function OrdersList() {
     return allOrders.filter((o: any) => {
       if (filterFactory !== "all" && o.factory !== filterFactory) return false;
       if (filterStatus !== "all" && o.status !== filterStatus) return false;
+      if (filterDateStart && o.order_date < filterDateStart) return false;
+      if (filterDateEnd && o.order_date > filterDateEnd) return false;
       if (search) {
         const s = search.toLowerCase();
         return o.factory.toLowerCase().includes(s) || o.client.toLowerCase().includes(s) || o.order_number.toLowerCase().includes(s);
       }
       return true;
     });
-  }, [allOrders, search, filterFactory, filterStatus]);
+  }, [allOrders, search, filterFactory, filterStatus, filterDateStart, filterDateEnd]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const orders = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
-  useMemo(() => { setPage(1); }, [search, filterFactory, filterStatus]);
+  useMemo(() => { setPage(1); }, [search, filterFactory, filterStatus, filterDateStart, filterDateEnd]);
+
+  // Footer totals
+  const filteredTotals = useMemo(() => ({
+    count: filtered.length,
+    baseValue: filtered.reduce((s: number, o: any) => s + Number(o.commission_base_value), 0),
+    commissionRep: filtered.reduce((s: number, o: any) => s + Number(o.commission_total_rep), 0),
+  }), [filtered]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
