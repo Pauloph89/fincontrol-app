@@ -23,7 +23,7 @@ const stageColors: Record<string, string> = {
   perdido: "bg-destructive/10",
 };
 
-export function ClientFunnel({ clients, onMoveClient, onClickClient }: Props) {
+export function ClientFunnel({ clients, orders, commissions, onMoveClient, onClickClient }: Props) {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [hoverStage, setHoverStage] = useState<string | null>(null);
 
