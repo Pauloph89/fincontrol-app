@@ -3,9 +3,12 @@ import { Client, FUNNEL_STAGES } from "@/hooks/useClients";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { normalizeDisplayName, getEffectiveFunnelStatus } from "@/lib/display-utils";
 
 interface Props {
   clients: Client[];
+  orders: any[];
+  commissions: any[];
   onMoveClient: (clientId: string, newStatus: string) => void;
   onClickClient: (client: Client) => void;
 }
@@ -20,12 +23,24 @@ const stageColors: Record<string, string> = {
   perdido: "bg-destructive/10",
 };
 
-export function ClientFunnel({ clients, onMoveClient, onClickClient }: Props) {
+export function ClientFunnel({ clients, orders, commissions, onMoveClient, onClickClient }: Props) {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [hoverStage, setHoverStage] = useState<string | null>(null);
 
   const getClientsForStage = (stage: string) =>
-    clients.filter((c) => (c.status_funil || "lead") === stage);
+    clients.filter((c) => {
+      const hasOrders = orders.some((o: any) =>
+        o.status !== "deleted" && o.status !== "cancelado" &&
+        (o.client_id === c.id || o.client?.toLowerCase() === c.razao_social?.toLowerCase())
+      );
+      const hasReceivedCommission = commissions.some((cm: any) =>
+        cm.status !== "deleted" && cm.status !== "cancelada" &&
+        (cm.client?.toLowerCase() === c.razao_social?.toLowerCase()) &&
+        (cm.commission_installments || []).some((i: any) => i.status === "recebido")
+      );
+      const effectiveStatus = getEffectiveFunnelStatus(c.status_funil, hasOrders, hasReceivedCommission);
+      return effectiveStatus === stage;
+    });
 
   const handleDragStart = (e: React.DragEvent, clientId: string) => {
     setDraggedId(clientId);
@@ -86,7 +101,7 @@ export function ClientFunnel({ clients, onMoveClient, onClickClient }: Props) {
                     draggedId === c.id && "opacity-40"
                   )}
                 >
-                  <p className="text-xs font-medium text-foreground truncate">{c.razao_social}</p>
+                  <p className="text-xs font-medium text-foreground truncate">{normalizeDisplayName(c.razao_social)}</p>
                   {c.nome_fantasia && (
                     <p className="text-[10px] text-muted-foreground truncate">{c.nome_fantasia}</p>
                   )}

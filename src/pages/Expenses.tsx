@@ -1,4 +1,5 @@
 import { ExpenseForm } from "@/components/expenses/ExpenseForm";
+import { ExpensePdfImport } from "@/components/expenses/ExpensePdfImport";
 import { ExpenseRuleForm } from "@/components/expenses/ExpenseRuleForm";
 import { PeriodExpensesList } from "@/components/expenses/PeriodExpensesList";
 import { ExpenseRulesList } from "@/components/expenses/ExpenseRulesList";
@@ -16,6 +17,7 @@ export default function Expenses() {
         </div>
         <div className="flex items-center gap-2">
           <ExpenseRuleForm />
+          <ExpensePdfImport />
           <ExpenseForm />
         </div>
       </div>

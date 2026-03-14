@@ -15,6 +15,7 @@ import {
 import { CheckCircle2, ChevronDown, ChevronRight, Pencil, Search, XCircle, Trash2, RotateCcw, Paperclip, Loader2, Undo2, Plus } from "lucide-react";
 import { useState, useMemo, useRef } from "react";
 import { OrderEditDialog } from "./OrderEditDialog";
+import { BillingLots } from "./BillingLots";
 
 const ITEMS_PER_PAGE = 15;
 
@@ -25,6 +26,8 @@ export function OrdersList() {
   const [editOrder, setEditOrder] = useState<any>(null);
   const [search, setSearch] = useState("");
   const [filterFactory, setFilterFactory] = useState("all");
+  const [filterDateStart, setFilterDateStart] = useState("");
+  const [filterDateEnd, setFilterDateEnd] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [page, setPage] = useState(1);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -42,17 +45,26 @@ export function OrdersList() {
     return allOrders.filter((o: any) => {
       if (filterFactory !== "all" && o.factory !== filterFactory) return false;
       if (filterStatus !== "all" && o.status !== filterStatus) return false;
+      if (filterDateStart && o.order_date < filterDateStart) return false;
+      if (filterDateEnd && o.order_date > filterDateEnd) return false;
       if (search) {
         const s = search.toLowerCase();
         return o.factory.toLowerCase().includes(s) || o.client.toLowerCase().includes(s) || o.order_number.toLowerCase().includes(s);
       }
       return true;
     });
-  }, [allOrders, search, filterFactory, filterStatus]);
+  }, [allOrders, search, filterFactory, filterStatus, filterDateStart, filterDateEnd]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const orders = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
-  useMemo(() => { setPage(1); }, [search, filterFactory, filterStatus]);
+  useMemo(() => { setPage(1); }, [search, filterFactory, filterStatus, filterDateStart, filterDateEnd]);
+
+  // Footer totals
+  const filteredTotals = useMemo(() => ({
+    count: filtered.length,
+    baseValue: filtered.reduce((s: number, o: any) => s + Number(o.commission_base_value), 0),
+    commissionRep: filtered.reduce((s: number, o: any) => s + Number(o.commission_total_rep), 0),
+  }), [filtered]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -116,6 +128,8 @@ export function OrdersList() {
                   {commissionStatusFlow.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                 </SelectContent>
               </Select>
+              <Input type="date" value={filterDateStart} onChange={(e) => setFilterDateStart(e.target.value)} className="h-9 w-full sm:w-36" placeholder="Data início" />
+              <Input type="date" value={filterDateEnd} onChange={(e) => setFilterDateEnd(e.target.value)} className="h-9 w-full sm:w-36" placeholder="Data fim" />
             </div>
           </div>
         </CardHeader>
@@ -335,6 +349,9 @@ export function OrdersList() {
                                 );
                               })}
                             </div>
+
+                            {/* Billing Lots */}
+                            <BillingLots order={o} canEdit={canEdit} />
                           </TableCell>
                         </TableRow>
                       )}
@@ -343,6 +360,13 @@ export function OrdersList() {
                 })}
               </TableBody>
             </Table>
+          </div>
+
+          {/* Footer Totals */}
+          <div className="flex flex-wrap items-center gap-4 border-t border-border bg-muted/50 px-4 py-3 text-sm font-semibold">
+            <span>{filteredTotals.count} pedidos</span>
+            <span>Valor Base: {formatCurrency(filteredTotals.baseValue)}</span>
+            <span>Comissão Rep.: {formatCurrency(filteredTotals.commissionRep)}</span>
           </div>
 
           {/* Pagination */}

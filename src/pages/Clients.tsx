@@ -4,9 +4,11 @@ import { ClientImportDialog } from "@/components/clients/ClientImportDialog";
 import { ClientFilters, ClientFilterValues, emptyFilters } from "@/components/clients/ClientFilters";
 import { ClientFunnel } from "@/components/clients/ClientFunnel";
 import { useOrders } from "@/hooks/useOrders";
+import { useCommissions } from "@/hooks/useCommissions";
 import { useClientInteractions } from "@/hooks/useClientInteractions";
 import { useUserRole } from "@/hooks/useUserRole";
 import { formatCurrency, formatDate } from "@/lib/financial-utils";
+import { normalizeDisplayName } from "@/lib/display-utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -119,6 +121,7 @@ function ClientTimeline({ clientId, clientName, orders }: { clientId: string; cl
 export default function Clients() {
   const { clientsQuery, createClient, updateClient, deleteClient } = useClients();
   const { ordersQuery } = useOrders();
+  const { commissionsQuery } = useCommissions();
   const { canEdit, canDelete } = useUserRole();
   const navigate = useNavigate();
   const [filters, setFilters] = useState<ClientFilterValues>({ ...emptyFilters });
@@ -244,7 +247,7 @@ export default function Clients() {
 
       {/* Views */}
       {viewMode === "funnel" ? (
-        <ClientFunnel clients={clients} onMoveClient={handleMoveClient} onClickClient={setDetailClient} />
+        <ClientFunnel clients={clients} orders={allOrders} commissions={commissionsQuery.data || []} onMoveClient={handleMoveClient} onClickClient={setDetailClient} />
       ) : clients.length === 0 ? (
         <Card><CardContent className="py-16 text-center">
           <Users className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
@@ -271,7 +274,7 @@ export default function Clients() {
                 <TableBody>
                   {clients.map((c) => (
                     <TableRow key={c.id}>
-                      <TableCell className="font-medium text-sm">{c.razao_social}</TableCell>
+                      <TableCell className="font-medium text-sm">{normalizeDisplayName(c.razao_social)}</TableCell>
                       <TableCell className="hidden sm:table-cell text-sm">{c.nome_fantasia || "—"}</TableCell>
                       <TableCell className="hidden md:table-cell text-xs font-mono">{formatCnpjCpf(c.cnpj_cpf)}</TableCell>
                       <TableCell className="hidden lg:table-cell text-xs">{c.cidade ? `${c.cidade}/${c.estado}` : "—"}</TableCell>

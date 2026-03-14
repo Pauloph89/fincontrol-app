@@ -241,7 +241,9 @@ export function CommissionsList() {
                                   return (
                                     <div key={inst.id} className={`rounded-lg border p-3 ${alertClass}`}>
                                       <div className="flex items-center justify-between mb-1">
-                                        <span className="text-xs font-medium">Parcela {inst.installment_number}</span>
+                                        <span className="text-xs font-medium">
+                                          {inst.notes && inst.notes.startsWith("Lote") ? inst.notes : `Parcela ${inst.installment_number}`}
+                                        </span>
                                         <Badge variant="outline" className="text-[10px]">
                                           {statusLabels[realStatus] || realStatus}
                                         </Badge>
