@@ -3,9 +3,12 @@ import { Client, FUNNEL_STAGES } from "@/hooks/useClients";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { normalizeDisplayName, getEffectiveFunnelStatus } from "@/lib/display-utils";
 
 interface Props {
   clients: Client[];
+  orders: any[];
+  commissions: any[];
   onMoveClient: (clientId: string, newStatus: string) => void;
   onClickClient: (client: Client) => void;
 }
