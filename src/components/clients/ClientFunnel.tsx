@@ -28,7 +28,19 @@ export function ClientFunnel({ clients, orders, commissions, onMoveClient, onCli
   const [hoverStage, setHoverStage] = useState<string | null>(null);
 
   const getClientsForStage = (stage: string) =>
-    clients.filter((c) => (c.status_funil || "lead") === stage);
+    clients.filter((c) => {
+      const hasOrders = orders.some((o: any) =>
+        o.status !== "deleted" && o.status !== "cancelado" &&
+        (o.client_id === c.id || o.client?.toLowerCase() === c.razao_social?.toLowerCase())
+      );
+      const hasReceivedCommission = commissions.some((cm: any) =>
+        cm.status !== "deleted" && cm.status !== "cancelada" &&
+        (cm.client?.toLowerCase() === c.razao_social?.toLowerCase()) &&
+        (cm.commission_installments || []).some((i: any) => i.status === "recebido")
+      );
+      const effectiveStatus = getEffectiveFunnelStatus(c.status_funil, hasOrders, hasReceivedCommission);
+      return effectiveStatus === stage;
+    });
 
   const handleDragStart = (e: React.DragEvent, clientId: string) => {
     setDraggedId(clientId);
