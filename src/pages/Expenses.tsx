@@ -17,6 +17,7 @@ export default function Expenses() {
         </div>
         <div className="flex items-center gap-2">
           <ExpenseRuleForm />
+          <ExpensePdfImport />
           <ExpenseForm />
         </div>
       </div>

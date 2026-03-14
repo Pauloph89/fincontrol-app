@@ -349,6 +349,9 @@ export function OrdersList() {
                                 );
                               })}
                             </div>
+
+                            {/* Billing Lots */}
+                            <BillingLots order={o} canEdit={canEdit} />
                           </TableCell>
                         </TableRow>
                       )}

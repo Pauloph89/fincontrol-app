@@ -99,6 +99,7 @@ export default function ImportData() {
     setImporting(true);
     let successCount = 0;
     let errorCount = 0;
+    const errors: string[] = [];
 
     for (const row of selected) {
       try {
@@ -116,18 +117,20 @@ export default function ImportData() {
           observations: `Importado de: ${fileName}`,
         });
         successCount++;
-      } catch {
+      } catch (err: any) {
         errorCount++;
+        errors.push(`Pedido ${row.order_number}: ${err.message || "Erro desconhecido"}`);
       }
     }
 
     setImporting(false);
     setParsedRows([]);
-    toast({
-      title: `Importação concluída`,
-      description: `${successCount} registros importados${errorCount > 0 ? `, ${errorCount} erros` : ""}.`,
-    });
+    setImportResult({ successCount, errorCount, errors });
+    setShowResultModal(true);
   };
+
+  const [importResult, setImportResult] = useState<{ successCount: number; errorCount: number; errors: string[] } | null>(null);
+  const [showResultModal, setShowResultModal] = useState(false);
 
   return (
     <div className="space-y-6">
