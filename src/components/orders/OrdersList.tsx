@@ -126,6 +126,8 @@ export function OrdersList() {
                   {commissionStatusFlow.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                 </SelectContent>
               </Select>
+              <Input type="date" value={filterDateStart} onChange={(e) => setFilterDateStart(e.target.value)} className="h-9 w-full sm:w-36" placeholder="Data início" />
+              <Input type="date" value={filterDateEnd} onChange={(e) => setFilterDateEnd(e.target.value)} className="h-9 w-full sm:w-36" placeholder="Data fim" />
             </div>
           </div>
         </CardHeader>
