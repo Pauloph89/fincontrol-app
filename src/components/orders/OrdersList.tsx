@@ -15,6 +15,7 @@ import {
 import { CheckCircle2, ChevronDown, ChevronRight, Pencil, Search, XCircle, Trash2, RotateCcw, Paperclip, Loader2, Undo2, Plus } from "lucide-react";
 import { useState, useMemo, useRef } from "react";
 import { OrderEditDialog } from "./OrderEditDialog";
+import { BillingLots } from "./BillingLots";
 
 const ITEMS_PER_PAGE = 15;
 
