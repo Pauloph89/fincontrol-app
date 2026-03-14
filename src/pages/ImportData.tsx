@@ -228,6 +228,68 @@ export default function ImportData() {
           </CardContent>
         </Card>
       )}
+
+      {/* How it works section */}
+      <Card className="glass-card">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2"><FileSpreadsheet className="h-5 w-5" />Como funciona a importação</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm text-muted-foreground">
+          <p>1. Selecione a fábrica correspondente ao relatório.</p>
+          <p>2. Faça upload de um arquivo Excel (.xlsx, .xls) ou CSV.</p>
+          <p>3. O sistema identificará automaticamente os dados e exibirá para revisão.</p>
+          <p>4. Revise, edite se necessário, e confirme a importação.</p>
+          <div className="pt-2">
+            <p className="font-semibold text-foreground text-xs mb-1">Campos esperados no arquivo:</p>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="secondary">Número do Pedido</Badge>
+              <Badge variant="secondary">Cliente</Badge>
+              <Badge variant="secondary">Valor</Badge>
+              <Badge variant="secondary">Data</Badge>
+              <Badge variant="secondary">Comissão %</Badge>
+            </div>
+          </div>
+          <Button variant="outline" size="sm" disabled className="mt-2">
+            <FileSpreadsheet className="mr-2 h-4 w-4" />Baixar modelo de planilha
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Import Result Modal */}
+      <Dialog open={showResultModal} onOpenChange={setShowResultModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Resultado da Importação</DialogTitle>
+          </DialogHeader>
+          {importResult && (
+            <div className="space-y-3">
+              <div className="flex gap-4">
+                <div className="flex-1 rounded-lg bg-emerald-50 p-3 text-center">
+                  <p className="text-2xl font-bold text-emerald-600">{importResult.successCount}</p>
+                  <p className="text-xs text-emerald-600">Importados</p>
+                </div>
+                <div className="flex-1 rounded-lg bg-red-50 p-3 text-center">
+                  <p className="text-2xl font-bold text-destructive">{importResult.errorCount}</p>
+                  <p className="text-xs text-destructive">Erros</p>
+                </div>
+              </div>
+              {importResult.errors.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-muted-foreground">Detalhes dos erros:</p>
+                  <div className="max-h-40 overflow-y-auto rounded-lg border p-2 space-y-1">
+                    {importResult.errors.map((err, i) => (
+                      <p key={i} className="text-xs text-destructive">• {err}</p>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setShowResultModal(false)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
