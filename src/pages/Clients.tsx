@@ -121,6 +121,7 @@ function ClientTimeline({ clientId, clientName, orders }: { clientId: string; cl
 export default function Clients() {
   const { clientsQuery, createClient, updateClient, deleteClient } = useClients();
   const { ordersQuery } = useOrders();
+  const { commissionsQuery } = useCommissions();
   const { canEdit, canDelete } = useUserRole();
   const navigate = useNavigate();
   const [filters, setFilters] = useState<ClientFilterValues>({ ...emptyFilters });
