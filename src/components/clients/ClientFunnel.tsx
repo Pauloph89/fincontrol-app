@@ -101,7 +101,7 @@ export function ClientFunnel({ clients, orders, commissions, onMoveClient, onCli
                     draggedId === c.id && "opacity-40"
                   )}
                 >
-                  <p className="text-xs font-medium text-foreground truncate">{c.razao_social}</p>
+                  <p className="text-xs font-medium text-foreground truncate">{normalizeDisplayName(c.razao_social)}</p>
                   {c.nome_fantasia && (
                     <p className="text-[10px] text-muted-foreground truncate">{c.nome_fantasia}</p>
                   )}
