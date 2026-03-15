@@ -42,7 +42,10 @@ export default function Commissions() {
           <h1 className="text-2xl font-bold tracking-tight">Comissões</h1>
           <p className="text-muted-foreground text-sm">Gerencie suas comissões e parcelas de recebimento</p>
         </div>
-        <CommissionForm />
+        <div className="flex items-center gap-2">
+          <AdelbrasImportDialog />
+          <CommissionForm />
+        </div>
       </div>
 
       {/* Summary Cards */}

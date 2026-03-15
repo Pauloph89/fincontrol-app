@@ -43,6 +43,7 @@ export function formatDate(dateStr: string): string {
 
 export const statusLabels: Record<string, string> = {
   previsto: "Previsto",
+  a_receber: "A Receber",
   recebido: "Recebido",
   atrasado: "Atrasado",
   cancelado: "Cancelado",
