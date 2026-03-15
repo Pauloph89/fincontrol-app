@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { CommissionForm } from "@/components/commissions/CommissionForm";
 import { CommissionsList } from "@/components/commissions/CommissionsList";
+import { AdelbrasImportDialog } from "@/components/commissions/AdelbrasImportDialog";
 import { useCommissions } from "@/hooks/useCommissions";
 import { formatCurrency } from "@/lib/financial-utils";
 import { Card, CardContent } from "@/components/ui/card";
@@ -41,7 +42,10 @@ export default function Commissions() {
           <h1 className="text-2xl font-bold tracking-tight">Comissões</h1>
           <p className="text-muted-foreground text-sm">Gerencie suas comissões e parcelas de recebimento</p>
         </div>
-        <CommissionForm />
+        <div className="flex items-center gap-2">
+          <AdelbrasImportDialog />
+          <CommissionForm />
+        </div>
       </div>
 
       {/* Summary Cards */}

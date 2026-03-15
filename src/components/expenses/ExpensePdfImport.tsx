@@ -9,6 +9,7 @@ import { useExpenses, ExpenseFormData } from "@/hooks/useExpenses";
 import { useExpenseCategories } from "@/hooks/useExpenseCategories";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { extractTextFromPdf } from "@/lib/pdf-extract";
 
 export function ExpensePdfImport() {
   const [open, setOpen] = useState(false);
@@ -33,34 +34,40 @@ export function ExpensePdfImport() {
     setExtracting(true);
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("type", "expense");
+      // Step 1: Extract text from PDF in the browser
+      const pdfText = await extractTextFromPdf(file);
 
-      const { data: fnData, error } = await supabase.functions.invoke("extract-pdf-order", {
-        body: formData,
+      if (!pdfText || pdfText.trim().length < 10) {
+        toast({ title: "PDF sem texto legível", description: "O PDF pode ser uma imagem escaneada. Tente um PDF com texto selecionável.", variant: "destructive" });
+        setExtracting(false);
+        return;
+      }
+
+      // Step 2: Send extracted text to edge function for AI analysis
+      const { data: fnData, error } = await supabase.functions.invoke("process-expense-text", {
+        body: { text: pdfText },
       });
 
       if (error) throw error;
 
-      // Try to extract expense data from the AI response
-      const expense = fnData?.expense || fnData?.orders?.[0] || fnData;
-      const description = expense?.description || expense?.client || file.name.replace(".pdf", "");
-      const value = parseFloat(expense?.value || expense?.commission_base_value || expense?.invoice_total_value || 0);
-      const dueDate = expense?.due_date || expense?.billing_date || expense?.order_date || new Date().toISOString().split("T")[0];
+      const expense = fnData?.expense || fnData;
+      const description = expense?.description || file.name.replace(".pdf", "");
+      const value = parseFloat(expense?.value) || 0;
+      const dueDate = expense?.due_date || new Date().toISOString().split("T")[0];
+      const suggestedCategory = expense?.suggested_category || (allCategories.length > 0 ? allCategories[0] : "");
 
-      // Suggest category based on description keywords
-      let suggestedCategory = "";
-      const descLower = (description || "").toLowerCase();
-      if (descLower.includes("aluguel")) suggestedCategory = "Aluguel";
-      else if (descLower.includes("energia") || descLower.includes("luz")) suggestedCategory = "Energia";
-      else if (descLower.includes("telefone") || descLower.includes("internet")) suggestedCategory = "Telecom";
-      else if (descLower.includes("combustível") || descLower.includes("gasolina")) suggestedCategory = "Combustível";
-      else if (allCategories.length > 0) suggestedCategory = allCategories[0];
+      // Match suggested category to existing categories
+      let matchedCategory = suggestedCategory;
+      if (allCategories.length > 0) {
+        const found = allCategories.find(
+          (c) => c.toLowerCase() === suggestedCategory.toLowerCase()
+        );
+        matchedCategory = found || allCategories[0];
+      }
 
       setForm({
         type: "variavel",
-        category: suggestedCategory,
+        category: matchedCategory,
         description: String(description),
         value: isNaN(value) ? 0 : value,
         account: "cnpj",
@@ -103,7 +110,7 @@ export function ExpensePdfImport() {
         {!extracted ? (
           <div className="space-y-4 py-4">
             <p className="text-sm text-muted-foreground">
-              Faça upload de um PDF e o sistema extrairá automaticamente os dados da despesa para revisão.
+              Faça upload de um PDF (boleto, fatura, conta) e o sistema extrairá automaticamente os dados para revisão.
             </p>
             <input ref={fileRef} type="file" accept=".pdf" className="hidden" onChange={handleFile} />
             <Button variant="outline" className="w-full h-24 border-dashed" onClick={() => fileRef.current?.click()} disabled={extracting}>

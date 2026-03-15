@@ -134,4 +134,7 @@
   .status-cancelado {
     @apply bg-muted text-muted-foreground border-border;
   }
+  .status-a-receber {
+    @apply bg-info/15 text-info border-info/30;
+  }
 }

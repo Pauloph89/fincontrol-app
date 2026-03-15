@@ -3,6 +3,7 @@ import { differenceInBusinessDays, isBefore, startOfDay } from "date-fns";
 export function getInstallmentAlertClass(dueDate: string, status: string): string {
   if (status === "recebido") return "status-recebido";
   if (status === "cancelado") return "status-cancelado";
+  if (status === "a_receber") return "status-a-receber";
   const today = startOfDay(new Date());
   const due = startOfDay(new Date(dueDate));
   if (isBefore(due, today)) return "status-atrasado";
@@ -24,6 +25,7 @@ export function getExpenseAlertClass(dueDate: string, status: string): string {
 export function getInstallmentStatus(dueDate: string, currentStatus: string): string {
   if (currentStatus === "recebido") return "recebido";
   if (currentStatus === "cancelado") return "cancelado";
+  if (currentStatus === "a_receber") return "a_receber";
   const today = startOfDay(new Date());
   const due = startOfDay(new Date(dueDate));
   if (isBefore(due, today)) return "atrasado";
@@ -43,6 +45,7 @@ export function formatDate(dateStr: string): string {
 
 export const statusLabels: Record<string, string> = {
   previsto: "Previsto",
+  a_receber: "A Receber",
   recebido: "Recebido",
   atrasado: "Atrasado",
   cancelado: "Cancelado",
