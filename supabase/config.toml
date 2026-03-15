@@ -2,3 +2,6 @@ project_id = "qentyqevdnnefthoixrj"
 
 [functions.extract-pdf-order]
 verify_jwt = false
+
+[functions.process-expense-text]
+verify_jwt = false
