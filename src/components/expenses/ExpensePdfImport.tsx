@@ -10,6 +10,75 @@ import { useExpenseCategories } from "@/hooks/useExpenseCategories";
 import { useToast } from "@/hooks/use-toast";
 import { extractTextFromPdf } from "@/lib/pdf-extract";
 
+const CATEGORY_KEYWORDS: Record<string, string[]> = {
+  "Energia": ["cemig", "eletro", "energia", "cpfl", "enel", "light", "celpe", "coelba"],
+  "Telecom": ["telecom", "telefon", "claro", "vivo", "tim", "oi ", "internet", "net "],
+  "Aluguel": ["aluguel", "locação", "locacao", "imobiliár"],
+  "Combustível": ["combustível", "combustivel", "gasolina", "etanol", "diesel", "posto"],
+  "Impostos": ["imposto", "tributo", "icms", "iss", "darf", "guia", "taxa", "sefaz"],
+  "Seguros": ["seguro", "apólice", "apolice", "sinistro"],
+  "Material": ["material", "papelaria", "suprimento"],
+  "Manutenção": ["manutenção", "manutencao", "reparo", "conserto"],
+  "Serviços": ["serviço", "servico", "consultoria", "assessoria", "honorário"],
+};
+
+function parseExpenseText(text: string, fileName: string) {
+  // Extract monetary value (R$ X.XXX,XX or X.XXX,XX or X,XX)
+  const valuePatterns = [
+    /(?:valor\s*(?:total|a\s*pagar|do\s*documento|cobrado|líquido))[:\s]*R?\$?\s*([\d.,]+)/i,
+    /(?:total)[:\s]*R?\$?\s*([\d.,]+)/i,
+    /R\$\s*([\d.]+,\d{2})/,
+    /([\d.]+,\d{2})/,
+  ];
+  let value = 0;
+  for (const pattern of valuePatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      const raw = match[1].replace(/\./g, "").replace(",", ".");
+      const parsed = parseFloat(raw);
+      if (parsed > 0 && parsed < 1_000_000) { value = parsed; break; }
+    }
+  }
+
+  // Extract due date (DD/MM/YYYY or DD.MM.YYYY)
+  const datePatterns = [
+    /(?:vencimento|pagar\s*até|venc)[:\s]*([\d]{2}[\/\.\-][\d]{2}[\/\.\-][\d]{4})/i,
+    /([\d]{2}[\/\.\-][\d]{2}[\/\.\-][\d]{4})/,
+  ];
+  let dueDate = new Date().toISOString().split("T")[0];
+  for (const pattern of datePatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      const parts = match[1].split(/[\/\.\-]/);
+      if (parts.length === 3) {
+        const [d, m, y] = parts;
+        const candidate = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+        if (!isNaN(Date.parse(candidate))) { dueDate = candidate; break; }
+      }
+    }
+  }
+
+  // Extract description from cedente/beneficiário or first meaningful text
+  const descPatterns = [
+    /(?:cedente|beneficiário|beneficiario|razão\s*social|empresa)[:\s]*([^\n]{5,80})/i,
+    /(?:sacador|favorecido|pagador)[:\s]*([^\n]{5,80})/i,
+  ];
+  let description = fileName.replace(/\.pdf$/i, "");
+  for (const pattern of descPatterns) {
+    const match = text.match(pattern);
+    if (match) { description = match[1].trim(); break; }
+  }
+
+  // Suggest category based on keywords
+  const lower = text.toLowerCase();
+  let category = "";
+  for (const [cat, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+    if (keywords.some((k) => lower.includes(k))) { category = cat; break; }
+  }
+
+  return { description, value, dueDate, category };
+}
+
 export function ExpensePdfImport() {
   const [open, setOpen] = useState(false);
   const [extracting, setExtracting] = useState(false);
