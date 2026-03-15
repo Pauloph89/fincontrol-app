@@ -24,6 +24,7 @@ export function getExpenseAlertClass(dueDate: string, status: string): string {
 export function getInstallmentStatus(dueDate: string, currentStatus: string): string {
   if (currentStatus === "recebido") return "recebido";
   if (currentStatus === "cancelado") return "cancelado";
+  if (currentStatus === "a_receber") return "a_receber";
   const today = startOfDay(new Date());
   const due = startOfDay(new Date(dueDate));
   if (isBefore(due, today)) return "atrasado";
