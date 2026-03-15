@@ -42,18 +42,12 @@ export function ExpensePdfImport() {
         return;
       }
 
-      // Step 2: Send extracted text to edge function for AI analysis
-      const { data: fnData, error } = await supabase.functions.invoke("process-expense-text", {
-        body: { text: pdfText },
-      });
-
-      if (error) throw error;
-
-      const expense = fnData?.expense || fnData;
-      const description = expense?.description || file.name.replace(".pdf", "");
-      const value = parseFloat(expense?.value) || 0;
-      const dueDate = expense?.due_date || new Date().toISOString().split("T")[0];
-      const suggestedCategory = expense?.suggested_category || (allCategories.length > 0 ? allCategories[0] : "");
+      // Step 2: Parse text client-side using regex
+      const parsed = parseExpenseText(pdfText, file.name);
+      const description = parsed.description;
+      const value = parsed.value;
+      const dueDate = parsed.dueDate;
+      const suggestedCategory = parsed.category || (allCategories.length > 0 ? allCategories[0] : "");
 
       // Match suggested category to existing categories
       let matchedCategory = suggestedCategory;
