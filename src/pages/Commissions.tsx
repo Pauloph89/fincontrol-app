@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { CommissionForm } from "@/components/commissions/CommissionForm";
 import { CommissionsList } from "@/components/commissions/CommissionsList";
+import { AdelbrasImportDialog } from "@/components/commissions/AdelbrasImportDialog";
 import { useCommissions } from "@/hooks/useCommissions";
 import { formatCurrency } from "@/lib/financial-utils";
 import { Card, CardContent } from "@/components/ui/card";
