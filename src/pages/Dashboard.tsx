@@ -6,11 +6,12 @@ import { useOrders } from "@/hooks/useOrders";
 import { useClients } from "@/hooks/useClients";
 import { useUserRole } from "@/hooks/useUserRole";
 import { KpiCards } from "@/components/dashboard/KpiCards";
+import { SalesGoalCard } from "@/components/dashboard/SalesGoalCard";
 import { DashboardCharts } from "@/components/dashboard/DashboardCharts";
 import { AlertsPanel } from "@/components/dashboard/AlertsPanel";
 import { CommercialAgenda } from "@/components/dashboard/CommercialAgenda";
 import { PeriodSelector, getDefaultPeriod, PeriodRange } from "@/components/dashboard/PeriodSelector";
-import { differenceInBusinessDays, isBefore, startOfDay, addDays } from "date-fns";
+import { differenceInBusinessDays, isBefore, startOfDay, addDays, startOfMonth, endOfMonth } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/financial-utils";
 
