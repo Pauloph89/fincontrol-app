@@ -230,6 +230,30 @@ export default function Dashboard() {
   // Count leads
   const leadsCount = clients.filter((c) => c.status_funil === "lead" || c.status_funil === "contato_realizado" || c.status_funil === "negociacao").length;
 
+  // Sales goal data
+  const currentMonthSales = useMemo(() => {
+    const now = new Date();
+    const mStart = startOfMonth(now);
+    const mEnd = endOfMonth(now);
+    return orders
+      .filter((o: any) => {
+        const d = new Date(o.order_date);
+        return d >= mStart && d <= mEnd;
+      })
+      .reduce((s: number, o: any) => s + Number(o.commission_base_value), 0);
+  }, [orders]);
+
+  const negotiationValue = useMemo(() => {
+    return orders
+      .filter((o: any) => {
+        const client = clients.find((c) =>
+          c.id === o.client_id || c.razao_social?.toLowerCase() === o.client?.toLowerCase()
+        );
+        return client?.status_funil === "negociacao";
+      })
+      .reduce((s: number, o: any) => s + Number(o.commission_base_value), 0);
+  }, [orders, clients]);
+
   // Commission monthly evolution for dedicated chart
   const commissionMonthlyEvolution = useMemo(() => {
     const today = new Date();
