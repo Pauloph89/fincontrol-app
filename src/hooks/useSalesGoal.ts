@@ -9,8 +9,8 @@ export function useSalesGoal(year: number, month: number) {
   const goalQuery = useQuery({
     queryKey: ["sales_goal", companyId, year, month],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("sales_goals" as any)
+      const { data, error } = await (supabase as any)
+        .from("sales_goals")
         .select("*")
         .eq("company_id", companyId)
         .eq("year", year)
