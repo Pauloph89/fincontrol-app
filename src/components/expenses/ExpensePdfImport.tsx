@@ -11,65 +11,92 @@ import { useToast } from "@/hooks/use-toast";
 import { extractTextFromPdf } from "@/lib/pdf-extract";
 
 const CATEGORY_KEYWORDS: Record<string, string[]> = {
-  "Energia": ["cemig", "eletro", "energia", "cpfl", "enel", "light", "celpe", "coelba"],
-  "Telecom": ["telecom", "telefon", "claro", "vivo", "tim", "oi ", "internet", "net "],
-  "Aluguel": ["aluguel", "locação", "locacao", "imobiliár"],
-  "Combustível": ["combustível", "combustivel", "gasolina", "etanol", "diesel", "posto"],
-  "Impostos": ["imposto", "tributo", "icms", "iss", "darf", "guia", "taxa", "sefaz"],
+  "Impostos": ["imposto", "tributo", "icms", "iss", "darf", "gps", "cofins", "pis", "guia", "taxa", "sefaz", "receita federal", "simples nacional", "das "],
+  "Energia": ["cemig", "eletro", "energia", "cpfl", "enel", "light", "celpe", "coelba", "eletropaulo", "copel"],
+  "Internet": ["internet", "telecom", "telefon", "claro", "vivo", "tim", "oi ", "net ", "banda larga"],
+  "Aluguel": ["aluguel", "locação", "locacao", "imobiliár", "condomínio", "condominio"],
+  "Combustível": ["combustível", "combustivel", "gasolina", "etanol", "diesel", "posto", "abastecimento"],
+  "Alimentação": ["alimentação", "alimentacao", "restaurante", "lanche", "refeição", "refeicao", "ifood"],
   "Seguros": ["seguro", "apólice", "apolice", "sinistro"],
   "Material": ["material", "papelaria", "suprimento"],
   "Manutenção": ["manutenção", "manutencao", "reparo", "conserto"],
   "Serviços": ["serviço", "servico", "consultoria", "assessoria", "honorário"],
 };
 
+function parseAllDates(text: string): string[] {
+  const regex = /(\d{2})[\/\.\-](\d{2})[\/\.\-](\d{4})/g;
+  const dates: string[] = [];
+  let m;
+  while ((m = regex.exec(text)) !== null) {
+    const [, d, mo, y] = m;
+    const candidate = `${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}`;
+    if (!isNaN(Date.parse(candidate))) dates.push(candidate);
+  }
+  return dates;
+}
+
 function parseExpenseText(text: string, fileName: string) {
-  // Extract monetary value (R$ X.XXX,XX or X.XXX,XX or X,XX)
+  // Extract monetary values — pick the one most likely to be the total
   const valuePatterns = [
-    /(?:valor\s*(?:total|a\s*pagar|do\s*documento|cobrado|líquido))[:\s]*R?\$?\s*([\d.,]+)/i,
-    /(?:total)[:\s]*R?\$?\s*([\d.,]+)/i,
-    /R\$\s*([\d.]+,\d{2})/,
-    /([\d.]+,\d{2})/,
+    /(?:valor\s*(?:total|a\s*pagar|do\s*documento|cobrado|l[ií]quido))[:\s]*R?\$?\s*([\d.,]+)/gi,
+    /(?:total)[:\s]*R?\$?\s*([\d.,]+)/gi,
+    /R\$\s*([\d.]+,\d{2})/g,
   ];
+
   let value = 0;
   for (const pattern of valuePatterns) {
-    const match = text.match(pattern);
-    if (match) {
-      const raw = match[1].replace(/\./g, "").replace(",", ".");
+    let m;
+    while ((m = pattern.exec(text)) !== null) {
+      const raw = m[1].replace(/\./g, "").replace(",", ".");
       const parsed = parseFloat(raw);
-      if (parsed > 0 && parsed < 1_000_000) { value = parsed; break; }
-    }
-  }
-
-  // Extract due date (DD/MM/YYYY or DD.MM.YYYY)
-  const datePatterns = [
-    /(?:vencimento|pagar\s*até|venc)[:\s]*([\d]{2}[\/\.\-][\d]{2}[\/\.\-][\d]{4})/i,
-    /([\d]{2}[\/\.\-][\d]{2}[\/\.\-][\d]{4})/,
-  ];
-  let dueDate = new Date().toISOString().split("T")[0];
-  for (const pattern of datePatterns) {
-    const match = text.match(pattern);
-    if (match) {
-      const parts = match[1].split(/[\/\.\-]/);
-      if (parts.length === 3) {
-        const [d, m, y] = parts;
-        const candidate = `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
-        if (!isNaN(Date.parse(candidate))) { dueDate = candidate; break; }
+      if (parsed > 0 && parsed < 1_000_000 && parsed > value) {
+        value = parsed;
       }
     }
+    if (value > 0) break;
   }
 
-  // Extract description from cedente/beneficiário or first meaningful text
+  // Fallback: any R$ X.XXX,XX pattern — pick the largest
+  if (value === 0) {
+    const fallback = /R\$\s*([\d.]+,\d{2})/g;
+    let m;
+    while ((m = fallback.exec(text)) !== null) {
+      const raw = m[1].replace(/\./g, "").replace(",", ".");
+      const parsed = parseFloat(raw);
+      if (parsed > 0 && parsed < 1_000_000 && parsed > value) value = parsed;
+    }
+  }
+
+  // Extract due date — pick the most future date
+  const allDates = parseAllDates(text);
+  let dueDate = new Date().toISOString().split("T")[0];
+  if (allDates.length > 0) {
+    allDates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+    dueDate = allDates[0]; // most future
+  }
+
+  // Extract description
   const descPatterns = [
-    /(?:cedente|beneficiário|beneficiario|razão\s*social|empresa)[:\s]*([^\n]{5,80})/i,
-    /(?:sacador|favorecido|pagador)[:\s]*([^\n]{5,80})/i,
+    /(?:cedente|benefici[áa]rio|raz[ãa]o\s*social|empresa|sacador|favorecido)[:\s]*([^\n]{5,80})/i,
   ];
-  let description = fileName.replace(/\.pdf$/i, "");
+  let description = fileName.replace(/\.pdf$/i, "").replace(/[_-]/g, " ").trim();
   for (const pattern of descPatterns) {
     const match = text.match(pattern);
-    if (match) { description = match[1].trim(); break; }
+    if (match) {
+      const candidate = match[1].trim();
+      if (candidate.length >= 5) { description = candidate.substring(0, 60); break; }
+    }
   }
 
-  // Suggest category based on keywords
+  // If no good description found, use first 60 meaningful chars
+  if (description === fileName.replace(/\.pdf$/i, "").replace(/[_-]/g, " ").trim()) {
+    const meaningful = text.replace(/\s+/g, " ").trim();
+    if (meaningful.length > 10) {
+      description = meaningful.substring(0, 60).trim();
+    }
+  }
+
+  // Suggest category
   const lower = text.toLowerCase();
   let category = "";
   for (const [cat, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
@@ -102,7 +129,6 @@ export function ExpensePdfImport() {
     setExtracting(true);
 
     try {
-      // Step 1: Extract text from PDF in the browser
       const pdfText = await extractTextFromPdf(file);
 
       if (!pdfText || pdfText.trim().length < 10) {
@@ -111,29 +137,22 @@ export function ExpensePdfImport() {
         return;
       }
 
-      // Step 2: Parse text client-side using regex
       const parsed = parseExpenseText(pdfText, file.name);
-      const description = parsed.description;
-      const value = parsed.value;
-      const dueDate = parsed.dueDate;
       const suggestedCategory = parsed.category || (allCategories.length > 0 ? allCategories[0] : "");
 
-      // Match suggested category to existing categories
       let matchedCategory = suggestedCategory;
       if (allCategories.length > 0) {
-        const found = allCategories.find(
-          (c) => c.toLowerCase() === suggestedCategory.toLowerCase()
-        );
+        const found = allCategories.find((c) => c.toLowerCase() === suggestedCategory.toLowerCase());
         matchedCategory = found || allCategories[0];
       }
 
       setForm({
         type: "variavel",
         category: matchedCategory,
-        description: String(description),
-        value: isNaN(value) ? 0 : value,
+        description: String(parsed.description),
+        value: isNaN(parsed.value) ? 0 : parsed.value,
         account: "cnpj",
-        due_date: dueDate,
+        due_date: parsed.dueDate,
       });
       setExtracted(true);
     } catch (err: any) {
