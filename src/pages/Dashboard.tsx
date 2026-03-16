@@ -6,11 +6,12 @@ import { useOrders } from "@/hooks/useOrders";
 import { useClients } from "@/hooks/useClients";
 import { useUserRole } from "@/hooks/useUserRole";
 import { KpiCards } from "@/components/dashboard/KpiCards";
+import { SalesGoalCard } from "@/components/dashboard/SalesGoalCard";
 import { DashboardCharts } from "@/components/dashboard/DashboardCharts";
 import { AlertsPanel } from "@/components/dashboard/AlertsPanel";
 import { CommercialAgenda } from "@/components/dashboard/CommercialAgenda";
 import { PeriodSelector, getDefaultPeriod, PeriodRange } from "@/components/dashboard/PeriodSelector";
-import { differenceInBusinessDays, isBefore, startOfDay, addDays } from "date-fns";
+import { differenceInBusinessDays, isBefore, startOfDay, addDays, startOfMonth, endOfMonth } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/financial-utils";
 
@@ -229,6 +230,30 @@ export default function Dashboard() {
   // Count leads
   const leadsCount = clients.filter((c) => c.status_funil === "lead" || c.status_funil === "contato_realizado" || c.status_funil === "negociacao").length;
 
+  // Sales goal data
+  const currentMonthSales = useMemo(() => {
+    const now = new Date();
+    const mStart = startOfMonth(now);
+    const mEnd = endOfMonth(now);
+    return orders
+      .filter((o: any) => {
+        const d = new Date(o.order_date);
+        return d >= mStart && d <= mEnd;
+      })
+      .reduce((s: number, o: any) => s + Number(o.commission_base_value), 0);
+  }, [orders]);
+
+  const negotiationValue = useMemo(() => {
+    return orders
+      .filter((o: any) => {
+        const client = clients.find((c) =>
+          c.id === o.client_id || c.razao_social?.toLowerCase() === o.client?.toLowerCase()
+        );
+        return client?.status_funil === "negociacao";
+      })
+      .reduce((s: number, o: any) => s + Number(o.commission_base_value), 0);
+  }, [orders, clients]);
+
   // Commission monthly evolution for dedicated chart
   const commissionMonthlyEvolution = useMemo(() => {
     const today = new Date();
@@ -281,6 +306,8 @@ export default function Dashboard() {
         forecast30={stats.forecast30commission}
         lateCommissions={stats.lateCommissions}
       />
+
+      <SalesGoalCard currentSales={currentMonthSales} negotiationValue={negotiationValue} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
