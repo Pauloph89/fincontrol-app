@@ -52,7 +52,7 @@ export function PeriodExpensesList() {
   // Real expenses for the period
   const realExpenses = useMemo(() => {
     return (expensesQuery.data || []).filter((e) => {
-      const dueDate = new Date(e.due_date);
+      const dueDate = parseIsoDateLocal(e.due_date);
       return dueDate >= monthStart && dueDate <= monthEnd;
     });
   }, [expensesQuery.data, monthStart, monthEnd]);
