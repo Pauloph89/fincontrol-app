@@ -102,6 +102,10 @@ export default function Projections() {
               {factories.map((f) => <SelectItem key={f} value={f}>{f}</SelectItem>)}
             </SelectContent>
           </Select>
+          <Button variant="outline" size="sm" onClick={() => window.print()}>
+            <Printer className="mr-1 h-4 w-4" />
+            Imprimir
+          </Button>
         </div>
       </div>
 
