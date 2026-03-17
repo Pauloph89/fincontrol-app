@@ -16,6 +16,27 @@ import {
 import { CheckCircle2, Paperclip, Search, Trash2, RefreshCw, Loader2, Ghost } from "lucide-react";
 import { startOfMonth, endOfMonth, format } from "date-fns";
 
+function parseMonthValue(monthValue: string) {
+  const [year, month] = monthValue.split("-").map(Number);
+
+  if (!year || !month) {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  }
+
+  return new Date(year, month - 1, 1);
+}
+
+function parseIsoDateLocal(dateValue: string) {
+  const [year, month, day] = dateValue.split("-").map(Number);
+
+  if (!year || !month || !day) {
+    return new Date(dateValue);
+  }
+
+  return new Date(year, month - 1, day);
+}
+
 export function PeriodExpensesList() {
   const { expensesQuery, markExpensePaid, deleteExpense, uploadReceipt } = useExpenses();
   const { projections } = useExpenseProjection();
