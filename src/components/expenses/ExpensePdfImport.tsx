@@ -113,7 +113,12 @@ function suggestCategory(text: string) {
   return normalized.trim() ? "Outros" : "";
 }
 
-function parseExpenseText(text: string, fileName: string) {
+function parseExpenseText(text: string, fileName: string): {
+  description: string;
+  value: number;
+  dueDate: string;
+  category: string;
+} {
   return {
     description: getFileBaseName(fileName),
     value: extractLargestValue(text),
