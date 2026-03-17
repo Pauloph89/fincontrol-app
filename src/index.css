@@ -138,3 +138,21 @@
     @apply bg-info/15 text-info border-info/30;
   }
 }
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  main, main * {
+    visibility: visible;
+  }
+  main {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  nav, aside, header, [data-sidebar], button {
+    display: none !important;
+  }
+}

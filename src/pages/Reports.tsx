@@ -47,7 +47,13 @@ export default function Reports() {
   const orderInstallments = useMemo(() => {
     return orders.flatMap((o: any) =>
       (o.order_installments || []).map((i: any) => ({
-        ...i, factory: o.factory, client: o.client, order_number: o.order_number, salesperson: o.salesperson,
+        ...i,
+        factory: o.factory,
+        client: o.client,
+        order_number: o.order_number,
+        salesperson: o.salesperson,
+        // Use commission value instead of order installment value for reports
+        value: Number(i.commission_value_rep || 0) + Number(i.commission_value_preposto || 0),
       }))
     );
   }, [orders]);
