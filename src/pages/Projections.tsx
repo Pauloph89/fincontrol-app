@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { TrendingUp, AlertTriangle, CheckCircle2, Clock, Loader2 } from "lucide-react";
+import { TrendingUp, AlertTriangle, CheckCircle2, Clock, Loader2, Printer } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { startOfDay, addMonths, startOfMonth, endOfMonth, format, isBefore } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
