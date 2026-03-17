@@ -42,11 +42,11 @@ export function PeriodExpensesList() {
   const { projections } = useExpenseProjection();
   const [search, setSearch] = useState("");
   const [filterAccount, setFilterAccount] = useState("all");
-  const [selectedMonth, setSelectedMonth] = useState(format(new Date(), "yyyy-MM"));
+  const [selectedMonth, setSelectedMonth] = useState(() => format(new Date(), "yyyy-MM"));
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
 
-  const monthStart = startOfMonth(new Date(selectedMonth + "-01"));
+  const monthStart = startOfMonth(parseMonthValue(selectedMonth));
   const monthEnd = endOfMonth(monthStart);
 
   // Real expenses for the period
