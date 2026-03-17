@@ -78,10 +78,10 @@ function parseDateToIso(dateValue: string) {
   return `${year}-${month}-${day}`;
 }
 
-function extractLargestValue(text: string) {
-  const matches = text.match(/R\$\s*\d{1,3}(?:\.\d{3})*,\d{2}|R\$\s*\d+,\d{2}/g) ?? [];
+function extractLargestValue(text: string): number {
+  const matches: string[] = text.match(/R\$\s*\d{1,3}(?:\.\d{3})*,\d{2}|R\$\s*\d+,\d{2}/g) ?? [];
 
-  return matches.reduce((largest, match) => {
+  return matches.reduce<number>((largest, match) => {
     const value = parseCurrencyValue(match.replace(/R\$\s*/i, ""));
     return value > largest ? value : largest;
   }, 0);
