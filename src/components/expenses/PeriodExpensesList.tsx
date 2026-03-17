@@ -16,22 +16,43 @@ import {
 import { CheckCircle2, Paperclip, Search, Trash2, RefreshCw, Loader2, Ghost } from "lucide-react";
 import { startOfMonth, endOfMonth, format } from "date-fns";
 
+function parseMonthValue(monthValue: string) {
+  const [year, month] = monthValue.split("-").map(Number);
+
+  if (!year || !month) {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  }
+
+  return new Date(year, month - 1, 1);
+}
+
+function parseIsoDateLocal(dateValue: string) {
+  const [year, month, day] = dateValue.split("-").map(Number);
+
+  if (!year || !month || !day) {
+    return new Date(dateValue);
+  }
+
+  return new Date(year, month - 1, day);
+}
+
 export function PeriodExpensesList() {
   const { expensesQuery, markExpensePaid, deleteExpense, uploadReceipt } = useExpenses();
   const { projections } = useExpenseProjection();
   const [search, setSearch] = useState("");
   const [filterAccount, setFilterAccount] = useState("all");
-  const [selectedMonth, setSelectedMonth] = useState(format(new Date(), "yyyy-MM"));
+  const [selectedMonth, setSelectedMonth] = useState(() => format(new Date(), "yyyy-MM"));
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
 
-  const monthStart = startOfMonth(new Date(selectedMonth + "-01"));
+  const monthStart = startOfMonth(parseMonthValue(selectedMonth));
   const monthEnd = endOfMonth(monthStart);
 
   // Real expenses for the period
   const realExpenses = useMemo(() => {
     return (expensesQuery.data || []).filter((e) => {
-      const dueDate = new Date(e.due_date);
+      const dueDate = parseIsoDateLocal(e.due_date);
       return dueDate >= monthStart && dueDate <= monthEnd;
     });
   }, [expensesQuery.data, monthStart, monthEnd]);
@@ -40,8 +61,8 @@ export function PeriodExpensesList() {
   const virtualExpenses = useMemo(() => {
     const realKeys = new Set(realExpenses.map((e) => `${(e as any).generated_from_rule_id}_${e.due_date}`));
     return projections.filter((p) => {
-      const d = new Date(p.due_date);
-      return d >= monthStart && d <= monthEnd && !realKeys.has(`${p.rule_id}_${p.due_date}`);
+      const dueDate = parseIsoDateLocal(p.due_date);
+      return dueDate >= monthStart && dueDate <= monthEnd && !realKeys.has(`${p.rule_id}_${p.due_date}`);
     });
   }, [projections, monthStart, monthEnd, realExpenses]);
 
