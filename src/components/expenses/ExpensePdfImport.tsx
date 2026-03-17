@@ -8,102 +8,170 @@ import { FileUp, Loader2 } from "lucide-react";
 import { useExpenses, ExpenseFormData } from "@/hooks/useExpenses";
 import { useExpenseCategories } from "@/hooks/useExpenseCategories";
 import { useToast } from "@/hooks/use-toast";
-import { extractTextFromPdf } from "@/lib/pdf-extract";
+
+const PDFJS_CDN_URL = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+const PDFJS_WORKER_URL = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
 
 const CATEGORY_KEYWORDS: Record<string, string[]> = {
-  "Impostos": ["imposto", "tributo", "icms", "iss", "darf", "gps", "cofins", "pis", "guia", "taxa", "sefaz", "receita federal", "simples nacional", "das "],
-  "Energia": ["cemig", "eletro", "energia", "cpfl", "enel", "light", "celpe", "coelba", "eletropaulo", "copel"],
-  "Internet": ["internet", "telecom", "telefon", "claro", "vivo", "tim", "oi ", "net ", "banda larga"],
-  "Aluguel": ["aluguel", "locação", "locacao", "imobiliár", "condomínio", "condominio"],
-  "Combustível": ["combustível", "combustivel", "gasolina", "etanol", "diesel", "posto", "abastecimento"],
-  "Alimentação": ["alimentação", "alimentacao", "restaurante", "lanche", "refeição", "refeicao", "ifood"],
-  "Seguros": ["seguro", "apólice", "apolice", "sinistro"],
-  "Material": ["material", "papelaria", "suprimento"],
-  "Manutenção": ["manutenção", "manutencao", "reparo", "conserto"],
-  "Serviços": ["serviço", "servico", "consultoria", "assessoria", "honorário"],
+  Impostos: ["imposto", "darf", "gps", "iss", "cofins", "pis", "inss"],
+  Internet: ["internet", "telefone", "banda larga"],
+  "Combustível": ["combustível", "combustivel", "posto", "gasolina"],
+  "Alimentação": ["alimentação", "alimentacao", "restaurante", "lanche", "café", "cafe"],
 };
 
-function parseAllDates(text: string): string[] {
-  const regex = /(\d{2})[\/\.\-](\d{2})[\/\.\-](\d{4})/g;
-  const dates: string[] = [];
-  let m;
-  while ((m = regex.exec(text)) !== null) {
-    const [, d, mo, y] = m;
-    const candidate = `${y}-${mo.padStart(2, "0")}-${d.padStart(2, "0")}`;
-    if (!isNaN(Date.parse(candidate))) dates.push(candidate);
+type PdfJsTextItem = {
+  str?: string;
+};
+
+declare global {
+  interface Window {
+    pdfjsLib?: {
+      GlobalWorkerOptions: { workerSrc: string };
+      getDocument: (source: { data: Uint8Array }) => {
+        promise: Promise<{
+          numPages: number;
+          getPage: (pageNumber: number) => Promise<{
+            getTextContent: () => Promise<{ items: PdfJsTextItem[] }>;
+          }>;
+        }>;
+      };
+    };
   }
-  return dates;
+}
+
+function getDefaultForm(description = ""): ExpenseFormData {
+  return {
+    type: "variavel",
+    category: "",
+    description,
+    value: 0,
+    account: "cnpj",
+    due_date: "",
+  };
+}
+
+function getFileBaseName(fileName: string) {
+  return fileName.replace(/\.pdf$/i, "").trim();
+}
+
+function parseCurrencyValue(rawValue: string) {
+  const normalized = rawValue.replace(/\./g, "").replace(",", ".");
+  const parsed = Number.parseFloat(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function parseDateToIso(dateValue: string) {
+  const match = dateValue.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!match) return "";
+
+  const [, day, month, year] = match;
+  const candidate = new Date(Number(year), Number(month) - 1, Number(day));
+
+  if (
+    candidate.getFullYear() !== Number(year) ||
+    candidate.getMonth() !== Number(month) - 1 ||
+    candidate.getDate() !== Number(day)
+  ) {
+    return "";
+  }
+
+  return `${year}-${month}-${day}`;
+}
+
+function extractLargestValue(text: string) {
+  const matches = text.match(/R\$\s*\d{1,3}(?:\.\d{3})*,\d{2}|R\$\s*\d+,\d{2}/g) ?? [];
+
+  return matches.reduce((largest, match) => {
+    const value = parseCurrencyValue(match.replace(/R\$\s*/i, ""));
+    return value > largest ? value : largest;
+  }, 0);
+}
+
+function extractFutureDueDate(text: string) {
+  const matches = text.match(/\b\d{2}\/\d{2}\/\d{4}\b/g) ?? [];
+  const validDates = matches
+    .map(parseDateToIso)
+    .filter(Boolean)
+    .sort((a, b) => {
+      const [yearA, monthA, dayA] = a.split("-").map(Number);
+      const [yearB, monthB, dayB] = b.split("-").map(Number);
+      return new Date(yearB, monthB - 1, dayB).getTime() - new Date(yearA, monthA - 1, dayA).getTime();
+    });
+
+  return validDates[0] ?? "";
+}
+
+function suggestCategory(text: string) {
+  const normalized = text.toLowerCase();
+
+  for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+    if (keywords.some((keyword) => normalized.includes(keyword))) {
+      return category;
+    }
+  }
+
+  return normalized.trim() ? "Outros" : "";
 }
 
 function parseExpenseText(text: string, fileName: string) {
-  // Extract monetary values — pick the one most likely to be the total
-  const valuePatterns = [
-    /(?:valor\s*(?:total|a\s*pagar|do\s*documento|cobrado|l[ií]quido))[:\s]*R?\$?\s*([\d.,]+)/gi,
-    /(?:total)[:\s]*R?\$?\s*([\d.,]+)/gi,
-    /R\$\s*([\d.]+,\d{2})/g,
-  ];
+  return {
+    description: getFileBaseName(fileName),
+    value: extractLargestValue(text),
+    dueDate: extractFutureDueDate(text),
+    category: suggestCategory(text),
+  };
+}
 
-  let value = 0;
-  for (const pattern of valuePatterns) {
-    let m;
-    while ((m = pattern.exec(text)) !== null) {
-      const raw = m[1].replace(/\./g, "").replace(",", ".");
-      const parsed = parseFloat(raw);
-      if (parsed > 0 && parsed < 1_000_000 && parsed > value) {
-        value = parsed;
-      }
+async function loadPdfJs() {
+  if (window.pdfjsLib) {
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_URL;
+    return window.pdfjsLib;
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    const existingScript = document.querySelector<HTMLScriptElement>(`script[data-pdfjs-cdn="${PDFJS_CDN_URL}"]`);
+
+    if (existingScript) {
+      existingScript.addEventListener("load", () => resolve(), { once: true });
+      existingScript.addEventListener("error", () => reject(new Error("Falha ao carregar o leitor de PDF.")), { once: true });
+      return;
     }
-    if (value > 0) break;
+
+    const script = document.createElement("script");
+    script.src = PDFJS_CDN_URL;
+    script.async = true;
+    script.dataset.pdfjsCdn = PDFJS_CDN_URL;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Falha ao carregar o leitor de PDF."));
+    document.body.appendChild(script);
+  });
+
+  if (!window.pdfjsLib) {
+    throw new Error("Biblioteca de PDF indisponível.");
   }
 
-  // Fallback: any R$ X.XXX,XX pattern — pick the largest
-  if (value === 0) {
-    const fallback = /R\$\s*([\d.]+,\d{2})/g;
-    let m;
-    while ((m = fallback.exec(text)) !== null) {
-      const raw = m[1].replace(/\./g, "").replace(",", ".");
-      const parsed = parseFloat(raw);
-      if (parsed > 0 && parsed < 1_000_000 && parsed > value) value = parsed;
-    }
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_URL;
+  return window.pdfjsLib;
+}
+
+async function extractPdfTextClientSide(file: File) {
+  const pdfjsLib = await loadPdfJs();
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+  const pages: string[] = [];
+
+  for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+    const page = await pdf.getPage(pageNumber);
+    const content = await page.getTextContent();
+    const pageText = content.items
+      .map((item) => item.str?.trim() ?? "")
+      .filter(Boolean)
+      .join(" ");
+
+    pages.push(pageText);
   }
 
-  // Extract due date — pick the most future date
-  const allDates = parseAllDates(text);
-  let dueDate = new Date().toISOString().split("T")[0];
-  if (allDates.length > 0) {
-    allDates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
-    dueDate = allDates[0]; // most future
-  }
-
-  // Extract description
-  const descPatterns = [
-    /(?:cedente|benefici[áa]rio|raz[ãa]o\s*social|empresa|sacador|favorecido)[:\s]*([^\n]{5,80})/i,
-  ];
-  let description = fileName.replace(/\.pdf$/i, "").replace(/[_-]/g, " ").trim();
-  for (const pattern of descPatterns) {
-    const match = text.match(pattern);
-    if (match) {
-      const candidate = match[1].trim();
-      if (candidate.length >= 5) { description = candidate.substring(0, 60); break; }
-    }
-  }
-
-  // If no good description found, use first 60 meaningful chars
-  if (description === fileName.replace(/\.pdf$/i, "").replace(/[_-]/g, " ").trim()) {
-    const meaningful = text.replace(/\s+/g, " ").trim();
-    if (meaningful.length > 10) {
-      description = meaningful.substring(0, 60).trim();
-    }
-  }
-
-  // Suggest category
-  const lower = text.toLowerCase();
-  let category = "";
-  for (const [cat, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
-    if (keywords.some((k) => lower.includes(k))) { category = cat; break; }
-  }
-
-  return { description, value, dueDate, category };
+  return pages.join("\n").replace(/\s+/g, " ").trim();
 }
 
 export function ExpensePdfImport() {
@@ -114,49 +182,51 @@ export function ExpensePdfImport() {
   const { allCategories } = useExpenseCategories();
   const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
-  const [form, setForm] = useState<ExpenseFormData>({
-    type: "variavel",
-    category: "",
-    description: "",
-    value: 0,
-    account: "cnpj",
-    due_date: new Date().toISOString().split("T")[0],
-  });
+  const [form, setForm] = useState<ExpenseFormData>(() => getDefaultForm());
+
+  const resetForm = () => {
+    setExtracted(false);
+    setForm(getDefaultForm());
+  };
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
     setExtracting(true);
 
     try {
-      const pdfText = await extractTextFromPdf(file);
-
-      if (!pdfText || pdfText.trim().length < 10) {
-        toast({ title: "PDF sem texto legível", description: "O PDF pode ser uma imagem escaneada. Tente um PDF com texto selecionável.", variant: "destructive" });
-        setExtracting(false);
-        return;
-      }
-
+      const pdfText = await extractPdfTextClientSide(file);
       const parsed = parseExpenseText(pdfText, file.name);
-      const suggestedCategory = parsed.category || (allCategories.length > 0 ? allCategories[0] : "");
-
-      let matchedCategory = suggestedCategory;
-      if (allCategories.length > 0) {
-        const found = allCategories.find((c) => c.toLowerCase() === suggestedCategory.toLowerCase());
-        matchedCategory = found || allCategories[0];
-      }
+      const matchedCategory = allCategories.find((category) => category.toLowerCase() === parsed.category.toLowerCase()) ?? "";
 
       setForm({
         type: "variavel",
         category: matchedCategory,
-        description: String(parsed.description),
-        value: isNaN(parsed.value) ? 0 : parsed.value,
+        description: parsed.description,
+        value: parsed.value,
         account: "cnpj",
         due_date: parsed.dueDate,
       });
+
       setExtracted(true);
-    } catch (err: any) {
-      toast({ title: "Erro ao processar PDF", description: err.message, variant: "destructive" });
+
+      if (!pdfText) {
+        toast({
+          title: "Texto não identificado no PDF",
+          description: "Preencha manualmente os campos que não foram extraídos.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error(error);
+      setForm(getDefaultForm(getFileBaseName(file.name)));
+      setExtracted(true);
+      toast({
+        title: "Não foi possível extrair todos os dados",
+        description: "Você pode preencher os campos manualmente antes de salvar.",
+        variant: "destructive",
+      });
     } finally {
       setExtracting(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -165,19 +235,30 @@ export function ExpensePdfImport() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.description || form.value <= 0) {
-      toast({ title: "Preencha descrição e valor", variant: "destructive" });
+
+    if (!form.description || form.value <= 0 || !form.due_date) {
+      toast({
+        title: "Revise os campos obrigatórios",
+        description: "Preencha descrição, valor e vencimento antes de salvar.",
+        variant: "destructive",
+      });
       return;
     }
+
     await createExpense.mutateAsync(form);
     setOpen(false);
-    setExtracted(false);
-    setForm({ type: "variavel", category: "", description: "", value: 0, account: "cnpj", due_date: new Date().toISOString().split("T")[0] });
+    resetForm();
     toast({ title: "Despesa importada com sucesso!" });
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setExtracted(false); } }}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        if (!nextOpen) resetForm();
+      }}
+    >
       <DialogTrigger asChild>
         <Button variant="outline">
           <FileUp className="mr-2 h-4 w-4" />Importar PDF
@@ -191,7 +272,7 @@ export function ExpensePdfImport() {
         {!extracted ? (
           <div className="space-y-4 py-4">
             <p className="text-sm text-muted-foreground">
-              Faça upload de um PDF (boleto, fatura, conta) e o sistema extrairá automaticamente os dados para revisão.
+              Faça upload de um PDF e os dados serão extraídos no navegador para revisão antes de salvar.
             </p>
             <input ref={fileRef} type="file" accept=".pdf" className="hidden" onChange={handleFile} />
             <Button variant="outline" className="w-full h-24 border-dashed" onClick={() => fileRef.current?.click()} disabled={extracting}>
@@ -205,35 +286,47 @@ export function ExpensePdfImport() {
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
-              ⚠️ Revise os dados extraídos antes de salvar. Ajuste o que for necessário.
+              ⚠️ Revise os dados extraídos antes de salvar. Ajuste manualmente qualquer campo em branco.
             </div>
             <div className="space-y-2">
               <Label>Descrição *</Label>
-              <Input value={form.description} onChange={(e) => setForm(p => ({ ...p, description: e.target.value }))} required />
+              <Input value={form.description} onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))} required />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Valor *</Label>
-                <Input type="number" step="0.01" min="0" value={form.value || ""} onChange={(e) => setForm(p => ({ ...p, value: parseFloat(e.target.value) || 0 }))} required />
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={form.value || ""}
+                  onChange={(e) => setForm((prev) => ({ ...prev, value: Number.parseFloat(e.target.value) || 0 }))}
+                  required
+                />
               </div>
               <div className="space-y-2">
                 <Label>Vencimento *</Label>
-                <Input type="date" value={form.due_date} onChange={(e) => setForm(p => ({ ...p, due_date: e.target.value }))} required />
+                <Input
+                  type="date"
+                  value={form.due_date}
+                  onChange={(e) => setForm((prev) => ({ ...prev, due_date: e.target.value }))}
+                  required
+                />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Categoria</Label>
-                <Select value={form.category} onValueChange={(v) => setForm(p => ({ ...p, category: v }))}>
+                <Select value={form.category} onValueChange={(value) => setForm((prev) => ({ ...prev, category: value }))}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
-                    {allCategories.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    {allCategories.map((category) => <SelectItem key={category} value={category}>{category}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
                 <Label>Tipo</Label>
-                <Select value={form.type} onValueChange={(v) => setForm(p => ({ ...p, type: v }))}>
+                <Select value={form.type} onValueChange={(value) => setForm((prev) => ({ ...prev, type: value }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="fixa">Fixa</SelectItem>
@@ -244,7 +337,7 @@ export function ExpensePdfImport() {
             </div>
             <div className="space-y-2">
               <Label>Conta</Label>
-              <Select value={form.account} onValueChange={(v) => setForm(p => ({ ...p, account: v }))}>
+              <Select value={form.account} onValueChange={(value) => setForm((prev) => ({ ...prev, account: value }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="cnpj">CNPJ</SelectItem>
@@ -253,10 +346,10 @@ export function ExpensePdfImport() {
               </Select>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setExtracted(false)}>Voltar</Button>
-              <Button type="submit" disabled={createExpense.isPending || form.value <= 0}>
+              <Button type="button" variant="outline" onClick={resetForm}>Voltar</Button>
+              <Button type="submit" disabled={createExpense.isPending || form.value <= 0 || !form.description || !form.due_date}>
                 {createExpense.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Salvar Despesa
+                Confirmar e salvar
               </Button>
             </DialogFooter>
           </form>

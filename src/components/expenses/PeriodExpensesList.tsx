@@ -61,8 +61,8 @@ export function PeriodExpensesList() {
   const virtualExpenses = useMemo(() => {
     const realKeys = new Set(realExpenses.map((e) => `${(e as any).generated_from_rule_id}_${e.due_date}`));
     return projections.filter((p) => {
-      const d = new Date(p.due_date);
-      return d >= monthStart && d <= monthEnd && !realKeys.has(`${p.rule_id}_${p.due_date}`);
+      const dueDate = parseIsoDateLocal(p.due_date);
+      return dueDate >= monthStart && dueDate <= monthEnd && !realKeys.has(`${p.rule_id}_${p.due_date}`);
     });
   }, [projections, monthStart, monthEnd, realExpenses]);
 
