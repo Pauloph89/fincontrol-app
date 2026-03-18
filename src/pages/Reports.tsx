@@ -80,9 +80,12 @@ export default function Reports() {
 
   const filteredExpenses = useMemo(() => {
     return expenses.filter((e) => {
-      const dueDate = new Date(e.due_date);
-      if (filters.startDate && dueDate < new Date(filters.startDate)) return false;
-      if (filters.endDate && dueDate > new Date(filters.endDate)) return false;
+      const [y, m, d] = e.due_date.split("-").map(Number);
+      const dueDate = new Date(y, m - 1, d);
+      const [sy, sm, sd] = (filters.startDate || "").split("-").map(Number);
+      const [ey, em, ed] = (filters.endDate || "").split("-").map(Number);
+      if (filters.startDate && sy && dueDate < new Date(sy, sm - 1, sd)) return false;
+      if (filters.endDate && ey && dueDate > new Date(ey, em - 1, ed)) return false;
       if (filters.account !== "all" && e.account !== filters.account) return false;
       if (filters.status !== "all") {
         if (filters.status === "pago" && e.status !== "pago") return false;

@@ -42,7 +42,12 @@ export function PeriodExpensesList() {
   const { projections } = useExpenseProjection();
   const [search, setSearch] = useState("");
   const [filterAccount, setFilterAccount] = useState("all");
-  const [selectedMonth, setSelectedMonth] = useState(() => format(new Date(), "yyyy-MM"));
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    return `${y}-${m}`;
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
 
