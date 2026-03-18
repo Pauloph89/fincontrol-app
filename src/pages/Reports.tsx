@@ -34,9 +34,10 @@ export default function Reports() {
   const factories = [...new Set([...commissions.map((c) => c.factory), ...orders.map((o: any) => o.factory)])].sort();
   const vendors = [...new Set(orders.map((o: any) => o.salesperson).filter(Boolean))].sort();
 
-  const allInstallments = useMemo(() => {
+  // Commission installments from standalone commissions (NOT linked to orders)
+  const standaloneCommissionInstallments = useMemo(() => {
     return commissions
-      .filter((c: any) => c.status !== "deleted")
+      .filter((c: any) => c.status !== "deleted" && !c.external_order_id)
       .flatMap((c: any) =>
         (c.commission_installments || []).map((i: any) => ({
           ...i, factory: c.factory, client: c.client, order_number: c.order_number, salesperson: null,
@@ -44,6 +45,7 @@ export default function Reports() {
       );
   }, [commissions]);
 
+  // Commission installments from orders (using order_installments with commission values)
   const orderInstallments = useMemo(() => {
     return orders.flatMap((o: any) =>
       (o.order_installments || []).map((i: any) => ({
@@ -52,13 +54,12 @@ export default function Reports() {
         client: o.client,
         order_number: o.order_number,
         salesperson: o.salesperson,
-        // Use commission value instead of order installment value for reports
         value: Number(i.commission_value_rep || 0) + Number(i.commission_value_preposto || 0),
       }))
     );
   }, [orders]);
 
-  const combinedInstallments = useMemo(() => [...allInstallments, ...orderInstallments], [allInstallments, orderInstallments]);
+  const combinedInstallments = useMemo(() => [...standaloneCommissionInstallments, ...orderInstallments], [standaloneCommissionInstallments, orderInstallments]);
 
   const filteredInstallments = useMemo(() => {
     return combinedInstallments.filter((i: any) => {
