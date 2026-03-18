@@ -34,9 +34,10 @@ export default function Reports() {
   const factories = [...new Set([...commissions.map((c) => c.factory), ...orders.map((o: any) => o.factory)])].sort();
   const vendors = [...new Set(orders.map((o: any) => o.salesperson).filter(Boolean))].sort();
 
-  const allInstallments = useMemo(() => {
+  // Commission installments from standalone commissions (NOT linked to orders)
+  const standaloneCommissionInstallments = useMemo(() => {
     return commissions
-      .filter((c: any) => c.status !== "deleted")
+      .filter((c: any) => c.status !== "deleted" && !c.external_order_id)
       .flatMap((c: any) =>
         (c.commission_installments || []).map((i: any) => ({
           ...i, factory: c.factory, client: c.client, order_number: c.order_number, salesperson: null,
@@ -44,6 +45,7 @@ export default function Reports() {
       );
   }, [commissions]);
 
+  // Commission installments from orders (using order_installments with commission values)
   const orderInstallments = useMemo(() => {
     return orders.flatMap((o: any) =>
       (o.order_installments || []).map((i: any) => ({
@@ -52,19 +54,22 @@ export default function Reports() {
         client: o.client,
         order_number: o.order_number,
         salesperson: o.salesperson,
-        // Use commission value instead of order installment value for reports
         value: Number(i.commission_value_rep || 0) + Number(i.commission_value_preposto || 0),
       }))
     );
   }, [orders]);
 
-  const combinedInstallments = useMemo(() => [...allInstallments, ...orderInstallments], [allInstallments, orderInstallments]);
+  const combinedInstallments = useMemo(() => [...standaloneCommissionInstallments, ...orderInstallments], [standaloneCommissionInstallments, orderInstallments]);
 
   const filteredInstallments = useMemo(() => {
     return combinedInstallments.filter((i: any) => {
-      const dueDate = new Date(i.due_date);
-      if (filters.startDate && dueDate < new Date(filters.startDate)) return false;
-      if (filters.endDate && dueDate > new Date(filters.endDate)) return false;
+      // Parse dates as local to avoid UTC offset issues
+      const [y, m, d] = i.due_date.split("-").map(Number);
+      const dueDate = new Date(y, m - 1, d);
+      const [sy, sm, sd] = (filters.startDate || "").split("-").map(Number);
+      const [ey, em, ed] = (filters.endDate || "").split("-").map(Number);
+      if (filters.startDate && sy && dueDate < new Date(sy, sm - 1, sd)) return false;
+      if (filters.endDate && ey && dueDate > new Date(ey, em - 1, ed)) return false;
       if (filters.factory !== "all" && i.factory !== filters.factory) return false;
       if (filters.vendor !== "all" && (i.salesperson || "") !== filters.vendor) return false;
       const realStatus = getInstallmentStatus(i.due_date, i.status);
@@ -75,9 +80,12 @@ export default function Reports() {
 
   const filteredExpenses = useMemo(() => {
     return expenses.filter((e) => {
-      const dueDate = new Date(e.due_date);
-      if (filters.startDate && dueDate < new Date(filters.startDate)) return false;
-      if (filters.endDate && dueDate > new Date(filters.endDate)) return false;
+      const [y, m, d] = e.due_date.split("-").map(Number);
+      const dueDate = new Date(y, m - 1, d);
+      const [sy, sm, sd] = (filters.startDate || "").split("-").map(Number);
+      const [ey, em, ed] = (filters.endDate || "").split("-").map(Number);
+      if (filters.startDate && sy && dueDate < new Date(sy, sm - 1, sd)) return false;
+      if (filters.endDate && ey && dueDate > new Date(ey, em - 1, ed)) return false;
       if (filters.account !== "all" && e.account !== filters.account) return false;
       if (filters.status !== "all") {
         if (filters.status === "pago" && e.status !== "pago") return false;
