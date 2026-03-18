@@ -63,9 +63,13 @@ export default function Reports() {
 
   const filteredInstallments = useMemo(() => {
     return combinedInstallments.filter((i: any) => {
-      const dueDate = new Date(i.due_date);
-      if (filters.startDate && dueDate < new Date(filters.startDate)) return false;
-      if (filters.endDate && dueDate > new Date(filters.endDate)) return false;
+      // Parse dates as local to avoid UTC offset issues
+      const [y, m, d] = i.due_date.split("-").map(Number);
+      const dueDate = new Date(y, m - 1, d);
+      const [sy, sm, sd] = (filters.startDate || "").split("-").map(Number);
+      const [ey, em, ed] = (filters.endDate || "").split("-").map(Number);
+      if (filters.startDate && sy && dueDate < new Date(sy, sm - 1, sd)) return false;
+      if (filters.endDate && ey && dueDate > new Date(ey, em - 1, ed)) return false;
       if (filters.factory !== "all" && i.factory !== filters.factory) return false;
       if (filters.vendor !== "all" && (i.salesperson || "") !== filters.vendor) return false;
       const realStatus = getInstallmentStatus(i.due_date, i.status);
