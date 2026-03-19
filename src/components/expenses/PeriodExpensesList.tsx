@@ -13,7 +13,10 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { CheckCircle2, Paperclip, Search, Trash2, RefreshCw, Loader2, Ghost } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { CheckCircle2, Paperclip, Search, Trash2, RefreshCw, Loader2, Ghost, ExternalLink, Replace } from "lucide-react";
 import { startOfMonth, endOfMonth, format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -322,14 +325,34 @@ export function PeriodExpensesList() {
                         {/* Attachment and delete for ALL real expenses */}
                         {!exp.is_virtual && (
                           <>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { setUploadingId(exp.id); fileInputRef.current?.click(); }}>
-                                  <Paperclip className="h-4 w-4 text-muted-foreground" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Anexar comprovante</TooltipContent>
-                            </Tooltip>
+                            {exp.receipt_url ? (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
+                                    <Paperclip className="h-4 w-4 text-primary" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => window.open(exp.receipt_url!, "_blank")}>
+                                    <ExternalLink className="h-3.5 w-3.5 mr-2" />
+                                    Ver comprovante
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => { setUploadingId(exp.id); fileInputRef.current?.click(); }}>
+                                    <Replace className="h-3.5 w-3.5 mr-2" />
+                                    Substituir comprovante
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            ) : (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { setUploadingId(exp.id); fileInputRef.current?.click(); }}>
+                                    <Paperclip className="h-4 w-4 text-muted-foreground" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Anexar comprovante</TooltipContent>
+                              </Tooltip>
+                            )}
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
