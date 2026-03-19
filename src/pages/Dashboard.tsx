@@ -99,8 +99,10 @@ export default function Dashboard() {
       .reduce((sum, p) => sum + p.value, 0);
     const forecast90 = forecast90in - forecast90outReal - forecast90outProjected;
 
-    // Alerts — ONLY from commission_installments
+    // Alerts — from commission_installments + expenses + recurring projections
     const alerts: any[] = [];
+    const in7days = addDays(today, 7);
+
     allCommissionInstallments.forEach((i: any) => {
       if (i.status === "recebido" || i.status === "cancelado") return;
       const due = startOfDay(new Date(i.due_date));
@@ -110,13 +112,37 @@ export default function Dashboard() {
         alerts.push({ type: "commission_soon", description: `${i.factory} - ${i.client} (P${i.installment_number})`, value: Number(i.value), date: i.due_date });
       }
     });
+
+    // Real expense alerts
     expenses.forEach((e) => {
       if (e.status === "pago") return;
       const due = startOfDay(new Date(e.due_date));
       if (isBefore(due, today)) {
         alerts.push({ type: "expense_late", description: e.description, value: Number(e.value), date: e.due_date });
-      } else if (differenceInBusinessDays(due, today) <= 3) {
+      } else if (due <= in7days) {
         alerts.push({ type: "expense_soon", description: e.description, value: Number(e.value), date: e.due_date });
+      }
+    });
+
+    // Recurring projection alerts — only for next 7 days or overdue, deduplicated against real expenses
+    const realExpenseDescMonthKeys = new Set<string>();
+    expenses.forEach((e) => {
+      const monthKey = e.due_date.substring(0, 7);
+      realExpenseDescMonthKeys.add(`${e.description.trim().toLowerCase()}_${monthKey}`);
+    });
+
+    projections.forEach((p) => {
+      const due = startOfDay(new Date(p.due_date));
+      // Only alert for overdue or within 7 days
+      if (due > in7days) return;
+      // Skip if already covered by a real expense
+      const monthKey = p.due_date.substring(0, 7);
+      if (realExpenseDescMonthKeys.has(`${p.name.trim().toLowerCase()}_${monthKey}`)) return;
+
+      if (isBefore(due, today)) {
+        alerts.push({ type: "expense_late", description: `🔄 ${p.name}`, value: p.value, date: p.due_date });
+      } else {
+        alerts.push({ type: "expense_soon", description: `🔄 ${p.name}`, value: p.value, date: p.due_date });
       }
     });
 
