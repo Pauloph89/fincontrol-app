@@ -319,6 +319,7 @@ export function PeriodExpensesList() {
                             <TooltipContent>Marcar como pago</TooltipContent>
                           </Tooltip>
                         )}
+                        {/* Attachment and delete for ALL real expenses */}
                         {!exp.is_virtual && (
                           <>
                             <Tooltip>
