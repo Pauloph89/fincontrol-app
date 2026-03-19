@@ -100,7 +100,7 @@ export function PeriodExpensesList() {
   }, [projections, monthStart, monthEnd, realExpenses]);
 
   // Materialize a projected expense into a real one and mark as paid
-  const materializeAndPay = async (proj: typeof virtualExpenses[0]) => {
+  const materializeAndPay = async (exp: { description: string; category: string; value: number; account: string; due_date: string; rule_id?: string }) => {
     if (!user || !companyId) return;
     try {
       const today = new Date().toISOString().split("T")[0];
@@ -108,14 +108,14 @@ export function PeriodExpensesList() {
         user_id: user.id,
         company_id: companyId,
         type: "fixa",
-        category: proj.category,
-        description: proj.name,
-        value: proj.value,
-        account: proj.account,
-        due_date: proj.due_date,
+        category: exp.category,
+        description: exp.description,
+        value: exp.value,
+        account: exp.account,
+        due_date: exp.due_date,
         payment_date: today,
         status: "pago",
-        generated_from_rule_id: proj.rule_id,
+        generated_from_rule_id: exp.rule_id || null,
       } as any);
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
@@ -319,6 +319,7 @@ export function PeriodExpensesList() {
                             <TooltipContent>Marcar como pago</TooltipContent>
                           </Tooltip>
                         )}
+                        {/* Attachment and delete for ALL real expenses */}
                         {!exp.is_virtual && (
                           <>
                             <Tooltip>
