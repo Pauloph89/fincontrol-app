@@ -15,31 +15,42 @@ import {
 } from "@/components/ui/alert-dialog";
 import { CheckCircle2, Paperclip, Search, Trash2, RefreshCw, Loader2, Ghost } from "lucide-react";
 import { startOfMonth, endOfMonth, format } from "date-fns";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 function parseMonthValue(monthValue: string) {
   const [year, month] = monthValue.split("-").map(Number);
-
   if (!year || !month) {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   }
-
   return new Date(year, month - 1, 1);
 }
 
 function parseIsoDateLocal(dateValue: string) {
   const [year, month, day] = dateValue.split("-").map(Number);
-
-  if (!year || !month || !day) {
-    return new Date(dateValue);
-  }
-
+  if (!year || !month || !day) return new Date(dateValue);
   return new Date(year, month - 1, day);
+}
+
+/** Compute effective display status for an expense */
+function computeDisplayStatus(status: string, dueDate: string, paymentDate: string | null): string {
+  if (status === "pago" || paymentDate) return "pago";
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const due = parseIsoDateLocal(dueDate);
+  if (due < today) return "atrasado";
+  return status; // a_vencer
 }
 
 export function PeriodExpensesList() {
   const { expensesQuery, markExpensePaid, deleteExpense, uploadReceipt } = useExpenses();
   const { projections } = useExpenseProjection();
+  const { user, companyId } = useAuth();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [filterAccount, setFilterAccount] = useState("all");
   const [selectedMonth, setSelectedMonth] = useState(() => {
@@ -62,19 +73,65 @@ export function PeriodExpensesList() {
     });
   }, [expensesQuery.data, monthStart, monthEnd]);
 
-  // Virtual projections for the period (only if no real expense exists for same rule+date)
+  // Virtual projections: exclude if a real expense with same description exists in this month
   const virtualExpenses = useMemo(() => {
-    const realKeys = new Set(realExpenses.map((e) => `${(e as any).generated_from_rule_id}_${e.due_date}`));
+    // Build a set of keys: rule_id+date AND normalized description+month
+    const realRuleKeys = new Set<string>();
+    const realDescKeys = new Set<string>();
+    realExpenses.forEach((e) => {
+      if ((e as any).generated_from_rule_id) {
+        realRuleKeys.add(`${(e as any).generated_from_rule_id}_${e.due_date}`);
+      }
+      // Normalize: lowercase description + YYYY-MM
+      const monthKey = e.due_date.substring(0, 7);
+      realDescKeys.add(`${e.description.trim().toLowerCase()}_${monthKey}`);
+    });
+
     return projections.filter((p) => {
       const dueDate = parseIsoDateLocal(p.due_date);
-      return dueDate >= monthStart && dueDate <= monthEnd && !realKeys.has(`${p.rule_id}_${p.due_date}`);
+      if (dueDate < monthStart || dueDate > monthEnd) return false;
+      // Skip if real expense exists for same rule+date
+      if (realRuleKeys.has(`${p.rule_id}_${p.due_date}`)) return false;
+      // Skip if real expense with same description exists in same month
+      const monthKey = p.due_date.substring(0, 7);
+      if (realDescKeys.has(`${p.name.trim().toLowerCase()}_${monthKey}`)) return false;
+      return true;
     });
   }, [projections, monthStart, monthEnd, realExpenses]);
+
+  // Materialize a projected expense into a real one and mark as paid
+  const materializeAndPay = async (proj: typeof virtualExpenses[0]) => {
+    if (!user || !companyId) return;
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      const { error } = await supabase.from("expenses").insert({
+        user_id: user.id,
+        company_id: companyId,
+        type: "fixa",
+        category: proj.category,
+        description: proj.name,
+        value: proj.value,
+        account: proj.account,
+        due_date: proj.due_date,
+        payment_date: today,
+        status: "pago",
+        generated_from_rule_id: proj.rule_id,
+      } as any);
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      toast({ title: "Despesa marcada como paga!" });
+    } catch (err: any) {
+      toast({ title: "Erro ao confirmar pagamento", description: err.message, variant: "destructive" });
+    }
+  };
 
   // Combine and filter
   const combined = useMemo(() => {
     const items = [
-      ...realExpenses.map((e) => ({ ...e, is_virtual: false as const })),
+      ...realExpenses.map((e) => {
+        const displayStatus = computeDisplayStatus(e.status, e.due_date, e.payment_date);
+        return { ...e, displayStatus, is_virtual: false as const };
+      }),
       ...virtualExpenses.map((v) => ({
         id: v.id,
         description: v.name,
@@ -83,11 +140,13 @@ export function PeriodExpensesList() {
         account: v.account,
         value: v.value,
         due_date: v.due_date,
-        status: "a_vencer",
+        status: "projetado",
+        displayStatus: "projetado",
         payment_date: null,
         receipt_url: null,
         recurrence: v.recurrence_type,
         is_virtual: true as const,
+        rule_id: v.rule_id,
       })),
     ];
 
@@ -197,7 +256,17 @@ export function PeriodExpensesList() {
             </TableHeader>
             <TableBody>
               {combined.map((exp) => {
-                const alertClass = exp.is_virtual ? "status-previsto" : getExpenseAlertClass(exp.due_date, exp.status);
+                const alertClass = exp.is_virtual
+                  ? "status-previsto"
+                  : exp.displayStatus === "atrasado"
+                    ? "status-vencido"
+                    : getExpenseAlertClass(exp.due_date, exp.status);
+                const statusLabel = exp.displayStatus === "atrasado"
+                  ? "Atrasado"
+                  : exp.displayStatus === "projetado"
+                    ? "Projetado"
+                    : (statusLabels[exp.status] || exp.status);
+
                 return (
                   <TableRow key={exp.id} className={exp.is_virtual ? "opacity-70" : ""}>
                     <TableCell className="font-medium">
@@ -223,49 +292,63 @@ export function PeriodExpensesList() {
                     <TableCell>{formatDate(exp.due_date)}</TableCell>
                     <TableCell>
                       <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${alertClass}`}>
-                        {exp.is_virtual ? "Projetado" : (statusLabels[exp.status] || exp.status)}
+                        {statusLabel}
                       </span>
                     </TableCell>
                     <TableCell>
-                      {!exp.is_virtual && (
-                        <div className="flex items-center gap-0.5">
-                          {exp.status !== "pago" && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => markExpensePaid.mutate(exp.id)}>
-                                  <CheckCircle2 className="h-4 w-4 text-success" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Marcar como pago</TooltipContent>
-                            </Tooltip>
-                          )}
+                      <div className="flex items-center gap-0.5">
+                        {/* Pay button for virtual (projected) expenses */}
+                        {exp.is_virtual && (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { setUploadingId(exp.id); fileInputRef.current?.click(); }}>
-                                <Paperclip className="h-4 w-4 text-muted-foreground" />
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => materializeAndPay(exp as any)}>
+                                <CheckCircle2 className="h-4 w-4 text-success" />
                               </Button>
                             </TooltipTrigger>
-                            <TooltipContent>Anexar comprovante</TooltipContent>
+                            <TooltipContent>Confirmar pagamento</TooltipContent>
                           </Tooltip>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
-                                <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        )}
+                        {/* Pay button for real non-paid expenses */}
+                        {!exp.is_virtual && exp.displayStatus !== "pago" && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => markExpensePaid.mutate(exp.id)}>
+                                <CheckCircle2 className="h-4 w-4 text-success" />
                               </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Excluir despesa?</AlertDialogTitle>
-                                <AlertDialogDescription>Tem certeza que deseja excluir "{exp.description}"?</AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => deleteExpense.mutate({ id: exp.id })} className="bg-destructive text-destructive-foreground">Excluir</AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      )}
+                            </TooltipTrigger>
+                            <TooltipContent>Marcar como pago</TooltipContent>
+                          </Tooltip>
+                        )}
+                        {!exp.is_virtual && (
+                          <>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { setUploadingId(exp.id); fileInputRef.current?.click(); }}>
+                                  <Paperclip className="h-4 w-4 text-muted-foreground" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Anexar comprovante</TooltipContent>
+                            </Tooltip>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
+                                  <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Excluir despesa?</AlertDialogTitle>
+                                  <AlertDialogDescription>Tem certeza que deseja excluir "{exp.description}"?</AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => deleteExpense.mutate({ id: exp.id })} className="bg-destructive text-destructive-foreground">Excluir</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 );

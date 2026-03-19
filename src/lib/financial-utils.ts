@@ -53,6 +53,7 @@ export const statusLabels: Record<string, string> = {
   a_vencer: "A vencer",
   vencendo: "Vencendo",
   vencido: "Vencido",
+  projetado: "Projetado",
   ativa: "Ativa",
   cancelada: "Cancelada",
   deleted: "Excluída",
