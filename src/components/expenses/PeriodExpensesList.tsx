@@ -327,10 +327,16 @@ export function PeriodExpensesList() {
                           <>
                             {exp.receipt_url ? (
                               <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
-                                    <Paperclip className="h-4 w-4 text-primary" />
-                                  </Button>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
+                                        <Paperclip className="h-4 w-4 text-primary" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Ver comprovante</TooltipContent>
+                                </Tooltip>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                   <DropdownMenuItem onClick={() => window.open(exp.receipt_url!, "_blank")}>
