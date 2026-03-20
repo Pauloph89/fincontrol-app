@@ -335,8 +335,8 @@ export default function Dashboard() {
 
       <SalesGoalCard currentSales={currentMonthSales} negotiationValue={negotiationValue} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-[62%_38%] gap-6">
+        <div className="space-y-6">
           <DashboardCharts
             revenueByFactory={stats.revenueByFactory}
             expensesByCategory={stats.expensesByCategory}
@@ -346,61 +346,88 @@ export default function Dashboard() {
             commissionMonthlyEvolution={commissionMonthlyEvolution}
           />
         </div>
-        <div className="space-y-6">
+        <div className="space-y-4">
           <AlertsPanel alerts={stats.alerts} />
           <CommercialAgenda clients={clients} orders={orders} />
-
-          {/* Client Ranking */}
-          <Card className="glass-card">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Top Clientes (por vendas)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {stats.clientRanking.length === 0 ? (
-                <p className="text-muted-foreground text-xs">Sem dados</p>
-              ) : (
-                <div className="space-y-1.5">
-                  {stats.clientRanking.map((c, i) => (
-                    <div key={c.name} className="flex items-center justify-between text-xs">
-                      <span className="truncate max-w-[60%]">
-                        <span className="text-muted-foreground mr-1">{i + 1}.</span>
-                        {c.name}
-                      </span>
-                      <span className="font-semibold">{formatCurrency(c.value)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Vendor Ranking */}
-          <Card className="glass-card">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Ranking Vendedores</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {stats.vendorRanking.length === 0 ? (
-                <p className="text-muted-foreground text-xs">Sem dados</p>
-              ) : (
-                <div className="space-y-1.5">
-                  {stats.vendorRanking.map((v, i) => (
-                    <div key={v.name} className="flex items-center justify-between text-xs">
-                      <span className="truncate max-w-[45%]">
-                        <span className="text-muted-foreground mr-1">{i + 1}.</span>
-                        {v.name}
-                      </span>
-                      <div className="text-right">
-                        <span className="font-semibold">{formatCurrency(v.vendas)}</span>
-                        <span className="text-muted-foreground ml-1 text-[10px]">({formatCurrency(v.comissao)} com.)</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
         </div>
+      </div>
+
+      {/* Bottom section: rankings */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Client Ranking */}
+        <Card className="glass-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Top Clientes (por vendas)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {stats.clientRanking.length === 0 ? (
+              <p className="text-muted-foreground text-xs">Sem dados</p>
+            ) : (
+              <div className="space-y-1.5">
+                {stats.clientRanking.map((c, i) => (
+                  <div key={c.name} className="flex items-center justify-between text-xs">
+                    <span className="truncate max-w-[60%]">
+                      <span className="text-muted-foreground mr-1">{i + 1}.</span>
+                      {c.name}
+                    </span>
+                    <span className="font-semibold">{formatCurrency(c.value)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Vendor Ranking */}
+        <Card className="glass-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Ranking Vendedores</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {stats.vendorRanking.length === 0 ? (
+              <p className="text-muted-foreground text-xs">Sem dados</p>
+            ) : (
+              <div className="space-y-1.5">
+                {stats.vendorRanking.map((v, i) => (
+                  <div key={v.name} className="flex items-center justify-between text-xs">
+                    <span className="truncate max-w-[45%]">
+                      <span className="text-muted-foreground mr-1">{i + 1}.</span>
+                      {v.name}
+                    </span>
+                    <div className="text-right">
+                      <span className="font-semibold">{formatCurrency(v.vendas)}</span>
+                      <span className="text-muted-foreground ml-1 text-[10px]">({formatCurrency(v.comissao)} com.)</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Revenue by Factory - moved here */}
+        <Card className="glass-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Receita por Fábrica</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {stats.revenueByFactory.length === 0 ? (
+              <p className="text-muted-foreground text-xs">Sem dados</p>
+            ) : (
+              <div className="space-y-1.5">
+                {stats.revenueByFactory.slice(0, 10).map((f, i) => (
+                  <div key={f.name} className="flex items-center justify-between text-xs">
+                    <span className="truncate max-w-[60%]">
+                      <span className="text-muted-foreground mr-1">{i + 1}.</span>
+                      {f.name}
+                    </span>
+                    <span className="font-semibold">{formatCurrency(f.value)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
