@@ -329,7 +329,12 @@ export function PeriodExpensesList() {
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
-                                    <Paperclip className="h-4 w-4 text-primary" />
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Paperclip className="h-4 w-4 text-primary" />
+                                      </TooltipTrigger>
+                                      <TooltipContent>Ver comprovante</TooltipContent>
+                                    </Tooltip>
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
