@@ -68,17 +68,43 @@ export default function Dashboard() {
 
     const toReceive = pendingCommission;
 
-    const realToPay = expenses.filter((e) => e.status !== "pago").reduce((sum, e) => sum + Number(e.value), 0);
-    const projectedToPay = projections.filter((p) => new Date(p.due_date) >= today).reduce((sum, p) => sum + p.value, 0);
-    const toPay = realToPay + projectedToPay;
+    // A Pagar: only real unpaid expenses due in current month or overdue + projected for current month
+    const currentMonthStart = startOfMonth(today);
+    const currentMonthEnd = endOfMonth(today);
+    const realToPay = expenses
+      .filter((e) => e.status !== "pago" && (isBefore(startOfDay(new Date(e.due_date)), today) || (new Date(e.due_date) >= currentMonthStart && new Date(e.due_date) <= currentMonthEnd)))
+      .reduce((sum, e) => sum + Number(e.value), 0);
+    const projectedToPay = projections
+      .filter((p) => {
+        const due = new Date(p.due_date);
+        return due >= currentMonthStart && due <= currentMonthEnd;
+      })
+      .reduce((sum, p) => sum + p.value, 0);
+    // Deduplicate projected vs real
+    const realExpenseKeys = new Set<string>();
+    expenses.forEach((e) => {
+      const mk = e.due_date.substring(0, 7);
+      realExpenseKeys.add(`${e.description.trim().toLowerCase()}_${mk}`);
+    });
+    const deduplicatedProjectedToPay = projections
+      .filter((p) => {
+        const due = new Date(p.due_date);
+        if (due < currentMonthStart || due > currentMonthEnd) return false;
+        const mk = p.due_date.substring(0, 7);
+        return !realExpenseKeys.has(`${p.name.trim().toLowerCase()}_${mk}`);
+      })
+      .reduce((sum, p) => sum + p.value, 0);
+    const toPay = realToPay + deduplicatedProjectedToPay;
 
     const lateCommissions = allCommissionInstallments
       .filter((i: any) => i.status !== "recebido" && i.status !== "cancelado" && isBefore(startOfDay(new Date(i.due_date)), today))
       .reduce((sum: number, i: any) => sum + Number(i.value), 0);
-    const lateExpenses = expenses
-      .filter((e) => e.status !== "pago" && isBefore(startOfDay(new Date(e.due_date)), today))
-      .reduce((sum, e) => sum + Number(e.value), 0);
-    const inadimplencia = lateCommissions + lateExpenses;
+
+    // Inadimplência: only commission installments overdue by 30+ days (not expenses)
+    const thirtyDaysAgo = addDays(today, -30);
+    const inadimplencia = allCommissionInstallments
+      .filter((i: any) => i.status !== "recebido" && i.status !== "cancelado" && isBefore(startOfDay(new Date(i.due_date)), thirtyDaysAgo))
+      .reduce((sum: number, i: any) => sum + Number(i.value), 0);
 
     // Forecast next 30 and 90 days
     const in30days = addDays(today, 30);
