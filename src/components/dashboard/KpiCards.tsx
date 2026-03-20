@@ -1,4 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { TrendingUp, TrendingDown, DollarSign, AlertTriangle, ArrowDownLeft, ArrowUpRight, ShieldAlert, Calendar, ShoppingCart, Users, BarChart3 } from "lucide-react";
 import { formatCurrency } from "@/lib/financial-utils";
 
@@ -19,10 +20,10 @@ interface KpiCardsProps {
   lateCommissions?: number;
 }
 
-function KpiCard({ title, value, icon: Icon, color, isCurrency = true, subtitle }: {
-  title: string; value: number; icon: any; color: string; isCurrency?: boolean; subtitle?: string;
+function KpiCard({ title, value, icon: Icon, color, isCurrency = true, subtitle, tooltip }: {
+  title: string; value: number; icon: any; color: string; isCurrency?: boolean; subtitle?: string; tooltip?: string;
 }) {
-  return (
+  const cardContent = (
     <Card className="glass-card">
       <CardContent className="p-3">
         <div className="flex items-center justify-between mb-1">
@@ -38,6 +39,19 @@ function KpiCard({ title, value, icon: Icon, color, isCurrency = true, subtitle 
       </CardContent>
     </Card>
   );
+
+  if (tooltip) {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>{cardContent}</TooltipTrigger>
+          <TooltipContent className="max-w-[250px] text-xs"><p>{tooltip}</p></TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  return cardContent;
 }
 
 export function KpiCards({
