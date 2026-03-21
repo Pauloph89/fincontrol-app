@@ -142,7 +142,7 @@ export function useExpenses() {
     mutationFn: async ({ expenseId, file }: { expenseId: string; file: File }) => {
       if (!user) throw new Error("Not authenticated");
       const filePath = `${user.id}/${expenseId}_${file.name}`;
-      const { error: uploadError } = await supabase.storage.from("receipts").upload(filePath, file);
+      const { error: uploadError } = await supabase.storage.from("receipts").upload(filePath, file, { upsert: true });
       if (uploadError) throw uploadError;
       const { data: { publicUrl } } = supabase.storage.from("receipts").getPublicUrl(filePath);
       const { error } = await supabase.from("expenses").update({ receipt_url: publicUrl }).eq("id", expenseId);
