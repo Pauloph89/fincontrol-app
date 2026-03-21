@@ -98,7 +98,8 @@ export function KpiCards({
             tooltip="Soma das despesas com status 'A vencer' ou 'Projetado' do mês atual, mais despesas vencidas sem pagamento." />
           <KpiCard title="Inadimplência" value={inadimplencia} icon={ShieldAlert} color={inadimplencia > 0 ? "text-destructive" : "text-success"}
             tooltip="Parcelas de comissão com vencimento há mais de 30 dias e ainda não recebidas. Indica possível não pagamento do cliente à fábrica." />
-          <KpiCard title="Previsão 90d" value={forecast90} icon={Calendar} color={forecast90 >= 0 ? "text-success" : "text-destructive"} />
+          <KpiCard title="Previsão 90d" value={forecast90} icon={Calendar} color="text-info"
+            tooltip="Total de comissões previstas para recebimento nos próximos 90 dias." />
         </div>
       </div>
     </div>
