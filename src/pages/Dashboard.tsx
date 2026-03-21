@@ -114,16 +114,9 @@ export default function Dashboard() {
       .filter((i: any) => i.status !== "recebido" && i.status !== "cancelado" && new Date(i.due_date) >= today && new Date(i.due_date) <= in30days)
       .reduce((sum: number, i: any) => sum + Number(i.value), 0);
 
-    const forecast90in = allCommissionInstallments
+    const forecast90 = allCommissionInstallments
       .filter((i: any) => i.status !== "recebido" && i.status !== "cancelado" && new Date(i.due_date) >= today && new Date(i.due_date) <= in90days)
       .reduce((sum: number, i: any) => sum + Number(i.value), 0);
-    const forecast90outReal = expenses
-      .filter((e) => e.status !== "pago" && new Date(e.due_date) >= today && new Date(e.due_date) <= in90days)
-      .reduce((sum, e) => sum + Number(e.value), 0);
-    const forecast90outProjected = projections
-      .filter((p) => new Date(p.due_date) >= today && new Date(p.due_date) <= in90days)
-      .reduce((sum, p) => sum + p.value, 0);
-    const forecast90 = forecast90in - forecast90outReal - forecast90outProjected;
 
     // Alerts — from commission_installments + expenses + recurring projections
     const alerts: any[] = [];
