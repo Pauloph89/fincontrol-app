@@ -190,7 +190,7 @@ export default function Dashboard() {
     });
 
     staleLeads.forEach((c) => {
-      alerts.push({ type: "commission_soon", description: `Lead parado: ${c.razao_social}`, value: 0, date: c.updated_at });
+      alerts.push({ type: "commission_soon", description: `Lead parado: ${normalizeDisplayName(c.razao_social)}`, value: 0, date: c.updated_at });
     });
 
     // Charts

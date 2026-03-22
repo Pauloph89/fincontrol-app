@@ -196,7 +196,7 @@ export function OrdersList() {
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>Excluir pedido?</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      Esta ação irá excluir o pedido {o.order_number} de {o.factory} - {o.client}.
+                                      Esta ação irá excluir o pedido {o.order_number} de {o.factory} - {normalizeDisplayName(o.client)}.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>

@@ -214,7 +214,7 @@ export function CommissionsList() {
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>Excluir comissão?</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      Esta ação irá excluir a comissão de {c.factory} - {c.client} (Pedido {c.order_number}).
+                                      Esta ação irá excluir a comissão de {c.factory} - {normalizeDisplayName(c.client)} (Pedido {c.order_number}).
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>

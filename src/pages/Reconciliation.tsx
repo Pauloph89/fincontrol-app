@@ -317,11 +317,36 @@ export default function Reconciliation() {
                               <Link2 className="h-4 w-4 text-info" />
                             </Button>
                           )}
-                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { setUploadingId(entry.id); fileInputRef.current?.click(); }} title="Comprovante">
-                            <Paperclip className="h-4 w-4 text-muted-foreground" />
-                          </Button>
-                          {entry.receipt_url && (
-                            <a href={entry.receipt_url} target="_blank" rel="noopener noreferrer" className="text-xs text-info underline">Ver</a>
+                          {entry.receipt_url ? (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Paperclip className="h-4 w-4 text-primary" />
+                                    </TooltipTrigger>
+                                    <TooltipContent>Ver comprovante</TooltipContent>
+                                  </Tooltip>
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => window.open(entry.receipt_url!, "_blank")}>
+                                  <ExternalLink className="h-3.5 w-3.5 mr-2" />Ver comprovante
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => { setUploadingId(entry.id); fileInputRef.current?.click(); }}>
+                                  <Replace className="h-3.5 w-3.5 mr-2" />Substituir comprovante
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          ) : (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { setUploadingId(entry.id); fileInputRef.current?.click(); }}>
+                                  <Paperclip className="h-4 w-4 text-muted-foreground" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Anexar comprovante</TooltipContent>
+                            </Tooltip>
                           )}
                         </div>
                       </TableCell>

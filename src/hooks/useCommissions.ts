@@ -39,6 +39,7 @@ export function useCommissions() {
       const { data, error } = await supabase
         .from("commissions")
         .select("*, commission_installments(*)")
+        .eq("company_id", companyId!)
         .order("sale_date", { ascending: false });
       if (error) throw error;
       return data;
