@@ -161,16 +161,36 @@ export function ExpensesList() {
                           <TooltipContent>Marcar como pago</TooltipContent>
                         </Tooltip>
                       )}
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { setUploadingId(exp.id); fileInputRef.current?.click(); }}>
-                            <Paperclip className="h-4 w-4 text-muted-foreground" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Anexar comprovante</TooltipContent>
-                      </Tooltip>
-                      {exp.receipt_url && (
-                        <a href={exp.receipt_url} target="_blank" rel="noopener noreferrer" className="text-xs text-info underline ml-1">Ver</a>
+                      {exp.receipt_url ? (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Paperclip className="h-4 w-4 text-primary" />
+                                </TooltipTrigger>
+                                <TooltipContent>Ver comprovante</TooltipContent>
+                              </Tooltip>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => window.open(exp.receipt_url!, "_blank")}>
+                              <ExternalLink className="h-3.5 w-3.5 mr-2" />Ver comprovante
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => { setUploadingId(exp.id); fileInputRef.current?.click(); }}>
+                              <Replace className="h-3.5 w-3.5 mr-2" />Substituir comprovante
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      ) : (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { setUploadingId(exp.id); fileInputRef.current?.click(); }}>
+                              <Paperclip className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Anexar comprovante</TooltipContent>
+                        </Tooltip>
                       )}
 
                       {hasSeries ? (
