@@ -5,6 +5,7 @@ import { useExpenseProjection } from "@/hooks/useExpenseProjection";
 import { useOrders } from "@/hooks/useOrders";
 import { useClients } from "@/hooks/useClients";
 import { useUserRole } from "@/hooks/useUserRole";
+import { normalizeDisplayName } from "@/lib/display-utils";
 import { KpiCards } from "@/components/dashboard/KpiCards";
 import { SalesGoalCard } from "@/components/dashboard/SalesGoalCard";
 import { DashboardCharts } from "@/components/dashboard/DashboardCharts";
@@ -126,9 +127,9 @@ export default function Dashboard() {
       if (i.status === "recebido" || i.status === "cancelado") return;
       const due = startOfDay(new Date(i.due_date));
       if (isBefore(due, today)) {
-        alerts.push({ type: "commission_late", description: `${i.factory} - ${i.client} (P${i.installment_number})`, value: Number(i.value), date: i.due_date });
+        alerts.push({ type: "commission_late", description: `${i.factory} - ${normalizeDisplayName(i.client)} (P${i.installment_number})`, value: Number(i.value), date: i.due_date });
       } else if (differenceInBusinessDays(due, today) <= 3) {
-        alerts.push({ type: "commission_soon", description: `${i.factory} - ${i.client} (P${i.installment_number})`, value: Number(i.value), date: i.due_date });
+        alerts.push({ type: "commission_soon", description: `${i.factory} - ${normalizeDisplayName(i.client)} (P${i.installment_number})`, value: Number(i.value), date: i.due_date });
       }
     });
 
@@ -177,7 +178,7 @@ export default function Dashboard() {
     });
 
     idleClients.forEach((c) => {
-      alerts.push({ type: "commission_soon", description: `${c.razao_social} — sem pedido há 90+ dias`, value: 0, date: c.updated_at });
+      alerts.push({ type: "commission_soon", description: `${normalizeDisplayName(c.razao_social)} — sem pedido há 90+ dias`, value: 0, date: c.updated_at });
     });
 
     // Stale leads alert
@@ -189,7 +190,7 @@ export default function Dashboard() {
     });
 
     staleLeads.forEach((c) => {
-      alerts.push({ type: "commission_soon", description: `Lead parado: ${c.razao_social}`, value: 0, date: c.updated_at });
+      alerts.push({ type: "commission_soon", description: `Lead parado: ${normalizeDisplayName(c.razao_social)}`, value: 0, date: c.updated_at });
     });
 
     // Charts

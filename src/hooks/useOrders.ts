@@ -172,6 +172,7 @@ export function useOrders() {
       const { data, error } = await supabase
         .from("orders")
         .select("*, order_installments(*)")
+        .eq("company_id", companyId!)
         .order("order_date", { ascending: false });
       if (error) throw error;
       return data;

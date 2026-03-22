@@ -27,6 +27,7 @@ export function useExpenses() {
       const { data, error } = await supabase
         .from("expenses")
         .select("*")
+        .eq("company_id", companyId!)
         .order("due_date", { ascending: false });
       if (error) throw error;
       return data;
