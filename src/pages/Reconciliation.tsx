@@ -11,7 +11,11 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Link2, Paperclip, CheckCircle2, AlertCircle, Clock, DollarSign, InboxIcon } from "lucide-react";
+import { Plus, Link2, Paperclip, CheckCircle2, AlertCircle, Clock, DollarSign, InboxIcon, ExternalLink, Replace } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 function BankEntryForm({ onClose }: { onClose: () => void }) {
   const { createBankEntry } = useBankEntries();
