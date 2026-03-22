@@ -159,7 +159,7 @@ export function OrdersList() {
                       <TableRow key={o.id} className="cursor-pointer hover:bg-accent/50" onClick={() => toggleExpand(o.id)}>
                         <TableCell className="px-2">{isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</TableCell>
                         <TableCell className="font-medium text-xs sm:text-sm">{o.factory}</TableCell>
-                        <TableCell className="hidden sm:table-cell text-xs sm:text-sm">{o.client}</TableCell>
+                        <TableCell className="hidden sm:table-cell text-xs sm:text-sm">{normalizeDisplayName(o.client)}</TableCell>
                         <TableCell className="hidden md:table-cell text-xs">{o.order_number}</TableCell>
                         <TableCell className="text-right text-xs sm:text-sm">{formatCurrency(o.commission_base_value)}</TableCell>
                         <TableCell className="text-right font-semibold hidden sm:table-cell text-xs sm:text-sm">{formatCurrency(o.commission_total_rep)}</TableCell>
