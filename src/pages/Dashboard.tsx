@@ -178,7 +178,7 @@ export default function Dashboard() {
     });
 
     idleClients.forEach((c) => {
-      alerts.push({ type: "commission_soon", description: `${c.razao_social} — sem pedido há 90+ dias`, value: 0, date: c.updated_at });
+      alerts.push({ type: "commission_soon", description: `${normalizeDisplayName(c.razao_social)} — sem pedido há 90+ dias`, value: 0, date: c.updated_at });
     });
 
     // Stale leads alert
