@@ -127,9 +127,9 @@ export default function Dashboard() {
       if (i.status === "recebido" || i.status === "cancelado") return;
       const due = startOfDay(new Date(i.due_date));
       if (isBefore(due, today)) {
-        alerts.push({ type: "commission_late", description: `${i.factory} - ${i.client} (P${i.installment_number})`, value: Number(i.value), date: i.due_date });
+        alerts.push({ type: "commission_late", description: `${i.factory} - ${normalizeDisplayName(i.client)} (P${i.installment_number})`, value: Number(i.value), date: i.due_date });
       } else if (differenceInBusinessDays(due, today) <= 3) {
-        alerts.push({ type: "commission_soon", description: `${i.factory} - ${i.client} (P${i.installment_number})`, value: Number(i.value), date: i.due_date });
+        alerts.push({ type: "commission_soon", description: `${i.factory} - ${normalizeDisplayName(i.client)} (P${i.installment_number})`, value: Number(i.value), date: i.due_date });
       }
     });
 
