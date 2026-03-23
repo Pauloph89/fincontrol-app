@@ -271,6 +271,24 @@ export function ExpensesList() {
             )}
           </TableBody>
         </Table>
+
+        {/* Footer Totals */}
+        <div className="flex flex-wrap items-center gap-4 border-t border-border bg-muted/50 px-4 py-3 text-sm font-semibold">
+          <span>{filtered.length} despesas</span>
+          <span>Total: {formatCurrency(filtered.reduce((s, e) => s + Number(e.value), 0))}</span>
+        </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between border-t border-border px-4 py-3">
+            <p className="text-xs text-muted-foreground">Exibindo {((page - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(page * ITEMS_PER_PAGE, filtered.length)} de {filtered.length} registros</p>
+            <div className="flex gap-1">
+              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>Anterior</Button>
+              <span className="flex items-center px-3 text-xs">{page} / {totalPages}</span>
+              <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Próxima</Button>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
