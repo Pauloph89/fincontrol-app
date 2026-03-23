@@ -63,6 +63,8 @@ export function useFactories() {
           email_financeiro: form.email_financeiro || null,
           politica_comissao: form.politica_comissao || null,
           observacoes: form.observacoes || null,
+          telefone: form.telefone || null,
+          dia_recebimento: form.dia_recebimento ?? null,
         } as any)
         .select()
         .single();
