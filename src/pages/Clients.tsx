@@ -162,6 +162,9 @@ export default function Clients() {
     });
   }, [allClients, filters]);
 
+  const totalClientPages = Math.max(1, Math.ceil(clients.length / CLIENTS_PER_PAGE));
+  const paginatedClients = clients.slice((page - 1) * CLIENTS_PER_PAGE, page * CLIENTS_PER_PAGE);
+
   // Compute total sold per client and last interaction date
   const clientStats = useMemo(() => {
     const stats: Record<string, { totalSold: number; lastContact: string | null }> = {};
