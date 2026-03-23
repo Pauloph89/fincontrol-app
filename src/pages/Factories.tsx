@@ -72,6 +72,7 @@ export default function Factories() {
       contato_comercial: f.contato_comercial || "", email_financeiro: f.email_financeiro || "",
       politica_comissao: f.politica_comissao || "", observacoes: f.observacoes || "",
       telefone: (f as any).telefone || "",
+      dia_recebimento: f.dia_recebimento ?? null,
     });
     setFormOpen(true);
   };
