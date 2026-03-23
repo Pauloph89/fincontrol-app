@@ -28,6 +28,7 @@ export interface FactoryFormData {
   politica_comissao?: string;
   observacoes?: string;
   telefone?: string;
+  dia_recebimento?: number | null;
 }
 
 export function useFactories() {
