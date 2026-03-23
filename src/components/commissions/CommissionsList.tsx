@@ -18,7 +18,7 @@ import { useState, useMemo, useRef } from "react";
 import { CommissionEditDialog } from "./CommissionEditDialog";
 import { ReceiptDialog } from "./ReceiptDialog";
 
-const ITEMS_PER_PAGE = 15;
+const ITEMS_PER_PAGE = 20;
 
 export function CommissionsList() {
   const { commissionsQuery, updateInstallmentStatus, reactivateCommission, deleteCommission, uploadInstallmentReceipt } = useCommissions();
