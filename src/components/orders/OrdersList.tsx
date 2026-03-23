@@ -18,7 +18,7 @@ import { useState, useMemo, useRef } from "react";
 import { OrderEditDialog } from "./OrderEditDialog";
 import { BillingLots } from "./BillingLots";
 
-const ITEMS_PER_PAGE = 15;
+const ITEMS_PER_PAGE = 20;
 
 export function OrdersList() {
   const { ordersQuery, updateInstallmentStatus, reactivateOrder, deleteOrder, uploadInstallmentReceipt, deleteInstallment, addInstallment, updateInstallment } = useOrders();
