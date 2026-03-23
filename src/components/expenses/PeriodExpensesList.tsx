@@ -267,7 +267,7 @@ export function PeriodExpensesList() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {combined.map((exp) => {
+              {paginatedItems.map((exp) => {
                 const alertClass = exp.is_virtual
                   ? "status-previsto"
                   : exp.displayStatus === "atrasado"
