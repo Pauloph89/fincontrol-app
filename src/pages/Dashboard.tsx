@@ -25,6 +25,7 @@ export default function Dashboard() {
   const { ordersQuery } = useOrders();
   const { clientsQuery } = useClients();
   const { role } = useUserRole();
+  const { factoriesQuery } = useFactories();
   const [periodKey, setPeriodKey] = useState("current_month");
   const [period, setPeriod] = useState<PeriodRange>(getDefaultPeriod());
 
