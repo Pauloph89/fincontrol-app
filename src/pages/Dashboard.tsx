@@ -358,6 +358,12 @@ export default function Dashboard() {
 
       <SalesGoalCard currentSales={currentMonthSales} negotiationValue={negotiationValue} />
 
+      <MonthlyClosingByFactory
+        factories={factoriesQuery.data || []}
+        commissions={commissions}
+        orders={orders}
+      />
+
       <div className="grid grid-cols-1 lg:grid-cols-[62%_38%] gap-6">
         <div className="space-y-6">
           <DashboardCharts
