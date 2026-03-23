@@ -48,6 +48,8 @@ function computeDisplayStatus(status: string, dueDate: string, paymentDate: stri
   return status; // a_vencer
 }
 
+const ITEMS_PER_PAGE = 20;
+
 export function PeriodExpensesList() {
   const { expensesQuery, markExpensePaid, deleteExpense, uploadReceipt } = useExpenses();
   const { projections } = useExpenseProjection();
@@ -56,6 +58,7 @@ export function PeriodExpensesList() {
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [filterAccount, setFilterAccount] = useState("all");
+  const [page, setPage] = useState(1);
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     const y = now.getFullYear();
@@ -163,6 +166,12 @@ export function PeriodExpensesList() {
     }).sort((a, b) => a.due_date.localeCompare(b.due_date));
   }, [realExpenses, virtualExpenses, search, filterAccount]);
 
+  const totalPages = Math.max(1, Math.ceil(combined.length / ITEMS_PER_PAGE));
+  const paginatedItems = combined.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+
+  // Reset page on filter change
+  useMemo(() => { setPage(1); }, [search, filterAccount, selectedMonth]);
+
   // Month options
   const monthOptions = useMemo(() => {
     const opts: { label: string; value: string }[] = [];
@@ -258,7 +267,7 @@ export function PeriodExpensesList() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {combined.map((exp) => {
+              {paginatedItems.map((exp) => {
                 const alertClass = exp.is_virtual
                   ? "status-previsto"
                   : exp.displayStatus === "atrasado"
@@ -389,6 +398,18 @@ export function PeriodExpensesList() {
               )}
             </TableBody>
           </Table>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between border-t border-border px-4 py-3">
+              <p className="text-xs text-muted-foreground">Exibindo {((page - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(page * ITEMS_PER_PAGE, combined.length)} de {combined.length} registros</p>
+              <div className="flex gap-1">
+                <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>Anterior</Button>
+                <span className="flex items-center px-3 text-xs">{page} / {totalPages}</span>
+                <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Próxima</Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

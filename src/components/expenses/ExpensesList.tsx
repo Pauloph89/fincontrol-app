@@ -17,17 +17,20 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useState, useMemo, useRef } from "react";
 
+const ITEMS_PER_PAGE = 20;
+
 export function ExpensesList() {
   const { expensesQuery, markExpensePaid, deleteExpense, uploadReceipt } = useExpenses();
   const [search, setSearch] = useState("");
   const [filterAccount, setFilterAccount] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [page, setPage] = useState(1);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
 
   const allExpenses = expensesQuery.data || [];
 
-  const expenses = useMemo(() => {
+  const filtered = useMemo(() => {
     return allExpenses.filter((e) => {
       if (filterAccount !== "all" && e.account !== filterAccount) return false;
       if (filterStatus !== "all" && e.status !== filterStatus) return false;
@@ -38,6 +41,12 @@ export function ExpensesList() {
       return true;
     });
   }, [allExpenses, search, filterAccount, filterStatus]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const expenses = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+
+  // Reset page on filter change
+  useMemo(() => { setPage(1); }, [search, filterAccount, filterStatus]);
 
   if (expensesQuery.isLoading) {
     return (
@@ -262,6 +271,24 @@ export function ExpensesList() {
             )}
           </TableBody>
         </Table>
+
+        {/* Footer Totals */}
+        <div className="flex flex-wrap items-center gap-4 border-t border-border bg-muted/50 px-4 py-3 text-sm font-semibold">
+          <span>{filtered.length} despesas</span>
+          <span>Total: {formatCurrency(filtered.reduce((s, e) => s + Number(e.value), 0))}</span>
+        </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between border-t border-border px-4 py-3">
+            <p className="text-xs text-muted-foreground">Exibindo {((page - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(page * ITEMS_PER_PAGE, filtered.length)} de {filtered.length} registros</p>
+            <div className="flex gap-1">
+              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>Anterior</Button>
+              <span className="flex items-center px-3 text-xs">{page} / {totalPages}</span>
+              <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Próxima</Button>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

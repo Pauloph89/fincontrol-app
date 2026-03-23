@@ -118,6 +118,8 @@ function ClientTimeline({ clientId, clientName, orders }: { clientId: string; cl
   );
 }
 
+const CLIENTS_PER_PAGE = 20;
+
 export default function Clients() {
   const { clientsQuery, createClient, updateClient, deleteClient } = useClients();
   const { ordersQuery } = useOrders();
@@ -130,6 +132,7 @@ export default function Clients() {
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [detailClient, setDetailClient] = useState<Client | null>(null);
   const [form, setForm] = useState<ClientFormData>({ ...emptyForm });
+  const [page, setPage] = useState(1);
 
   const allClients = clientsQuery.data || [];
   const allOrders = ordersQuery.data || [];
@@ -158,6 +161,9 @@ export default function Clients() {
       return true;
     });
   }, [allClients, filters]);
+
+  const totalClientPages = Math.max(1, Math.ceil(clients.length / CLIENTS_PER_PAGE));
+  const paginatedClients = clients.slice((page - 1) * CLIENTS_PER_PAGE, page * CLIENTS_PER_PAGE);
 
   // Compute total sold per client and last interaction date
   const clientStats = useMemo(() => {
@@ -243,7 +249,7 @@ export default function Clients() {
       </div>
 
       {/* Filters */}
-      <ClientFilters filters={filters} onChange={setFilters} vendedores={vendedores} cidades={cidades} />
+      <ClientFilters filters={filters} onChange={(f) => { setFilters(f); setPage(1); }} vendedores={vendedores} cidades={cidades} />
 
       {/* Views */}
       {viewMode === "funnel" ? (
@@ -272,7 +278,7 @@ export default function Clients() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {clients.map((c) => (
+                  {paginatedClients.map((c) => (
                     <TableRow key={c.id}>
                       <TableCell className="font-medium text-sm">{normalizeDisplayName(c.razao_social)}</TableCell>
                       <TableCell className="hidden sm:table-cell text-sm">{c.nome_fantasia || "—"}</TableCell>
@@ -317,6 +323,18 @@ export default function Clients() {
                 </TableBody>
               </Table>
             </div>
+
+            {/* Pagination */}
+            {totalClientPages > 1 && (
+              <div className="flex items-center justify-between border-t border-border px-4 py-3">
+                <p className="text-xs text-muted-foreground">Exibindo {((page - 1) * CLIENTS_PER_PAGE) + 1} a {Math.min(page * CLIENTS_PER_PAGE, clients.length)} de {clients.length} registros</p>
+                <div className="flex gap-1">
+                  <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>Anterior</Button>
+                  <span className="flex items-center px-3 text-xs">{page} / {totalClientPages}</span>
+                  <Button variant="outline" size="sm" disabled={page >= totalClientPages} onClick={() => setPage(page + 1)}>Próxima</Button>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
