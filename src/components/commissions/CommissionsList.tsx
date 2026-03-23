@@ -377,7 +377,7 @@ export function CommissionsList() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-4 py-3 border-t border-border">
               <span className="text-xs text-muted-foreground">
-                {filtered.length} registro(s) • Página {page} de {totalPages}
+                Exibindo {((page - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(page * ITEMS_PER_PAGE, filtered.length)} de {filtered.length} registros
               </span>
               <div className="flex gap-1">
                 <Button variant="outline" size="sm" className="h-7 text-xs" disabled={page <= 1} onClick={() => setPage(page - 1)}>Anterior</Button>

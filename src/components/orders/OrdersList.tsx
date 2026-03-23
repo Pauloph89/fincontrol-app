@@ -373,11 +373,11 @@ export function OrdersList() {
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between border-t border-border px-4 py-3">
-              <p className="text-xs text-muted-foreground">{filtered.length} pedidos encontrados</p>
+              <p className="text-xs text-muted-foreground">Exibindo {((page - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(page * ITEMS_PER_PAGE, filtered.length)} de {filtered.length} registros</p>
               <div className="flex gap-1">
                 <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>Anterior</Button>
                 <span className="flex items-center px-3 text-xs">{page} / {totalPages}</span>
-                <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Próximo</Button>
+                <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>Próxima</Button>
               </div>
             </div>
           )}
