@@ -5,6 +5,7 @@ import { useExpenseProjection } from "@/hooks/useExpenseProjection";
 import { useOrders } from "@/hooks/useOrders";
 import { useClients } from "@/hooks/useClients";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useFactories } from "@/hooks/useFactories";
 import { normalizeDisplayName } from "@/lib/display-utils";
 import { KpiCards } from "@/components/dashboard/KpiCards";
 import { SalesGoalCard } from "@/components/dashboard/SalesGoalCard";
