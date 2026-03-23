@@ -166,6 +166,12 @@ export function PeriodExpensesList() {
     }).sort((a, b) => a.due_date.localeCompare(b.due_date));
   }, [realExpenses, virtualExpenses, search, filterAccount]);
 
+  const totalPages = Math.max(1, Math.ceil(combined.length / ITEMS_PER_PAGE));
+  const paginatedItems = combined.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+
+  // Reset page on filter change
+  useMemo(() => { setPage(1); }, [search, filterAccount, selectedMonth]);
+
   // Month options
   const monthOptions = useMemo(() => {
     const opts: { label: string; value: string }[] = [];
