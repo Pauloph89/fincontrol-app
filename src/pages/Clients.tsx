@@ -118,6 +118,8 @@ function ClientTimeline({ clientId, clientName, orders }: { clientId: string; cl
   );
 }
 
+const CLIENTS_PER_PAGE = 20;
+
 export default function Clients() {
   const { clientsQuery, createClient, updateClient, deleteClient } = useClients();
   const { ordersQuery } = useOrders();
@@ -130,6 +132,7 @@ export default function Clients() {
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [detailClient, setDetailClient] = useState<Client | null>(null);
   const [form, setForm] = useState<ClientFormData>({ ...emptyForm });
+  const [page, setPage] = useState(1);
 
   const allClients = clientsQuery.data || [];
   const allOrders = ordersQuery.data || [];
