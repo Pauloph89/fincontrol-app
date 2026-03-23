@@ -188,6 +188,7 @@ export default function Factories() {
               <div className="space-y-2"><Label>Telefone</Label><Input value={(form as any).telefone || ""} onChange={(e) => update("telefone" as any, e.target.value)} placeholder="(11) 99999-9999" /></div>
             </div>
             <div className="space-y-2"><Label>E-mail Financeiro</Label><Input type="email" value={form.email_financeiro || ""} onChange={(e) => update("email_financeiro", e.target.value)} /></div>
+            <div className="space-y-2"><Label>Dia de Recebimento</Label><Input type="number" min="1" max="31" placeholder="Ex: 15" value={form.dia_recebimento ?? ""} onChange={(e) => update("dia_recebimento" as any, e.target.value ? parseInt(e.target.value) : null)} /></div>
             <div className="space-y-2"><Label>Política de Comissão</Label><Textarea value={form.politica_comissao || ""} onChange={(e) => update("politica_comissao", e.target.value)} rows={2} /></div>
             <div className="space-y-2"><Label>Observações</Label><Textarea value={form.observacoes || ""} onChange={(e) => update("observacoes", e.target.value)} rows={2} /></div>
           </div>
