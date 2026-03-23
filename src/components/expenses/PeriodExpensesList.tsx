@@ -48,6 +48,8 @@ function computeDisplayStatus(status: string, dueDate: string, paymentDate: stri
   return status; // a_vencer
 }
 
+const ITEMS_PER_PAGE = 20;
+
 export function PeriodExpensesList() {
   const { expensesQuery, markExpensePaid, deleteExpense, uploadReceipt } = useExpenses();
   const { projections } = useExpenseProjection();
@@ -56,6 +58,7 @@ export function PeriodExpensesList() {
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [filterAccount, setFilterAccount] = useState("all");
+  const [page, setPage] = useState(1);
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     const y = now.getFullYear();
