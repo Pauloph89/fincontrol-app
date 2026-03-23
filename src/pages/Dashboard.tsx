@@ -13,6 +13,7 @@ import { DashboardCharts } from "@/components/dashboard/DashboardCharts";
 import { AlertsPanel } from "@/components/dashboard/AlertsPanel";
 import { CommercialAgenda } from "@/components/dashboard/CommercialAgenda";
 import { MonthlyClosingByFactory } from "@/components/dashboard/MonthlyClosingByFactory";
+import { MonthlyProjectionCard } from "@/components/dashboard/MonthlyProjectionCard";
 import { PeriodSelector, getDefaultPeriod, PeriodRange } from "@/components/dashboard/PeriodSelector";
 import { differenceInBusinessDays, isBefore, startOfDay, addDays, startOfMonth, endOfMonth } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -303,6 +304,56 @@ export default function Dashboard() {
       .reduce((s: number, o: any) => s + Number(o.commission_base_value), 0);
   }, [orders, clients]);
 
+  // Monthly projection card data
+  const monthlyProjection = useMemo(() => {
+    const now = new Date();
+    const mStart = startOfMonth(now);
+    const mEnd = endOfMonth(now);
+
+    const allInstallments = commissions
+      .filter((c: any) => c.status !== "deleted" && c.status !== "cancelada")
+      .flatMap((c: any) =>
+        (c.commission_installments || []).map((i: any) => ({ ...i, factory: c.factory }))
+      );
+
+    const monthInstallments = allInstallments.filter(
+      (i: any) => i.status !== "recebido" && i.status !== "cancelado" && new Date(i.due_date) >= mStart && new Date(i.due_date) <= mEnd
+    );
+
+    const byFactory: Record<string, number> = {};
+    monthInstallments.forEach((i: any) => {
+      byFactory[i.factory] = (byFactory[i.factory] || 0) + Number(i.value);
+    });
+    const factoryProjections = Object.entries(byFactory)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+
+    const totalToReceive = factoryProjections.reduce((s, f) => s + f.value, 0);
+
+    // Fixed costs: real unpaid expenses + deduplicated projections for current month
+    const realUnpaid = expenses
+      .filter((e) => e.status !== "pago" && new Date(e.due_date) >= mStart && new Date(e.due_date) <= mEnd)
+      .reduce((s, e) => s + Number(e.value), 0);
+
+    const realKeys = new Set<string>();
+    expenses.forEach((e) => {
+      const mk = e.due_date.substring(0, 7);
+      realKeys.add(`${e.description.trim().toLowerCase()}_${mk}`);
+    });
+    const projCosts = projections
+      .filter((p) => {
+        const due = new Date(p.due_date);
+        if (due < mStart || due > mEnd) return false;
+        const mk = p.due_date.substring(0, 7);
+        return !realKeys.has(`${p.name.trim().toLowerCase()}_${mk}`);
+      })
+      .reduce((s, p) => s + p.value, 0);
+
+    const totalFixedCosts = realUnpaid + projCosts;
+
+    return { factoryProjections, totalToReceive, totalFixedCosts };
+  }, [commissions, expenses, projections]);
+
   // Commission monthly evolution for dedicated chart
   const commissionMonthlyEvolution = useMemo(() => {
     const today = new Date();
@@ -362,6 +413,12 @@ export default function Dashboard() {
         factories={factoriesQuery.data || []}
         commissions={commissions}
         orders={orders}
+      />
+
+      <MonthlyProjectionCard
+        factoryProjections={monthlyProjection.factoryProjections}
+        totalToReceive={monthlyProjection.totalToReceive}
+        totalFixedCosts={monthlyProjection.totalFixedCosts}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-[62%_38%] gap-6">
