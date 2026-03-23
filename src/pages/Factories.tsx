@@ -21,6 +21,7 @@ import { Plus, Pencil, Trash2, Search, Loader2, Factory as FactoryIcon, Eye } fr
 const emptyForm: FactoryFormData = {
   nome: "", comissao_padrao: 8, prazo_pagamento: "", contato_comercial: "",
   email_financeiro: "", politica_comissao: "", observacoes: "", telefone: "",
+  dia_recebimento: null,
 };
 
 function PaymentTermBadges({ term }: { term: string | null }) {
