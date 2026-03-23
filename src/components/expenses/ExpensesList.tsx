@@ -17,11 +17,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useState, useMemo, useRef } from "react";
 
+const ITEMS_PER_PAGE = 20;
+
 export function ExpensesList() {
   const { expensesQuery, markExpensePaid, deleteExpense, uploadReceipt } = useExpenses();
   const [search, setSearch] = useState("");
   const [filterAccount, setFilterAccount] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [page, setPage] = useState(1);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
 
