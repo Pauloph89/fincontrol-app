@@ -14,6 +14,7 @@ export interface Factory {
   politica_comissao: string | null;
   observacoes: string | null;
   telefone: string | null;
+  dia_recebimento: number | null;
   created_at: string;
   updated_at: string;
 }
