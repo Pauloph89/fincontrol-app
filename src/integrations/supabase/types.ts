@@ -605,6 +605,7 @@ export type Database = {
           company_id: string | null
           contato_comercial: string | null
           created_at: string
+          dia_recebimento: number | null
           email_financeiro: string | null
           id: string
           nome: string
@@ -619,6 +620,7 @@ export type Database = {
           company_id?: string | null
           contato_comercial?: string | null
           created_at?: string
+          dia_recebimento?: number | null
           email_financeiro?: string | null
           id?: string
           nome: string
@@ -633,6 +635,7 @@ export type Database = {
           company_id?: string | null
           contato_comercial?: string | null
           created_at?: string
+          dia_recebimento?: number | null
           email_financeiro?: string | null
           id?: string
           nome?: string

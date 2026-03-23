@@ -1,0 +1,1 @@
+ALTER TABLE public.factories ADD COLUMN IF NOT EXISTS dia_recebimento integer DEFAULT NULL;

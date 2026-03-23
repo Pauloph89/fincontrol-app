@@ -5,12 +5,14 @@ import { useExpenseProjection } from "@/hooks/useExpenseProjection";
 import { useOrders } from "@/hooks/useOrders";
 import { useClients } from "@/hooks/useClients";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useFactories } from "@/hooks/useFactories";
 import { normalizeDisplayName } from "@/lib/display-utils";
 import { KpiCards } from "@/components/dashboard/KpiCards";
 import { SalesGoalCard } from "@/components/dashboard/SalesGoalCard";
 import { DashboardCharts } from "@/components/dashboard/DashboardCharts";
 import { AlertsPanel } from "@/components/dashboard/AlertsPanel";
 import { CommercialAgenda } from "@/components/dashboard/CommercialAgenda";
+import { MonthlyClosingByFactory } from "@/components/dashboard/MonthlyClosingByFactory";
 import { PeriodSelector, getDefaultPeriod, PeriodRange } from "@/components/dashboard/PeriodSelector";
 import { differenceInBusinessDays, isBefore, startOfDay, addDays, startOfMonth, endOfMonth } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +25,7 @@ export default function Dashboard() {
   const { ordersQuery } = useOrders();
   const { clientsQuery } = useClients();
   const { role } = useUserRole();
+  const { factoriesQuery } = useFactories();
   const [periodKey, setPeriodKey] = useState("current_month");
   const [period, setPeriod] = useState<PeriodRange>(getDefaultPeriod());
 
@@ -354,6 +357,12 @@ export default function Dashboard() {
       />
 
       <SalesGoalCard currentSales={currentMonthSales} negotiationValue={negotiationValue} />
+
+      <MonthlyClosingByFactory
+        factories={factoriesQuery.data || []}
+        commissions={commissions}
+        orders={orders}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-[62%_38%] gap-6">
         <div className="space-y-6">

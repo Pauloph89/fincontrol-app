@@ -14,6 +14,7 @@ export interface Factory {
   politica_comissao: string | null;
   observacoes: string | null;
   telefone: string | null;
+  dia_recebimento: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -27,6 +28,7 @@ export interface FactoryFormData {
   politica_comissao?: string;
   observacoes?: string;
   telefone?: string;
+  dia_recebimento?: number | null;
 }
 
 export function useFactories() {
@@ -61,6 +63,8 @@ export function useFactories() {
           email_financeiro: form.email_financeiro || null,
           politica_comissao: form.politica_comissao || null,
           observacoes: form.observacoes || null,
+          telefone: form.telefone || null,
+          dia_recebimento: form.dia_recebimento ?? null,
         } as any)
         .select()
         .single();
