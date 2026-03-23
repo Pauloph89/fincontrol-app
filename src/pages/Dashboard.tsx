@@ -415,6 +415,12 @@ export default function Dashboard() {
         orders={orders}
       />
 
+      <MonthlyProjectionCard
+        factoryProjections={monthlyProjection.factoryProjections}
+        totalToReceive={monthlyProjection.totalToReceive}
+        totalFixedCosts={monthlyProjection.totalFixedCosts}
+      />
+
       <div className="grid grid-cols-1 lg:grid-cols-[62%_38%] gap-6">
         <div className="space-y-6">
           <DashboardCharts
