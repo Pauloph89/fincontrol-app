@@ -278,7 +278,7 @@ export default function Clients() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {clients.map((c) => (
+                  {paginatedClients.map((c) => (
                     <TableRow key={c.id}>
                       <TableCell className="font-medium text-sm">{normalizeDisplayName(c.razao_social)}</TableCell>
                       <TableCell className="hidden sm:table-cell text-sm">{c.nome_fantasia || "—"}</TableCell>
