@@ -30,7 +30,7 @@ export function ExpensesList() {
 
   const allExpenses = expensesQuery.data || [];
 
-  const expenses = useMemo(() => {
+  const filtered = useMemo(() => {
     return allExpenses.filter((e) => {
       if (filterAccount !== "all" && e.account !== filterAccount) return false;
       if (filterStatus !== "all" && e.status !== filterStatus) return false;
@@ -41,6 +41,12 @@ export function ExpensesList() {
       return true;
     });
   }, [allExpenses, search, filterAccount, filterStatus]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const expenses = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+
+  // Reset page on filter change
+  useMemo(() => { setPage(1); }, [search, filterAccount, filterStatus]);
 
   if (expensesQuery.isLoading) {
     return (
