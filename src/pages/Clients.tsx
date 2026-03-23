@@ -249,7 +249,7 @@ export default function Clients() {
       </div>
 
       {/* Filters */}
-      <ClientFilters filters={filters} onChange={setFilters} vendedores={vendedores} cidades={cidades} />
+      <ClientFilters filters={filters} onChange={(f) => { setFilters(f); setPage(1); }} vendedores={vendedores} cidades={cidades} />
 
       {/* Views */}
       {viewMode === "funnel" ? (
