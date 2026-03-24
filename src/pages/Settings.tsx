@@ -187,7 +187,63 @@ export default function Settings() {
               </CardContent>
             </Card>
 
-            {/* Financial Settings */}
+            {/* Notification Settings */}
+            <Card className="glass-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Bell className="h-5 w-5" />
+                  Notificações por E-mail
+                </CardTitle>
+                <CardDescription>Receba alertas diários no e-mail cadastrado acima</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Comissão atrasada (+7 dias)</p>
+                    <p className="text-xs text-muted-foreground">Parcelas de comissão vencidas há mais de 7 dias</p>
+                  </div>
+                  <Switch
+                    checked={notifSettings.notify_commission_overdue}
+                    onCheckedChange={(v) => updateNotif.mutate({ notify_commission_overdue: v })}
+                  />
+                </div>
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Despesa a vencer (3 dias)</p>
+                    <p className="text-xs text-muted-foreground">Despesas com vencimento nos próximos 3 dias</p>
+                  </div>
+                  <Switch
+                    checked={notifSettings.notify_expense_due_soon}
+                    onCheckedChange={(v) => updateNotif.mutate({ notify_expense_due_soon: v })}
+                  />
+                </div>
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Despesa vencida</p>
+                    <p className="text-xs text-muted-foreground">Despesas não pagas com data já vencida</p>
+                  </div>
+                  <Switch
+                    checked={notifSettings.notify_expense_overdue}
+                    onCheckedChange={(v) => updateNotif.mutate({ notify_expense_overdue: v })}
+                  />
+                </div>
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Lead sem contato (+14 dias)</p>
+                    <p className="text-xs text-muted-foreground">Leads sem interação há mais de 14 dias</p>
+                  </div>
+                  <Switch
+                    checked={notifSettings.notify_lead_inactive}
+                    onCheckedChange={(v) => updateNotif.mutate({ notify_lead_inactive: v })}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+
             <Card className="glass-card">
               <CardHeader>
                 <CardTitle className="text-lg">Configurações Financeiras</CardTitle>
