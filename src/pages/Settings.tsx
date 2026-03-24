@@ -17,6 +17,7 @@ import { UserManagement } from "@/components/settings/UserManagement";
 export default function Settings() {
   const { settingsQuery, updateSettings, uploadLogo } = useCompanySettings();
   const { canManageUsers } = useUserRole();
+  const { settings: notifSettings, update: updateNotif } = useNotificationSettings();
   const fileRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
     company_name: "",
