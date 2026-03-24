@@ -33,7 +33,7 @@ export function useNotificationSettings() {
         .eq("company_id", companyId!)
         .maybeSingle();
       if (error) throw error;
-      return (data as NotificationSettings | null) || defaults;
+      return (data as any as NotificationSettings | null) || defaults;
     },
     enabled: !!user && !!companyId,
   });
