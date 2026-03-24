@@ -267,6 +267,7 @@ export default function Reports() {
               <TabsTrigger value="by_factory">Vendas por Fábrica</TabsTrigger>
               <TabsTrigger value="expenses_cat">Despesas</TabsTrigger>
               <TabsTrigger value="monthly">Resultado Mensal</TabsTrigger>
+              <TabsTrigger value="dre">DRE</TabsTrigger>
             </TabsList>
 
             <TabsContent value="cashflow" className="space-y-4">
