@@ -1,14 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useNotificationSettings } from "@/hooks/useNotificationSettings";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, Upload, Palette, Save, Loader2, Settings as SettingsIcon, Users } from "lucide-react";
+import { Building2, Upload, Palette, Save, Loader2, Settings as SettingsIcon, Users, Bell } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { UserManagement } from "@/components/settings/UserManagement";
 
