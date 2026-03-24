@@ -388,6 +388,15 @@ export default function Reports() {
                 headers={["Mês", "Receitas", "Despesas", "Resultado"]} emptyMessage="Nenhum resultado no período."
                 highlightColumn="resultadoFormatted" highlightData={monthlyResultData.map((r) => r.resultado)} />
             </TabsContent>
+            <TabsContent value="dre" className="space-y-4">
+              <DreReport
+                filteredInstallments={filteredInstallments}
+                filteredExpenses={filteredExpenses}
+                filters={filters}
+                onFiltersChange={setFilters}
+                factories={factories}
+              />
+            </TabsContent>
           </Tabs>
         </CardContent>
       </Card>
