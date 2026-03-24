@@ -437,3 +437,117 @@ function TotalRow({ data, valueKey }: { data: any[]; valueKey: string }) {
   const total = data.reduce((s, r) => s + Number(r[valueKey] || 0), 0);
   return <div className="flex justify-end"><div className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold">Total: {formatCurrency(total)}</div></div>;
 }
+
+function DreReport({ filteredInstallments, filteredExpenses, filters, onFiltersChange, factories }: {
+  filteredInstallments: any[]; filteredExpenses: any[]; filters: ReportFilterValues;
+  onFiltersChange: (f: ReportFilterValues) => void; factories: string[];
+}) {
+  const dreData = useMemo(() => {
+    // RECEITA BRUTA: comissões recebidas no período
+    const receitaBruta = filteredInstallments
+      .filter((i: any) => i.status === "recebido")
+      .reduce((s: number, i: any) => s + Number(i.value), 0);
+
+    // Separate expenses by type
+    const paidExpenses = filteredExpenses.filter((e) => e.status === "pago" || e.status !== "pago");
+    const fixedExpenses = filteredExpenses.filter((e) => e.type === "fixa");
+    const variableExpenses = filteredExpenses.filter((e) => e.type === "variável" || e.type === "variavel");
+
+    const custosFixos = fixedExpenses.reduce((s, e) => s + Number(e.value), 0);
+    const custosVariaveis = variableExpenses.reduce((s, e) => s + Number(e.value), 0);
+    const resultadoOperacional = receitaBruta - custosFixos - custosVariaveis;
+
+    // Breakdown by category
+    const fixedByCategory: Record<string, number> = {};
+    fixedExpenses.forEach((e) => { fixedByCategory[e.category] = (fixedByCategory[e.category] || 0) + Number(e.value); });
+    const variableByCategory: Record<string, number> = {};
+    variableExpenses.forEach((e) => { variableByCategory[e.category] = (variableByCategory[e.category] || 0) + Number(e.value); });
+
+    return { receitaBruta, custosFixos, custosVariaveis, resultadoOperacional, fixedByCategory, variableByCategory };
+  }, [filteredInstallments, filteredExpenses]);
+
+  const exportData = useMemo(() => {
+    const rows: { conta: string; valor: number; valorFormatted: string }[] = [];
+    rows.push({ conta: "RECEITA BRUTA", valor: dreData.receitaBruta, valorFormatted: formatCurrency(dreData.receitaBruta) });
+    rows.push({ conta: "", valor: 0, valorFormatted: "" });
+    rows.push({ conta: "CUSTOS FIXOS", valor: dreData.custosFixos, valorFormatted: formatCurrency(dreData.custosFixos) });
+    Object.entries(dreData.fixedByCategory).sort((a, b) => b[1] - a[1]).forEach(([cat, val]) => {
+      rows.push({ conta: `  ${cat}`, valor: val, valorFormatted: formatCurrency(val) });
+    });
+    rows.push({ conta: "", valor: 0, valorFormatted: "" });
+    rows.push({ conta: "CUSTOS VARIÁVEIS", valor: dreData.custosVariaveis, valorFormatted: formatCurrency(dreData.custosVariaveis) });
+    Object.entries(dreData.variableByCategory).sort((a, b) => b[1] - a[1]).forEach(([cat, val]) => {
+      rows.push({ conta: `  ${cat}`, valor: val, valorFormatted: formatCurrency(val) });
+    });
+    rows.push({ conta: "", valor: 0, valorFormatted: "" });
+    rows.push({ conta: "RESULTADO OPERACIONAL", valor: dreData.resultadoOperacional, valorFormatted: formatCurrency(dreData.resultadoOperacional) });
+    return rows;
+  }, [dreData]);
+
+  return (
+    <>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <ReportFilters filters={filters} onChange={onFiltersChange} factories={factories} showFactory={false} showStatus={false} showAccount={false} />
+        <ExportButtons data={exportData} columns={[
+          { key: "conta", label: "Conta" }, { key: "valorFormatted", label: "Valor" },
+        ]} filename="dre" title="Demonstrativo de Resultado (DRE)" />
+      </div>
+
+      <div className="rounded-lg border overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[70%]">Conta</TableHead>
+              <TableHead className="text-right">Valor</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {/* RECEITA BRUTA */}
+            <TableRow className="bg-muted/30">
+              <TableCell className="font-bold text-base">RECEITA BRUTA</TableCell>
+              <TableCell className="text-right font-bold text-base text-emerald-600">{formatCurrency(dreData.receitaBruta)}</TableCell>
+            </TableRow>
+
+            {/* CUSTOS FIXOS */}
+            <TableRow className="bg-muted/30 border-t-2">
+              <TableCell className="font-bold">CUSTOS FIXOS</TableCell>
+              <TableCell className="text-right font-bold text-destructive">{formatCurrency(dreData.custosFixos)}</TableCell>
+            </TableRow>
+            {Object.entries(dreData.fixedByCategory).sort((a, b) => b[1] - a[1]).map(([cat, val]) => (
+              <TableRow key={`fix-${cat}`}>
+                <TableCell className="pl-8 text-muted-foreground">{cat}</TableCell>
+                <TableCell className="text-right text-muted-foreground">{formatCurrency(val)}</TableCell>
+              </TableRow>
+            ))}
+            {Object.keys(dreData.fixedByCategory).length === 0 && (
+              <TableRow><TableCell className="pl-8 text-muted-foreground italic" colSpan={2}>Nenhuma despesa fixa no período</TableCell></TableRow>
+            )}
+
+            {/* CUSTOS VARIÁVEIS */}
+            <TableRow className="bg-muted/30 border-t-2">
+              <TableCell className="font-bold">CUSTOS VARIÁVEIS</TableCell>
+              <TableCell className="text-right font-bold text-destructive">{formatCurrency(dreData.custosVariaveis)}</TableCell>
+            </TableRow>
+            {Object.entries(dreData.variableByCategory).sort((a, b) => b[1] - a[1]).map(([cat, val]) => (
+              <TableRow key={`var-${cat}`}>
+                <TableCell className="pl-8 text-muted-foreground">{cat}</TableCell>
+                <TableCell className="text-right text-muted-foreground">{formatCurrency(val)}</TableCell>
+              </TableRow>
+            ))}
+            {Object.keys(dreData.variableByCategory).length === 0 && (
+              <TableRow><TableCell className="pl-8 text-muted-foreground italic" colSpan={2}>Nenhuma despesa variável no período</TableCell></TableRow>
+            )}
+
+            {/* RESULTADO OPERACIONAL */}
+            <TableRow className="bg-muted/50 border-t-4">
+              <TableCell className="font-bold text-base">RESULTADO OPERACIONAL</TableCell>
+              <TableCell className={`text-right font-bold text-base ${dreData.resultadoOperacional >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                {formatCurrency(dreData.resultadoOperacional)}
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </div>
+    </>
+  );
+}
