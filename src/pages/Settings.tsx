@@ -1,20 +1,23 @@
 import { useState, useEffect, useRef } from "react";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useNotificationSettings } from "@/hooks/useNotificationSettings";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, Upload, Palette, Save, Loader2, Settings as SettingsIcon, Users } from "lucide-react";
+import { Building2, Upload, Palette, Save, Loader2, Settings as SettingsIcon, Users, Bell } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { UserManagement } from "@/components/settings/UserManagement";
 
 export default function Settings() {
   const { settingsQuery, updateSettings, uploadLogo } = useCompanySettings();
   const { canManageUsers } = useUserRole();
+  const { settings: notifSettings, update: updateNotif } = useNotificationSettings();
   const fileRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({
     company_name: "",
@@ -184,7 +187,63 @@ export default function Settings() {
               </CardContent>
             </Card>
 
-            {/* Financial Settings */}
+            {/* Notification Settings */}
+            <Card className="glass-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Bell className="h-5 w-5" />
+                  Notificações por E-mail
+                </CardTitle>
+                <CardDescription>Receba alertas diários no e-mail cadastrado acima</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Comissão atrasada (+7 dias)</p>
+                    <p className="text-xs text-muted-foreground">Parcelas de comissão vencidas há mais de 7 dias</p>
+                  </div>
+                  <Switch
+                    checked={notifSettings.notify_commission_overdue}
+                    onCheckedChange={(v) => updateNotif.mutate({ notify_commission_overdue: v })}
+                  />
+                </div>
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Despesa a vencer (3 dias)</p>
+                    <p className="text-xs text-muted-foreground">Despesas com vencimento nos próximos 3 dias</p>
+                  </div>
+                  <Switch
+                    checked={notifSettings.notify_expense_due_soon}
+                    onCheckedChange={(v) => updateNotif.mutate({ notify_expense_due_soon: v })}
+                  />
+                </div>
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Despesa vencida</p>
+                    <p className="text-xs text-muted-foreground">Despesas não pagas com data já vencida</p>
+                  </div>
+                  <Switch
+                    checked={notifSettings.notify_expense_overdue}
+                    onCheckedChange={(v) => updateNotif.mutate({ notify_expense_overdue: v })}
+                  />
+                </div>
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Lead sem contato (+14 dias)</p>
+                    <p className="text-xs text-muted-foreground">Leads sem interação há mais de 14 dias</p>
+                  </div>
+                  <Switch
+                    checked={notifSettings.notify_lead_inactive}
+                    onCheckedChange={(v) => updateNotif.mutate({ notify_lead_inactive: v })}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+
             <Card className="glass-card">
               <CardHeader>
                 <CardTitle className="text-lg">Configurações Financeiras</CardTitle>

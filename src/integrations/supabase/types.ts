@@ -706,6 +706,47 @@ export type Database = {
           },
         ]
       }
+      notification_settings: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          notify_commission_overdue: boolean
+          notify_expense_due_soon: boolean
+          notify_expense_overdue: boolean
+          notify_lead_inactive: boolean
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          notify_commission_overdue?: boolean
+          notify_expense_due_soon?: boolean
+          notify_expense_overdue?: boolean
+          notify_lead_inactive?: boolean
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          notify_commission_overdue?: boolean
+          notify_expense_due_soon?: boolean
+          notify_expense_overdue?: boolean
+          notify_lead_inactive?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_settings_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_billing_lots: {
         Row: {
           billed_value: number
