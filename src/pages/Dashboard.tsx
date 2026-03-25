@@ -71,6 +71,14 @@ export default function Dashboard() {
       .filter((e) => e.status === "pago" && e.payment_date && new Date(e.payment_date) >= start && new Date(e.payment_date) <= end)
       .reduce((sum, e) => sum + Number(e.value), 0);
 
+    const expensesFixaInPeriod = expenses
+      .filter((e) => e.status === "pago" && e.payment_date && new Date(e.payment_date) >= start && new Date(e.payment_date) <= end && e.type === "fixa")
+      .reduce((sum, e) => sum + Number(e.value), 0);
+
+    const expensesVarInPeriod = expenses
+      .filter((e) => e.status === "pago" && e.payment_date && new Date(e.payment_date) >= start && new Date(e.payment_date) <= end && e.type !== "fixa")
+      .reduce((sum, e) => sum + Number(e.value), 0);
+
     const toReceive = pendingCommission;
 
     // A Pagar: only real unpaid expenses due in current month or overdue + projected for current month
@@ -270,7 +278,8 @@ export default function Dashboard() {
 
     return {
       totalSales, totalCommissionExpected, receivedInPeriod: receivedCommission,
-      expensesPaidInPeriod, toReceive, toPay, inadimplencia, forecast90,
+      expensesPaidInPeriod, expensesFixaInPeriod, expensesVarInPeriod,
+      toReceive, toPay, inadimplencia, forecast90,
       pendingCommission, totalOrdersCount, alerts, revenueByFactory, expensesByCategory,
       monthlyEvolution, clientRanking, commissionByVendor, commissionByFactory, vendorRanking,
       forecast30commission, lateCommissions,
@@ -393,6 +402,8 @@ export default function Dashboard() {
       <KpiCards
         revenue={stats.receivedInPeriod}
         expenses={stats.expensesPaidInPeriod}
+        expensesFixa={stats.expensesFixaInPeriod}
+        expensesVariavel={stats.expensesVarInPeriod}
         toReceive={stats.toReceive}
         toPay={stats.toPay}
         inadimplencia={stats.inadimplencia}
