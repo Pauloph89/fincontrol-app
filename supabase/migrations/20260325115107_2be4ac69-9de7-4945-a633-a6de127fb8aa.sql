@@ -1,0 +1,1 @@
+ALTER TABLE public.expense_rules ADD COLUMN IF NOT EXISTS type text NOT NULL DEFAULT 'fixa';

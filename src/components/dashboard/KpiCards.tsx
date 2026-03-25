@@ -6,6 +6,8 @@ import { formatCurrency } from "@/lib/financial-utils";
 interface KpiCardsProps {
   revenue: number;
   expenses: number;
+  expensesFixa?: number;
+  expensesVariavel?: number;
   toReceive: number;
   toPay: number;
   inadimplencia: number;
@@ -55,7 +57,7 @@ function KpiCard({ title, value, icon: Icon, color, isCurrency = true, subtitle,
 }
 
 export function KpiCards({
-  revenue, expenses, toReceive, toPay, inadimplencia, forecast90, alerts,
+  revenue, expenses, expensesFixa = 0, expensesVariavel = 0, toReceive, toPay, inadimplencia, forecast90, alerts,
   totalSales = 0, totalOrdersCount = 0, leadsCount = 0,
   commissionExpected = 0, commissionReceived = 0, forecast30 = 0, lateCommissions = 0,
 }: KpiCardsProps) {
@@ -91,7 +93,9 @@ export function KpiCards({
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">📈 Financeiro</h3>
         <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-3">
           <KpiCard title="Receita" value={revenue} icon={ArrowDownLeft} color="text-success" />
-          <KpiCard title="Despesas" value={expenses} icon={ArrowUpRight} color="text-destructive" />
+          <KpiCard title="Despesas" value={expenses} icon={ArrowUpRight} color="text-destructive"
+            tooltip={`Custos Fixos: R$ ${expensesFixa.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} | Custos Variáveis: R$ ${expensesVariavel.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+            subtitle={`Fixo: R$ ${expensesFixa.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} | Var: R$ ${expensesVariavel.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} />
           <KpiCard title="Lucro Líquido" value={profit} icon={profit >= 0 ? TrendingUp : TrendingDown} color={profit >= 0 ? "text-success" : "text-destructive"} />
           <KpiCard title="Total a Receber" value={toReceive} icon={DollarSign} color="text-info" />
           <KpiCard title="A Pagar" value={toPay} icon={DollarSign} color="text-warning"

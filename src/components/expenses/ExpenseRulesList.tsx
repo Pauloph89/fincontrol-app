@@ -41,21 +41,27 @@ export function ExpenseRulesList() {
       <CardContent className="p-0">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Categoria</TableHead>
-              <TableHead>Recorrência</TableHead>
-              <TableHead>Dias</TableHead>
-              <TableHead>Conta</TableHead>
-              <TableHead className="text-right">Valor</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="w-24"></TableHead>
-            </TableRow>
+              <TableRow>
+                <TableHead>Nome</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead>Categoria</TableHead>
+                <TableHead>Recorrência</TableHead>
+                <TableHead>Dias</TableHead>
+                <TableHead>Conta</TableHead>
+                <TableHead className="text-right">Valor</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="w-24"></TableHead>
+              </TableRow>
           </TableHeader>
           <TableBody>
             {rules.map((rule) => (
               <TableRow key={rule.id} className={!rule.active ? "opacity-50" : ""}>
                 <TableCell className="font-medium">{rule.name}</TableCell>
+                <TableCell>
+                  <Badge variant="outline" className="text-[10px]">
+                    {(rule as any).type === "variavel" ? "Variável" : "Fixa"}
+                  </Badge>
+                </TableCell>
                 <TableCell>{rule.category}</TableCell>
                 <TableCell>
                   <Badge variant="outline" className="text-xs">

@@ -58,6 +58,7 @@ export function PeriodExpensesList() {
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [filterAccount, setFilterAccount] = useState("all");
+  const [filterType, setFilterType] = useState("all");
   const [page, setPage] = useState(1);
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
@@ -158,19 +159,20 @@ export function PeriodExpensesList() {
 
     return items.filter((e) => {
       if (filterAccount !== "all" && e.account !== filterAccount) return false;
+      if (filterType !== "all" && e.type !== filterType) return false;
       if (search) {
         const s = search.toLowerCase();
         return e.description.toLowerCase().includes(s) || e.category.toLowerCase().includes(s);
       }
       return true;
     }).sort((a, b) => a.due_date.localeCompare(b.due_date));
-  }, [realExpenses, virtualExpenses, search, filterAccount]);
+  }, [realExpenses, virtualExpenses, search, filterAccount, filterType]);
 
   const totalPages = Math.max(1, Math.ceil(combined.length / ITEMS_PER_PAGE));
   const paginatedItems = combined.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
   // Reset page on filter change
-  useMemo(() => { setPage(1); }, [search, filterAccount, selectedMonth]);
+  useMemo(() => { setPage(1); }, [search, filterAccount, filterType, selectedMonth]);
 
   // Month options
   const monthOptions = useMemo(() => {
@@ -199,17 +201,24 @@ export function PeriodExpensesList() {
     return <div className="flex items-center justify-center py-12 text-muted-foreground gap-2"><Loader2 className="h-5 w-5 animate-spin" /> Carregando...</div>;
   }
 
-  const totalReal = realExpenses.reduce((s, e) => s + Number(e.value), 0);
+  const totalFixa = realExpenses.filter((e) => e.type === "fixa").reduce((s, e) => s + Number(e.value), 0);
+  const totalVariavel = realExpenses.filter((e) => e.type === "variavel" || e.type === "variável").reduce((s, e) => s + Number(e.value), 0);
   const totalVirtual = virtualExpenses.reduce((s, e) => s + e.value, 0);
 
   return (
     <div className="space-y-4">
       {/* Summary */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <Card className="glass-card">
           <CardContent className="p-3 text-center">
-            <p className="text-[10px] text-muted-foreground font-medium">Despesas Reais</p>
-            <p className="text-lg font-bold">{formatCurrency(totalReal)}</p>
+            <p className="text-[10px] text-muted-foreground font-medium">Custos Fixos</p>
+            <p className="text-lg font-bold">{formatCurrency(totalFixa)}</p>
+          </CardContent>
+        </Card>
+        <Card className="glass-card">
+          <CardContent className="p-3 text-center">
+            <p className="text-[10px] text-muted-foreground font-medium">Custos Variáveis</p>
+            <p className="text-lg font-bold">{formatCurrency(totalVariavel)}</p>
           </CardContent>
         </Card>
         <Card className="glass-card">
@@ -221,7 +230,7 @@ export function PeriodExpensesList() {
         <Card className="glass-card">
           <CardContent className="p-3 text-center">
             <p className="text-[10px] text-muted-foreground font-medium">Total do Mês</p>
-            <p className="text-lg font-bold">{formatCurrency(totalReal + totalVirtual)}</p>
+            <p className="text-lg font-bold">{formatCurrency(totalFixa + totalVariavel + totalVirtual)}</p>
           </CardContent>
         </Card>
       </div>
@@ -241,6 +250,14 @@ export function PeriodExpensesList() {
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9 w-40" />
               </div>
+              <Select value={filterType} onValueChange={setFilterType}>
+                <SelectTrigger className="h-9 w-32"><SelectValue placeholder="Tipo" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="fixa">Fixa</SelectItem>
+                  <SelectItem value="variavel">Variável</SelectItem>
+                </SelectContent>
+              </Select>
               <Select value={filterAccount} onValueChange={setFilterAccount}>
                 <SelectTrigger className="h-9 w-32"><SelectValue placeholder="Conta" /></SelectTrigger>
                 <SelectContent>
@@ -258,6 +275,7 @@ export function PeriodExpensesList() {
             <TableHeader>
               <TableRow>
                 <TableHead>Descrição</TableHead>
+                <TableHead>Tipo</TableHead>
                 <TableHead>Categoria</TableHead>
                 <TableHead>Conta</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
@@ -297,6 +315,11 @@ export function PeriodExpensesList() {
                           </Tooltip>
                         )}
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-[10px]">
+                        {exp.type === "fixa" ? "Fixa" : "Variável"}
+                      </Badge>
                     </TableCell>
                     <TableCell>{exp.category}</TableCell>
                     <TableCell className="text-xs uppercase">{exp.account}</TableCell>
