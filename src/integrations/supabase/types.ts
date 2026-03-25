@@ -468,6 +468,7 @@ export type Database = {
           recurrence_days: Json
           recurrence_type: string
           start_date: string
+          type: string
           updated_at: string
           user_id: string
           value: number
@@ -484,6 +485,7 @@ export type Database = {
           recurrence_days?: Json
           recurrence_type?: string
           start_date: string
+          type?: string
           updated_at?: string
           user_id: string
           value: number
@@ -500,6 +502,7 @@ export type Database = {
           recurrence_days?: Json
           recurrence_type?: string
           start_date?: string
+          type?: string
           updated_at?: string
           user_id?: string
           value?: number
