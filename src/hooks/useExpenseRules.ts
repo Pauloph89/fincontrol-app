@@ -63,6 +63,7 @@ export function useExpenseRules() {
         recurrence_days: form.recurrence_days,
         start_date: form.start_date,
         end_date: form.end_date || null,
+        type: (form as any).type || "fixa",
       } as any);
       if (error) throw error;
     },
