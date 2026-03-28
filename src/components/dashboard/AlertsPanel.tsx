@@ -1,3 +1,4 @@
+// v2.0 - versão estável - não sobrescrever
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle, Clock, AlertCircle } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/financial-utils";
@@ -30,11 +31,11 @@ export function AlertsPanel({ alerts }: AlertsPanelProps) {
 
   if (alerts.length === 0) {
     return (
-      <Card className="glass-card">
+      <Card className="glass-card h-full">
         <CardHeader className="pb-2 py-3">
           <CardTitle className="text-sm font-medium text-muted-foreground">Alertas Financeiros</CardTitle>
         </CardHeader>
-        <CardContent className="pb-3">
+        <CardContent className="pb-3 flex-1">
           <div className="flex items-center gap-2 text-success text-sm">
             <AlertTriangle className="h-4 w-4" />
             Nenhum alerta ativo
@@ -45,7 +46,7 @@ export function AlertsPanel({ alerts }: AlertsPanelProps) {
   }
 
   return (
-    <Card className="glass-card">
+    <Card className="glass-card h-full">
       <CardHeader className="pb-1 py-3">
         <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
           <AlertTriangle className="h-4 w-4 text-warning" />

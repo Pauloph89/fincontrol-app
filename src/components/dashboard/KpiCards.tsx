@@ -1,3 +1,4 @@
+// v2.0 - versão estável - não sobrescrever
 import { Card, CardContent } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { TrendingUp, TrendingDown, DollarSign, AlertTriangle, ArrowDownLeft, ArrowUpRight, ShieldAlert, Calendar, ShoppingCart, Users, BarChart3 } from "lucide-react";
@@ -62,6 +63,7 @@ export function KpiCards({
   commissionExpected = 0, commissionReceived = 0, forecast30 = 0, lateCommissions = 0,
 }: KpiCardsProps) {
   const profit = revenue - expenses;
+  const currencyBreakdown = (value: number) => `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 
   return (
     <div className="space-y-4">
@@ -94,8 +96,8 @@ export function KpiCards({
         <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-3">
           <KpiCard title="Receita" value={revenue} icon={ArrowDownLeft} color="text-success" />
           <KpiCard title="Despesas" value={expenses} icon={ArrowUpRight} color="text-destructive"
-            tooltip={`Custos Fixos: R$ ${expensesFixa.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} | Custos Variáveis: R$ ${expensesVariavel.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-            subtitle={`Fixo: R$ ${expensesFixa.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} | Var: R$ ${expensesVariavel.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} />
+            tooltip={`Custos Fixos: ${currencyBreakdown(expensesFixa)} | Custos Variáveis: ${currencyBreakdown(expensesVariavel)}`}
+            subtitle={`Fixo: ${currencyBreakdown(expensesFixa)} | Var: ${currencyBreakdown(expensesVariavel)}`} />
           <KpiCard title="Lucro Líquido" value={profit} icon={profit >= 0 ? TrendingUp : TrendingDown} color={profit >= 0 ? "text-success" : "text-destructive"} />
           <KpiCard title="Total a Receber" value={toReceive} icon={DollarSign} color="text-info" />
           <KpiCard title="A Pagar" value={toPay} icon={DollarSign} color="text-warning"

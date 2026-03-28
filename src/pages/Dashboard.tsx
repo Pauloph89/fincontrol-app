@@ -1,3 +1,4 @@
+// v2.0 - versão estável - não sobrescrever
 import { useMemo, useState } from "react";
 import { useCommissions } from "@/hooks/useCommissions";
 import { useExpenses } from "@/hooks/useExpenses";
@@ -432,7 +433,7 @@ export default function Dashboard() {
         totalFixedCosts={monthlyProjection.totalFixedCosts}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-[62%_38%] gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[62%_38%] gap-6 items-stretch">
         <div className="space-y-6">
           <DashboardCharts
             revenueByFactory={stats.revenueByFactory}
@@ -443,7 +444,7 @@ export default function Dashboard() {
             commissionMonthlyEvolution={commissionMonthlyEvolution}
           />
         </div>
-        <div className="space-y-4">
+        <div className="flex h-full flex-col gap-4">
           <AlertsPanel alerts={stats.alerts} />
           <CommercialAgenda clients={clients} orders={orders} />
         </div>
