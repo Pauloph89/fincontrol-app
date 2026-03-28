@@ -1,18 +1,25 @@
+// v2.0 - versão estável - não sobrescrever
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend, LabelList } from "recharts";
 import { formatCurrency } from "@/lib/financial-utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const COLORS = [
-  "hsl(215, 76%, 56%)",
-  "hsl(142, 71%, 45%)",
-  "hsl(38, 92%, 50%)",
-  "hsl(280, 65%, 60%)",
-  "hsl(0, 72%, 51%)",
-  "hsl(190, 70%, 50%)",
-  "hsl(340, 65%, 55%)",
-  "hsl(160, 60%, 45%)",
+  "hsl(var(--chart-1))",
+  "hsl(var(--chart-2))",
+  "hsl(var(--chart-3))",
+  "hsl(var(--chart-4))",
+  "hsl(var(--chart-5))",
+  "hsl(var(--info))",
+  "hsl(var(--warning))",
+  "hsl(var(--success))",
 ];
+
+const chartGrid = "hsl(var(--border))";
+const chartText = "hsl(var(--muted-foreground))";
+const receivedColor = "hsl(var(--success))";
+const forecastColor = "hsl(var(--info))";
+const totalColor = "hsl(var(--muted-foreground))";
 
 interface DashboardChartsProps {
   revenueByFactory: { name: string; value: number }[];
@@ -82,32 +89,32 @@ export function DashboardCharts({ revenueByFactory, expensesByCategory, monthlyE
             <div className="grid grid-cols-3 gap-2 mb-3">
               <div className="rounded-md border border-border/50 p-2 text-center">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Recebido</p>
-                <p className="text-sm font-bold" style={{ color: "#3a7d44" }}>{formatCurrency(cmRecebido)}</p>
+                <p className="text-sm font-bold text-success">{formatCurrency(cmRecebido)}</p>
               </div>
               <div className="rounded-md border border-border/50 p-2 text-center">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Previsto</p>
-                <p className="text-sm font-bold" style={{ color: "#378add" }}>{formatCurrency(cmPrevisto)}</p>
+                <p className="text-sm font-bold text-info">{formatCurrency(cmPrevisto)}</p>
               </div>
               <div className="rounded-md border border-border/50 p-2 text-center">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total</p>
-                <p className="text-sm font-bold" style={{ color: "#888780" }}>{formatCurrency(cmTotal)}</p>
+                <p className="text-sm font-bold text-muted-foreground">{formatCurrency(cmTotal)}</p>
               </div>
             </div>
             <ResponsiveContainer width="100%" height={chartHeight}>
               <BarChart data={groupedCommissionData} barCategoryGap="20%">
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 20%, 88%)" />
+                <CartesianGrid strokeDasharray="3 3" stroke={chartGrid} />
                 <XAxis dataKey="month" tick={{ fontSize: 9 }} interval="preserveStartEnd" />
                 <YAxis tick={{ fontSize: 9 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} width={48} />
                 <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={{ fontSize: 11 }} />
                 <Legend wrapperStyle={{ fontSize: 10 }} />
-                <Bar dataKey="recebido" name="Recebido" fill="#3a7d44" radius={[3, 3, 0, 0]}>
-                  <LabelList dataKey="recebido" position="top" formatter={formatBarLabel} style={{ fontSize: 8, fill: "#3a7d44" }} />
+                <Bar dataKey="recebido" name="Recebido" fill={receivedColor} radius={[3, 3, 0, 0]}>
+                  <LabelList dataKey="recebido" position="top" formatter={formatBarLabel} style={{ fontSize: 8, fill: receivedColor }} />
                 </Bar>
-                <Bar dataKey="previsto" name="Previsto" fill="#378add" radius={[3, 3, 0, 0]}>
-                  <LabelList dataKey="previsto" position="top" formatter={formatBarLabel} style={{ fontSize: 8, fill: "#378add" }} />
+                <Bar dataKey="previsto" name="Previsto" fill={forecastColor} radius={[3, 3, 0, 0]}>
+                  <LabelList dataKey="previsto" position="top" formatter={formatBarLabel} style={{ fontSize: 8, fill: forecastColor }} />
                 </Bar>
-                <Bar dataKey="total" name="Total" fill="#888780" radius={[3, 3, 0, 0]}>
-                  <LabelList dataKey="total" position="top" formatter={formatBarLabel} style={{ fontSize: 8, fill: "#888780" }} />
+                <Bar dataKey="total" name="Total" fill={totalColor} radius={[3, 3, 0, 0]}>
+                  <LabelList dataKey="total" position="top" formatter={formatBarLabel} style={{ fontSize: 8, fill: totalColor }} />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
@@ -126,13 +133,13 @@ export function DashboardCharts({ revenueByFactory, expensesByCategory, monthlyE
           ) : (
             <ResponsiveContainer width="100%" height={chartHeight}>
               <LineChart data={monthlyEvolution}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 20%, 88%)" />
+                <CartesianGrid strokeDasharray="3 3" stroke={chartGrid} />
                 <XAxis dataKey="month" tick={{ fontSize: 9 }} interval="preserveStartEnd" />
                 <YAxis tick={{ fontSize: 9 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} width={48} />
                 <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={{ fontSize: 11 }} />
                 <Legend wrapperStyle={{ fontSize: 10 }} />
-                <Line type="monotone" dataKey="receitas" name="Receitas" stroke="hsl(142, 71%, 45%)" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="despesas" name="Despesas" stroke="hsl(0, 72%, 51%)" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="receitas" name="Receitas" stroke={receivedColor} strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="despesas" name="Despesas" stroke="hsl(var(--destructive))" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           )}
@@ -160,7 +167,7 @@ export function DashboardCharts({ revenueByFactory, expensesByCategory, monthlyE
                     paddingAngle={2}
                     dataKey="value"
                     label={!isMobile ? renderPieLabel : false}
-                    labelLine={!isMobile ? { strokeWidth: 0.5, stroke: "hsl(215, 20%, 70%)" } : false}
+                    labelLine={!isMobile ? { strokeWidth: 0.5, stroke: chartText } : false}
                   >
                     {expensesByCategory.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                   </Pie>
@@ -193,12 +200,12 @@ export function DashboardCharts({ revenueByFactory, expensesByCategory, monthlyE
             <CardContent className="px-2 sm:px-4 pb-3">
               <ResponsiveContainer width="100%" height={Math.max(chartHeight - 30, commissionByVendor.length * 28 + 20)}>
                 <BarChart data={commissionByVendor} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 20%, 88%)" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartGrid} />
                   <XAxis type="number" tick={{ fontSize: 9 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
                   <YAxis type="category" dataKey="name" tick={{ fontSize: 9 }} width={80} />
                   <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="value" fill="hsl(142, 71%, 45%)" radius={[0, 3, 3, 0]}>
-                    <LabelList dataKey="value" position="right" formatter={formatBarLabel} style={{ fontSize: 8, fill: "hsl(215, 20%, 40%)" }} />
+                  <Bar dataKey="value" fill={receivedColor} radius={[0, 3, 3, 0]}>
+                    <LabelList dataKey="value" position="right" formatter={formatBarLabel} style={{ fontSize: 8, fill: chartText }} />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -214,12 +221,12 @@ export function DashboardCharts({ revenueByFactory, expensesByCategory, monthlyE
             <CardContent className="px-2 sm:px-4 pb-3">
               <ResponsiveContainer width="100%" height={Math.max(chartHeight - 30, commissionByFactory.length * 28 + 20)}>
                 <BarChart data={commissionByFactory} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(215, 20%, 88%)" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartGrid} />
                   <XAxis type="number" tick={{ fontSize: 9 }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
                   <YAxis type="category" dataKey="name" tick={{ fontSize: 9 }} width={80} />
                   <Tooltip formatter={(v: number) => formatCurrency(v)} contentStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="value" fill="hsl(38, 92%, 50%)" radius={[0, 3, 3, 0]}>
-                    <LabelList dataKey="value" position="right" formatter={formatBarLabel} style={{ fontSize: 8, fill: "hsl(215, 20%, 40%)" }} />
+                  <Bar dataKey="value" fill="hsl(var(--chart-3))" radius={[0, 3, 3, 0]}>
+                    <LabelList dataKey="value" position="right" formatter={formatBarLabel} style={{ fontSize: 8, fill: chartText }} />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>

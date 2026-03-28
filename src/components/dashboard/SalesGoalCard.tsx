@@ -1,3 +1,4 @@
+// v2.0 - versão estável - não sobrescrever
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,8 +36,8 @@ export function SalesGoalCard({ currentSales, negotiationValue }: SalesGoalCardP
 
   // Color logic
   const getBarColor = () => {
-    if (percent >= 100) return "bg-emerald-500";
-    if (percent >= 80) return "bg-emerald-500";
+    if (percent >= 100) return "bg-success";
+    if (percent >= 80) return "bg-success";
     if (percent >= 50) return "bg-amber-500";
     if (dayOfMonth < 15 && percent < 50) return "bg-destructive";
     return "bg-amber-500";
@@ -122,7 +123,7 @@ export function SalesGoalCard({ currentSales, negotiationValue }: SalesGoalCardP
             <span className="text-muted-foreground">({percent.toFixed(0)}%)</span>
           </span>
           {percent >= 100 ? (
-            <span className="text-emerald-600 font-semibold flex items-center gap-1">
+            <span className="text-success font-semibold flex items-center gap-1">
               🏆 Meta atingida!
             </span>
           ) : (
