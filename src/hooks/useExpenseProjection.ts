@@ -11,6 +11,7 @@ export interface ProjectedExpense {
   account: string;
   due_date: string;
   recurrence_type: string;
+  type: string;
   is_virtual: true;
 }
 
