@@ -1,4 +1,4 @@
-// v2.0 - versão estável - não sobrescrever
+// STABLE v2 - do not revert
 import { useMemo, useState } from "react";
 import { useCommissions } from "@/hooks/useCommissions";
 import { useExpenses } from "@/hooks/useExpenses";

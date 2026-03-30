@@ -1,4 +1,4 @@
-// v2.0 - versão estável - não sobrescrever
+// STABLE v2 - do not revert
 import { Card, CardContent } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { TrendingUp, TrendingDown, DollarSign, AlertTriangle, ArrowDownLeft, ArrowUpRight, ShieldAlert, Calendar, ShoppingCart, Users, BarChart3 } from "lucide-react";

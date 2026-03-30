@@ -1,4 +1,4 @@
-// v2.0 - versão estável - não sobrescrever
+// STABLE v2 - do not revert
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend, LabelList } from "recharts";
 import { formatCurrency } from "@/lib/financial-utils";
