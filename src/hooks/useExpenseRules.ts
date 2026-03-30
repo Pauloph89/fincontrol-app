@@ -16,6 +16,7 @@ export interface ExpenseRule {
   start_date: string;
   end_date: string | null;
   active: boolean;
+  type: string;
   created_at: string;
   updated_at: string;
 }

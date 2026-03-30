@@ -1,4 +1,4 @@
-// v2.0 - versão estável - não sobrescrever
+// STABLE v2 - do not revert
 import { useMemo, useState } from "react";
 import { useCommissions } from "@/hooks/useCommissions";
 import { useExpenses } from "@/hooks/useExpenses";
@@ -340,9 +340,16 @@ export default function Dashboard() {
 
     const totalToReceive = factoryProjections.reduce((s, f) => s + f.value, 0);
 
-    // Fixed costs: real unpaid expenses + deduplicated projections for current month
-    const realUnpaid = expenses
-      .filter((e) => e.status !== "pago" && new Date(e.due_date) >= mStart && new Date(e.due_date) <= mEnd)
+    // Fixed costs: ALL fixed expenses in current month (paid + unpaid) + deduplicated fixed projections
+    const realFixedCosts = expenses
+      .filter((e) => {
+        if (e.type !== "fixa") return false;
+        const due = new Date(e.due_date);
+        // Include if due this month, or paid this month
+        const dueInMonth = due >= mStart && due <= mEnd;
+        const paidInMonth = e.status === "pago" && e.payment_date && new Date(e.payment_date) >= mStart && new Date(e.payment_date) <= mEnd;
+        return dueInMonth || paidInMonth;
+      })
       .reduce((s, e) => s + Number(e.value), 0);
 
     const realKeys = new Set<string>();
@@ -350,8 +357,9 @@ export default function Dashboard() {
       const mk = e.due_date.substring(0, 7);
       realKeys.add(`${e.description.trim().toLowerCase()}_${mk}`);
     });
-    const projCosts = projections
+    const projFixedCosts = projections
       .filter((p) => {
+        if (p.type !== "fixa") return false;
         const due = new Date(p.due_date);
         if (due < mStart || due > mEnd) return false;
         const mk = p.due_date.substring(0, 7);
@@ -359,7 +367,7 @@ export default function Dashboard() {
       })
       .reduce((s, p) => s + p.value, 0);
 
-    const totalFixedCosts = realUnpaid + projCosts;
+    const totalFixedCosts = realFixedCosts + projFixedCosts;
 
     return { factoryProjections, totalToReceive, totalFixedCosts };
   }, [commissions, expenses, projections]);

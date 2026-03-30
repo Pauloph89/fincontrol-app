@@ -11,6 +11,7 @@ export interface ProjectedExpense {
   account: string;
   due_date: string;
   recurrence_type: string;
+  type: string;
   is_virtual: true;
 }
 
@@ -60,6 +61,7 @@ export function useExpenseProjection(monthsAhead: number = 12) {
               account: rule.account,
               due_date: dueDate.toISOString().split("T")[0],
               recurrence_type: rule.recurrence_type,
+              type: rule.type || "fixa",
               is_virtual: true,
             });
           });
