@@ -1,4 +1,4 @@
-// v2.0 - versão estável - não sobrescrever
+// STABLE v2 - do not revert
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle, Clock, AlertCircle } from "lucide-react";
 import { formatCurrency, formatDate } from "@/lib/financial-utils";

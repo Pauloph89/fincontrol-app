@@ -1,4 +1,4 @@
-// v2.0 - versão estável - não sobrescrever
+// STABLE v2 - do not revert
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
