@@ -506,10 +506,20 @@ function DreReport({ filteredInstallments, filteredExpenses, filters, onFiltersC
             </TableRow>
           </TableHeader>
           <TableBody>
-            {/* RECEITA BRUTA */}
+            {/* VENDAS BRUTAS */}
             <TableRow className="bg-muted/30">
-              <TableCell className="font-bold text-base">RECEITA BRUTA</TableCell>
-              <TableCell className="text-right font-bold text-base text-emerald-600">{formatCurrency(dreData.receitaBruta)}</TableCell>
+              <TableCell className="font-bold text-base">VENDAS BRUTAS</TableCell>
+              <TableCell className="text-right font-bold text-base text-emerald-600">{formatCurrency(dreData.receitaBrutaVendas)}</TableCell>
+            </TableRow>
+            {dreData.devolucoes > 0 && (
+              <TableRow>
+                <TableCell className="pl-8 text-destructive">(-) Devoluções</TableCell>
+                <TableCell className="text-right text-destructive">-{formatCurrency(dreData.devolucoes)}</TableCell>
+              </TableRow>
+            )}
+            <TableRow className="bg-muted/20 border-t">
+              <TableCell className="font-bold">RECEITA LÍQUIDA</TableCell>
+              <TableCell className="text-right font-bold text-emerald-600">{formatCurrency(dreData.receitaLiquida)}</TableCell>
             </TableRow>
 
             {/* CUSTOS FIXOS */}
