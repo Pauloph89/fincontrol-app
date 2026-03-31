@@ -884,6 +884,8 @@ export type Database = {
           observations: string | null
           order_date: string
           order_number: string
+          order_type: string
+          origin_order_id: string | null
           pre_posto: string | null
           salesperson: string | null
           status: string
@@ -914,6 +916,8 @@ export type Database = {
           observations?: string | null
           order_date: string
           order_number: string
+          order_type?: string
+          origin_order_id?: string | null
           pre_posto?: string | null
           salesperson?: string | null
           status?: string
@@ -944,6 +948,8 @@ export type Database = {
           observations?: string | null
           order_date?: string
           order_number?: string
+          order_type?: string
+          origin_order_id?: string | null
           pre_posto?: string | null
           salesperson?: string | null
           status?: string
@@ -970,6 +976,13 @@ export type Database = {
             columns: ["factory_id"]
             isOneToOne: false
             referencedRelation: "factories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_origin_order_id_fkey"
+            columns: ["origin_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
         ]
