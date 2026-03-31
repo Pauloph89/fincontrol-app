@@ -216,6 +216,8 @@ export function useOrders() {
           commission_total_preposto: totalPreposto,
           status: form.status || "pedido_enviado",
           observations: form.observations || null,
+          order_type: form.order_type || "venda",
+          origin_order_id: form.origin_order_id || null,
         } as any)
         .select()
         .single();
