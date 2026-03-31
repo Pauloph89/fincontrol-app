@@ -88,7 +88,7 @@ export function OrderForm() {
 
   // Custom days preview
   const customDaysPreview = useMemo(() => {
-    if (!customDaysInput.trim() || form.commission_base_value <= 0) return [];
+    if (!customDaysInput.trim() || form.commission_base_value === 0) return [];
     const days = customDaysInput.split(",").map((d) => parseInt(d.trim())).filter((d) => !isNaN(d) && d > 0);
     if (days.length === 0) return [];
     const instValue = Math.round((form.commission_base_value / days.length) * 100) / 100;
