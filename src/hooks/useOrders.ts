@@ -329,6 +329,7 @@ export function useOrders() {
         "factory", "client", "client_cnpj", "client_city", "client_state",
         "salesperson", "pre_posto", "commission_base_value", "invoice_total_value",
         "commission_percent_rep", "commission_percent_preposto", "observations", "status",
+        "order_type", "origin_order_id",
       ] as const;
 
       for (const f of fields) {
