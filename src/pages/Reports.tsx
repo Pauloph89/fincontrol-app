@@ -443,19 +443,21 @@ function DreReport({ filteredInstallments, filteredExpenses, filters, onFiltersC
   onFiltersChange: (f: ReportFilterValues) => void; factories: string[];
 }) {
   const dreData = useMemo(() => {
-    // RECEITA BRUTA: comissões recebidas no período
-    const receitaBruta = filteredInstallments
-      .filter((i: any) => i.status === "recebido")
-      .reduce((s: number, i: any) => s + Number(i.value), 0);
+    // RECEITA BRUTA: comissões recebidas no período (positivas = vendas, negativas = devoluções)
+    const positiveInst = filteredInstallments.filter((i: any) => i.status === "recebido" && Number(i.value) >= 0);
+    const negativeInst = filteredInstallments.filter((i: any) => i.status === "recebido" && Number(i.value) < 0);
+
+    const receitaBrutaVendas = positiveInst.reduce((s: number, i: any) => s + Number(i.value), 0);
+    const devolucoes = Math.abs(negativeInst.reduce((s: number, i: any) => s + Number(i.value), 0));
+    const receitaLiquida = receitaBrutaVendas - devolucoes;
 
     // Separate expenses by type
-    const paidExpenses = filteredExpenses.filter((e) => e.status === "pago" || e.status !== "pago");
     const fixedExpenses = filteredExpenses.filter((e) => e.type === "fixa");
     const variableExpenses = filteredExpenses.filter((e) => e.type === "variável" || e.type === "variavel");
 
     const custosFixos = fixedExpenses.reduce((s, e) => s + Number(e.value), 0);
     const custosVariaveis = variableExpenses.reduce((s, e) => s + Number(e.value), 0);
-    const resultadoOperacional = receitaBruta - custosFixos - custosVariaveis;
+    const resultadoOperacional = receitaLiquida - custosFixos - custosVariaveis;
 
     // Breakdown by category
     const fixedByCategory: Record<string, number> = {};
@@ -463,12 +465,14 @@ function DreReport({ filteredInstallments, filteredExpenses, filters, onFiltersC
     const variableByCategory: Record<string, number> = {};
     variableExpenses.forEach((e) => { variableByCategory[e.category] = (variableByCategory[e.category] || 0) + Number(e.value); });
 
-    return { receitaBruta, custosFixos, custosVariaveis, resultadoOperacional, fixedByCategory, variableByCategory };
+    return { receitaBrutaVendas, devolucoes, receitaLiquida, custosFixos, custosVariaveis, resultadoOperacional, fixedByCategory, variableByCategory };
   }, [filteredInstallments, filteredExpenses]);
 
   const exportData = useMemo(() => {
     const rows: { conta: string; valor: number; valorFormatted: string }[] = [];
-    rows.push({ conta: "RECEITA BRUTA", valor: dreData.receitaBruta, valorFormatted: formatCurrency(dreData.receitaBruta) });
+    rows.push({ conta: "VENDAS BRUTAS", valor: dreData.receitaBrutaVendas, valorFormatted: formatCurrency(dreData.receitaBrutaVendas) });
+    rows.push({ conta: "(-) DEVOLUÇÕES", valor: dreData.devolucoes, valorFormatted: formatCurrency(dreData.devolucoes) });
+    rows.push({ conta: "RECEITA LÍQUIDA", valor: dreData.receitaLiquida, valorFormatted: formatCurrency(dreData.receitaLiquida) });
     rows.push({ conta: "", valor: 0, valorFormatted: "" });
     rows.push({ conta: "CUSTOS FIXOS", valor: dreData.custosFixos, valorFormatted: formatCurrency(dreData.custosFixos) });
     Object.entries(dreData.fixedByCategory).sort((a, b) => b[1] - a[1]).forEach(([cat, val]) => {
@@ -502,10 +506,20 @@ function DreReport({ filteredInstallments, filteredExpenses, filters, onFiltersC
             </TableRow>
           </TableHeader>
           <TableBody>
-            {/* RECEITA BRUTA */}
+            {/* VENDAS BRUTAS */}
             <TableRow className="bg-muted/30">
-              <TableCell className="font-bold text-base">RECEITA BRUTA</TableCell>
-              <TableCell className="text-right font-bold text-base text-emerald-600">{formatCurrency(dreData.receitaBruta)}</TableCell>
+              <TableCell className="font-bold text-base">VENDAS BRUTAS</TableCell>
+              <TableCell className="text-right font-bold text-base text-emerald-600">{formatCurrency(dreData.receitaBrutaVendas)}</TableCell>
+            </TableRow>
+            {dreData.devolucoes > 0 && (
+              <TableRow>
+                <TableCell className="pl-8 text-destructive">(-) Devoluções</TableCell>
+                <TableCell className="text-right text-destructive">-{formatCurrency(dreData.devolucoes)}</TableCell>
+              </TableRow>
+            )}
+            <TableRow className="bg-muted/20 border-t">
+              <TableCell className="font-bold">RECEITA LÍQUIDA</TableCell>
+              <TableCell className="text-right font-bold text-emerald-600">{formatCurrency(dreData.receitaLiquida)}</TableCell>
             </TableRow>
 
             {/* CUSTOS FIXOS */}

@@ -30,6 +30,8 @@ export interface OrderFormData {
   commission_percent_preposto: number;
   observations?: string;
   status?: string;
+  order_type?: string;
+  origin_order_id?: string;
   // Installment config
   num_installments: number;
   installment_interval: number;
@@ -214,6 +216,8 @@ export function useOrders() {
           commission_total_preposto: totalPreposto,
           status: form.status || "pedido_enviado",
           observations: form.observations || null,
+          order_type: form.order_type || "venda",
+          origin_order_id: form.origin_order_id || null,
         } as any)
         .select()
         .single();
@@ -325,6 +329,7 @@ export function useOrders() {
         "factory", "client", "client_cnpj", "client_city", "client_state",
         "salesperson", "pre_posto", "commission_base_value", "invoice_total_value",
         "commission_percent_rep", "commission_percent_preposto", "observations", "status",
+        "order_type", "origin_order_id",
       ] as const;
 
       for (const f of fields) {

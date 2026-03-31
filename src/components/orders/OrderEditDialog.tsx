@@ -35,6 +35,7 @@ export function OrderEditDialog({ order, open, onOpenChange }: OrderEditDialogPr
     factory: "", client: "", client_cnpj: "", client_city: "", client_state: "",
     salesperson: "", pre_posto: "", commission_base_value: 0, invoice_total_value: 0,
     commission_percent_rep: 8, commission_percent_preposto: 0, observations: "", status: "pedido_enviado",
+    order_type: "venda", origin_order_id: "",
   });
 
   useEffect(() => {
@@ -57,6 +58,8 @@ export function OrderEditDialog({ order, open, onOpenChange }: OrderEditDialogPr
         commission_percent_preposto: order.commission_percent_preposto || 0,
         observations: order.observations || "",
         status: order.status || "pedido_enviado",
+        order_type: order.order_type || "venda",
+        origin_order_id: order.origin_order_id || "",
       });
     }
   }, [order]);
@@ -92,6 +95,17 @@ export function OrderEditDialog({ order, open, onOpenChange }: OrderEditDialogPr
           </TabsList>
           <TabsContent value="edit">
             <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+              {/* Order type indicator */}
+              {form.order_type === "devolucao" && (
+                <div className="rounded-lg bg-destructive/10 border border-destructive/30 p-3 text-sm text-destructive font-medium">
+                  📋 Este registro é uma Devolução
+                  {order.origin_order_id && (
+                    <span className="block text-xs mt-1 opacity-75">
+                      Vinculado ao pedido de origem
+                    </span>
+                  )}
+                </div>
+              )}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label>Nº Pedido</Label>

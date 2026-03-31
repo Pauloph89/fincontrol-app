@@ -13,7 +13,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { CheckCircle2, ChevronDown, ChevronRight, Pencil, Search, XCircle, Trash2, RotateCcw, Paperclip, Loader2, Undo2, Plus } from "lucide-react";
+import { CheckCircle2, ChevronDown, ChevronRight, Pencil, Search, XCircle, Trash2, RotateCcw, Paperclip, Loader2, Undo2, Plus, RotateCw } from "lucide-react";
 import { useState, useMemo, useRef } from "react";
 import { OrderEditDialog } from "./OrderEditDialog";
 import { BillingLots } from "./BillingLots";
@@ -140,6 +140,7 @@ export function OrdersList() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-8"></TableHead>
+                  <TableHead>Tipo</TableHead>
                   <TableHead>Fábrica</TableHead>
                   <TableHead className="hidden sm:table-cell">Cliente</TableHead>
                   <TableHead className="hidden md:table-cell">Pedido</TableHead>
@@ -154,15 +155,23 @@ export function OrdersList() {
                 {orders.map((o: any) => {
                   const isOpen = expanded.has(o.id);
                   const installments = (o.order_installments || []).sort((a: any, b: any) => a.installment_number - b.installment_number);
+                  const isReturn = o.order_type === "devolucao";
                   return (
                     <>
-                      <TableRow key={o.id} className="cursor-pointer hover:bg-accent/50" onClick={() => toggleExpand(o.id)}>
+                      <TableRow key={o.id} className={`cursor-pointer hover:bg-accent/50 ${isReturn ? "bg-destructive/5" : ""}`} onClick={() => toggleExpand(o.id)}>
                         <TableCell className="px-2">{isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</TableCell>
+                        <TableCell>
+                          {isReturn ? (
+                            <Badge variant="destructive" className="text-[10px]"><RotateCw className="mr-0.5 h-2.5 w-2.5" />Devolução</Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px]">Venda</Badge>
+                          )}
+                        </TableCell>
                         <TableCell className="font-medium text-xs sm:text-sm">{o.factory}</TableCell>
                         <TableCell className="hidden sm:table-cell text-xs sm:text-sm">{normalizeDisplayName(o.client)}</TableCell>
                         <TableCell className="hidden md:table-cell text-xs">{o.order_number}</TableCell>
-                        <TableCell className="text-right text-xs sm:text-sm">{formatCurrency(o.commission_base_value)}</TableCell>
-                        <TableCell className="text-right font-semibold hidden sm:table-cell text-xs sm:text-sm">{formatCurrency(o.commission_total_rep)}</TableCell>
+                        <TableCell className={`text-right text-xs sm:text-sm ${isReturn ? "text-destructive" : ""}`}>{formatCurrency(o.commission_base_value)}</TableCell>
+                        <TableCell className={`text-right font-semibold hidden sm:table-cell text-xs sm:text-sm ${isReturn ? "text-destructive" : ""}`}>{formatCurrency(o.commission_total_rep)}</TableCell>
                         <TableCell className="hidden lg:table-cell text-xs">{formatDate(o.order_date)}</TableCell>
                         <TableCell>
                           <Badge variant={o.status === "cancelado" ? "destructive" : "outline"} className="text-[10px]">
@@ -213,7 +222,19 @@ export function OrdersList() {
                       {/* Expanded installments */}
                       {isOpen && (
                         <TableRow key={`${o.id}-inst`}>
-                          <TableCell colSpan={9} className="bg-muted/30 p-3 sm:p-4">
+                          <TableCell colSpan={10} className="bg-muted/30 p-3 sm:p-4">
+                            {/* Origin order reference */}
+                            {o.origin_order_id && (
+                              <div className="mb-3 rounded-lg bg-accent/50 p-2 text-xs text-muted-foreground">
+                                📋 Devolução vinculada ao pedido de origem
+                              </div>
+                            )}
+                            {/* Check if any return is linked to this order */}
+                            {!isReturn && (ordersQuery.data || []).some((r: any) => r.origin_order_id === o.id && r.order_type === "devolucao") && (
+                              <div className="mb-3 rounded-lg bg-destructive/10 border border-destructive/20 p-2 text-xs text-destructive">
+                                ⚠ Este pedido possui devolução vinculada
+                              </div>
+                            )}
                             <div className="flex items-center justify-between mb-2">
                               <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Parcelas</div>
                               {canEdit && (

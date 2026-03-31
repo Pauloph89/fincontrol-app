@@ -41,12 +41,20 @@ export default function Dashboard() {
     const { start, end } = period;
 
     // --- SALES metrics from orders ---
-    const ordersInPeriod = orders.filter((o: any) => {
+    const salesOrders = orders.filter((o: any) => o.order_type !== "devolucao");
+    const returnOrders = orders.filter((o: any) => o.order_type === "devolucao");
+    const ordersInPeriod = salesOrders.filter((o: any) => {
       const d = new Date(o.order_date);
       return d >= start && d <= end;
     });
-    const totalSales = ordersInPeriod.reduce((s: number, o: any) => s + Number(o.commission_base_value), 0);
-    const totalCommissionExpected = ordersInPeriod.reduce((s: number, o: any) => s + Number(o.commission_total_rep), 0);
+    const returnsInPeriod = returnOrders.filter((o: any) => {
+      const d = new Date(o.order_date);
+      return d >= start && d <= end;
+    });
+    const grossSales = ordersInPeriod.reduce((s: number, o: any) => s + Number(o.commission_base_value), 0);
+    const totalReturns = returnsInPeriod.reduce((s: number, o: any) => s + Math.abs(Number(o.commission_base_value)), 0);
+    const totalSales = grossSales - totalReturns;
+    const totalCommissionExpected = [...ordersInPeriod, ...returnsInPeriod].reduce((s: number, o: any) => s + Number(o.commission_total_rep), 0);
     const totalOrdersCount = ordersInPeriod.length;
 
     // --- COMMISSION metrics from commission_installments ONLY ---

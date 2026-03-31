@@ -13,6 +13,7 @@ import { formatCurrency, formatDate, commissionStatusFlow } from "@/lib/financia
 import { normalizeInstallments, NormalizedInstallment } from "@/lib/normalize-installments";
 import { addDays } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const INTERVAL_OPTIONS = [
   { label: "30 dias", value: 30 },
@@ -30,7 +31,8 @@ const BRAZILIAN_STATES = [
 
 export function OrderForm() {
   const [open, setOpen] = useState(false);
-  const { createOrder } = useOrders();
+  const { createOrder, ordersQuery } = useOrders();
+  const { role } = useUserRole();
   const { toast } = useToast();
   const [parcelMode, setParcelMode] = useState<"auto" | "manual" | "custom_days">("auto");
   const [editingAutoDates, setEditingAutoDates] = useState(false);
@@ -53,9 +55,16 @@ export function OrderForm() {
     commission_percent_preposto: 0,
     observations: "",
     status: "pedido_enviado",
+    order_type: "venda",
+    origin_order_id: "",
     num_installments: 4,
     installment_interval: 30,
   });
+
+  const isReturn = form.order_type === "devolucao";
+
+  // All existing orders for origin picker
+  const existingOrders = (ordersQuery.data || []).filter((o: any) => o.status !== "deleted" && o.order_type !== "devolucao");
 
   const { totalRep, totalPreposto, netRep } = calcCommissions(
     form.commission_base_value,
@@ -65,7 +74,7 @@ export function OrderForm() {
 
   // Auto installment preview
   const autoPreview = useMemo(() => {
-    if (form.commission_base_value <= 0 || form.num_installments <= 0) return [];
+    if (form.commission_base_value === 0 || form.num_installments <= 0) return [];
     const instValue = Math.round((form.commission_base_value / form.num_installments) * 100) / 100;
     const lastVal = Math.round((form.commission_base_value - instValue * (form.num_installments - 1)) * 100) / 100;
     const baseDate = new Date(form.billing_date || form.order_date);
@@ -79,7 +88,7 @@ export function OrderForm() {
 
   // Custom days preview
   const customDaysPreview = useMemo(() => {
-    if (!customDaysInput.trim() || form.commission_base_value <= 0) return [];
+    if (!customDaysInput.trim() || form.commission_base_value === 0) return [];
     const days = customDaysInput.split(",").map((d) => parseInt(d.trim())).filter((d) => !isNaN(d) && d > 0);
     if (days.length === 0) return [];
     const instValue = Math.round((form.commission_base_value / days.length) * 100) / 100;
@@ -177,7 +186,8 @@ export function OrderForm() {
       billing_date: "", factory: "", client: "", client_cnpj: "", client_city: "", client_state: "",
       salesperson: "", pre_posto: "", commission_base_value: 0, invoice_total_value: 0,
       commission_percent_rep: 8, commission_percent_preposto: 0, observations: "",
-      status: "pedido_enviado", num_installments: 4, installment_interval: 30,
+      status: "pedido_enviado", order_type: "venda", origin_order_id: "",
+      num_installments: 4, installment_interval: 30,
     });
     setManualInstallments([]);
     setParcelMode("auto");
@@ -201,6 +211,66 @@ export function OrderForm() {
           <DialogTitle>Cadastrar Pedido</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Order Type & Origin */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Tipo do Pedido *</Label>
+              <Select value={form.order_type || "venda"} onValueChange={(v) => {
+                update("order_type", v);
+                if (v === "devolucao" && form.commission_base_value > 0) {
+                  update("commission_base_value", -Math.abs(form.commission_base_value));
+                } else if (v === "venda" && form.commission_base_value < 0) {
+                  update("commission_base_value", Math.abs(form.commission_base_value));
+                }
+              }}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="venda">Venda</SelectItem>
+                  {(role === "admin" || role === "financeiro") && <SelectItem value="devolucao">Devolução</SelectItem>}
+                </SelectContent>
+              </Select>
+            </div>
+            {isReturn && (
+              <div className="space-y-2">
+                <Label>Pedido de Origem (opcional)</Label>
+                <Select value={form.origin_order_id || "none"} onValueChange={(v) => {
+                  const originId = v === "none" ? "" : v;
+                  update("origin_order_id", originId);
+                  if (originId) {
+                    const origin = existingOrders.find((o: any) => o.id === originId);
+                    if (origin) {
+                      setForm((prev) => ({
+                        ...prev,
+                        origin_order_id: originId,
+                        factory: origin.factory,
+                        client: origin.client,
+                        client_cnpj: origin.client_cnpj || "",
+                        client_city: origin.client_city || "",
+                        client_state: origin.client_state || "",
+                      }));
+                    }
+                  }
+                }}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar pedido" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum</SelectItem>
+                    {existingOrders.map((o: any) => (
+                      <SelectItem key={o.id} value={o.id}>
+                        {o.order_number} — {o.factory} — {o.client}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+
+          {isReturn && (
+            <div className="rounded-lg bg-destructive/10 border border-destructive/30 p-3 text-sm text-destructive">
+              ⚠ Devolução: o valor base e a comissão serão negativos. Você pode editar manualmente.
+            </div>
+          )}
+
           {/* Row 1: Order info */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <div className="space-y-2">
@@ -268,7 +338,7 @@ export function OrderForm() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="space-y-2">
               <Label>Valor Base Comissão *</Label>
-              <Input type="number" step="0.01" min="0" value={form.commission_base_value || ""} onChange={(e) => update("commission_base_value", parseFloat(e.target.value) || 0)} required />
+              <Input type="number" step="0.01" value={form.commission_base_value || ""} onChange={(e) => update("commission_base_value", parseFloat(e.target.value) || 0)} required />
             </div>
             <div className="space-y-2">
               <Label>Valor Total NF</Label>
@@ -285,8 +355,8 @@ export function OrderForm() {
           </div>
 
           {/* Commission summary */}
-          {form.commission_base_value > 0 && (
-            <div className="rounded-lg bg-accent p-3 space-y-1">
+          {form.commission_base_value !== 0 && (
+            <div className={`rounded-lg p-3 space-y-1 ${isReturn ? "bg-destructive/10" : "bg-accent"}`}>
               <div className="flex justify-between text-sm">
                 <span>Comissão Representante:</span>
                 <span className="font-semibold">{formatCurrency(totalRep)}</span>
@@ -326,7 +396,7 @@ export function OrderForm() {
           </div>
 
           {/* Installment Mode Tabs */}
-          {form.commission_base_value > 0 && (
+          {form.commission_base_value !== 0 && (
             <div className="space-y-3">
               <Label className="text-base font-semibold">Parcelas</Label>
               <Tabs value={parcelMode} onValueChange={(v) => {
