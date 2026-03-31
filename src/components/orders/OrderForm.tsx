@@ -211,6 +211,66 @@ export function OrderForm() {
           <DialogTitle>Cadastrar Pedido</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Order Type & Origin */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Tipo do Pedido *</Label>
+              <Select value={form.order_type || "venda"} onValueChange={(v) => {
+                update("order_type", v);
+                if (v === "devolucao" && form.commission_base_value > 0) {
+                  update("commission_base_value", -Math.abs(form.commission_base_value));
+                } else if (v === "venda" && form.commission_base_value < 0) {
+                  update("commission_base_value", Math.abs(form.commission_base_value));
+                }
+              }}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="venda">Venda</SelectItem>
+                  {(role === "admin" || role === "financeiro") && <SelectItem value="devolucao">Devolução</SelectItem>}
+                </SelectContent>
+              </Select>
+            </div>
+            {isReturn && (
+              <div className="space-y-2">
+                <Label>Pedido de Origem (opcional)</Label>
+                <Select value={form.origin_order_id || "none"} onValueChange={(v) => {
+                  const originId = v === "none" ? "" : v;
+                  update("origin_order_id", originId);
+                  if (originId) {
+                    const origin = existingOrders.find((o: any) => o.id === originId);
+                    if (origin) {
+                      setForm((prev) => ({
+                        ...prev,
+                        origin_order_id: originId,
+                        factory: origin.factory,
+                        client: origin.client,
+                        client_cnpj: origin.client_cnpj || "",
+                        client_city: origin.client_city || "",
+                        client_state: origin.client_state || "",
+                      }));
+                    }
+                  }
+                }}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar pedido" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum</SelectItem>
+                    {existingOrders.map((o: any) => (
+                      <SelectItem key={o.id} value={o.id}>
+                        {o.order_number} — {o.factory} — {o.client}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+
+          {isReturn && (
+            <div className="rounded-lg bg-destructive/10 border border-destructive/30 p-3 text-sm text-destructive">
+              ⚠ Devolução: o valor base e a comissão serão negativos. Você pode editar manualmente.
+            </div>
+          )}
+
           {/* Row 1: Order info */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             <div className="space-y-2">
