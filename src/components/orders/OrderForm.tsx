@@ -58,9 +58,16 @@ export function OrderForm() {
     commission_percent_preposto: 0,
     observations: "",
     status: "pedido_enviado",
+    order_type: "venda",
+    origin_order_id: "",
     num_installments: 4,
     installment_interval: 30,
   });
+
+  const isReturn = form.order_type === "devolucao";
+
+  // All existing orders for origin picker
+  const existingOrders = (ordersQuery.data || []).filter((o: any) => o.status !== "deleted" && o.order_type !== "devolucao");
 
   const { totalRep, totalPreposto, netRep } = calcCommissions(
     form.commission_base_value,
