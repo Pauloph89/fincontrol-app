@@ -58,6 +58,8 @@ export function OrderEditDialog({ order, open, onOpenChange }: OrderEditDialogPr
         commission_percent_preposto: order.commission_percent_preposto || 0,
         observations: order.observations || "",
         status: order.status || "pedido_enviado",
+        order_type: order.order_type || "venda",
+        origin_order_id: order.origin_order_id || "",
       });
     }
   }, [order]);
