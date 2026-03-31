@@ -338,7 +338,7 @@ export function OrderForm() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="space-y-2">
               <Label>Valor Base Comissão *</Label>
-              <Input type="number" step="0.01" min="0" value={form.commission_base_value || ""} onChange={(e) => update("commission_base_value", parseFloat(e.target.value) || 0)} required />
+              <Input type="number" step="0.01" value={form.commission_base_value || ""} onChange={(e) => update("commission_base_value", parseFloat(e.target.value) || 0)} required />
             </div>
             <div className="space-y-2">
               <Label>Valor Total NF</Label>
