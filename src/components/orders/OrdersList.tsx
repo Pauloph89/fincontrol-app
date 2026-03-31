@@ -222,7 +222,19 @@ export function OrdersList() {
                       {/* Expanded installments */}
                       {isOpen && (
                         <TableRow key={`${o.id}-inst`}>
-                          <TableCell colSpan={9} className="bg-muted/30 p-3 sm:p-4">
+                          <TableCell colSpan={10} className="bg-muted/30 p-3 sm:p-4">
+                            {/* Origin order reference */}
+                            {o.origin_order_id && (
+                              <div className="mb-3 rounded-lg bg-accent/50 p-2 text-xs text-muted-foreground">
+                                📋 Devolução vinculada ao pedido de origem
+                              </div>
+                            )}
+                            {/* Check if any return is linked to this order */}
+                            {!isReturn && (ordersQuery.data || []).some((r: any) => r.origin_order_id === o.id && r.order_type === "devolucao") && (
+                              <div className="mb-3 rounded-lg bg-destructive/10 border border-destructive/20 p-2 text-xs text-destructive">
+                                ⚠ Este pedido possui devolução vinculada
+                              </div>
+                            )}
                             <div className="flex items-center justify-between mb-2">
                               <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Parcelas</div>
                               {canEdit && (
