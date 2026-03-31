@@ -443,19 +443,21 @@ function DreReport({ filteredInstallments, filteredExpenses, filters, onFiltersC
   onFiltersChange: (f: ReportFilterValues) => void; factories: string[];
 }) {
   const dreData = useMemo(() => {
-    // RECEITA BRUTA: comissões recebidas no período
-    const receitaBruta = filteredInstallments
-      .filter((i: any) => i.status === "recebido")
-      .reduce((s: number, i: any) => s + Number(i.value), 0);
+    // RECEITA BRUTA: comissões recebidas no período (positivas = vendas, negativas = devoluções)
+    const positiveInst = filteredInstallments.filter((i: any) => i.status === "recebido" && Number(i.value) >= 0);
+    const negativeInst = filteredInstallments.filter((i: any) => i.status === "recebido" && Number(i.value) < 0);
+
+    const receitaBrutaVendas = positiveInst.reduce((s: number, i: any) => s + Number(i.value), 0);
+    const devolucoes = Math.abs(negativeInst.reduce((s: number, i: any) => s + Number(i.value), 0));
+    const receitaLiquida = receitaBrutaVendas - devolucoes;
 
     // Separate expenses by type
-    const paidExpenses = filteredExpenses.filter((e) => e.status === "pago" || e.status !== "pago");
     const fixedExpenses = filteredExpenses.filter((e) => e.type === "fixa");
     const variableExpenses = filteredExpenses.filter((e) => e.type === "variável" || e.type === "variavel");
 
     const custosFixos = fixedExpenses.reduce((s, e) => s + Number(e.value), 0);
     const custosVariaveis = variableExpenses.reduce((s, e) => s + Number(e.value), 0);
-    const resultadoOperacional = receitaBruta - custosFixos - custosVariaveis;
+    const resultadoOperacional = receitaLiquida - custosFixos - custosVariaveis;
 
     // Breakdown by category
     const fixedByCategory: Record<string, number> = {};
@@ -463,7 +465,7 @@ function DreReport({ filteredInstallments, filteredExpenses, filters, onFiltersC
     const variableByCategory: Record<string, number> = {};
     variableExpenses.forEach((e) => { variableByCategory[e.category] = (variableByCategory[e.category] || 0) + Number(e.value); });
 
-    return { receitaBruta, custosFixos, custosVariaveis, resultadoOperacional, fixedByCategory, variableByCategory };
+    return { receitaBrutaVendas, devolucoes, receitaLiquida, custosFixos, custosVariaveis, resultadoOperacional, fixedByCategory, variableByCategory };
   }, [filteredInstallments, filteredExpenses]);
 
   const exportData = useMemo(() => {
