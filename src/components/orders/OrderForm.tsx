@@ -74,7 +74,7 @@ export function OrderForm() {
 
   // Auto installment preview
   const autoPreview = useMemo(() => {
-    if (form.commission_base_value <= 0 || form.num_installments <= 0) return [];
+    if (form.commission_base_value === 0 || form.num_installments <= 0) return [];
     const instValue = Math.round((form.commission_base_value / form.num_installments) * 100) / 100;
     const lastVal = Math.round((form.commission_base_value - instValue * (form.num_installments - 1)) * 100) / 100;
     const baseDate = new Date(form.billing_date || form.order_date);
