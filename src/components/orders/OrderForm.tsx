@@ -355,8 +355,8 @@ export function OrderForm() {
           </div>
 
           {/* Commission summary */}
-          {form.commission_base_value > 0 && (
-            <div className="rounded-lg bg-accent p-3 space-y-1">
+          {form.commission_base_value !== 0 && (
+            <div className={`rounded-lg p-3 space-y-1 ${isReturn ? "bg-destructive/10" : "bg-accent"}`}>
               <div className="flex justify-between text-sm">
                 <span>Comissão Representante:</span>
                 <span className="font-semibold">{formatCurrency(totalRep)}</span>
