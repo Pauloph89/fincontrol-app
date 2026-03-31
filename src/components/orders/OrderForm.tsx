@@ -14,8 +14,6 @@ import { normalizeInstallments, NormalizedInstallment } from "@/lib/normalize-in
 import { addDays } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useUserRole } from "@/hooks/useUserRole";
-import { addDays } from "date-fns";
-import { useToast } from "@/hooks/use-toast";
 
 const INTERVAL_OPTIONS = [
   { label: "30 dias", value: 30 },
