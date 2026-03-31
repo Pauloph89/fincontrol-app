@@ -470,7 +470,9 @@ function DreReport({ filteredInstallments, filteredExpenses, filters, onFiltersC
 
   const exportData = useMemo(() => {
     const rows: { conta: string; valor: number; valorFormatted: string }[] = [];
-    rows.push({ conta: "RECEITA BRUTA", valor: dreData.receitaBruta, valorFormatted: formatCurrency(dreData.receitaBruta) });
+    rows.push({ conta: "VENDAS BRUTAS", valor: dreData.receitaBrutaVendas, valorFormatted: formatCurrency(dreData.receitaBrutaVendas) });
+    rows.push({ conta: "(-) DEVOLUÇÕES", valor: dreData.devolucoes, valorFormatted: formatCurrency(dreData.devolucoes) });
+    rows.push({ conta: "RECEITA LÍQUIDA", valor: dreData.receitaLiquida, valorFormatted: formatCurrency(dreData.receitaLiquida) });
     rows.push({ conta: "", valor: 0, valorFormatted: "" });
     rows.push({ conta: "CUSTOS FIXOS", valor: dreData.custosFixos, valorFormatted: formatCurrency(dreData.custosFixos) });
     Object.entries(dreData.fixedByCategory).sort((a, b) => b[1] - a[1]).forEach(([cat, val]) => {
