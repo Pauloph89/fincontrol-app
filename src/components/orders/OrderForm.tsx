@@ -34,7 +34,6 @@ export function OrderForm() {
   const { createOrder, ordersQuery } = useOrders();
   const { role } = useUserRole();
   const { toast } = useToast();
-  const { toast } = useToast();
   const [parcelMode, setParcelMode] = useState<"auto" | "manual" | "custom_days">("auto");
   const [editingAutoDates, setEditingAutoDates] = useState(false);
   const [customDaysInput, setCustomDaysInput] = useState("");
