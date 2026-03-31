@@ -396,7 +396,7 @@ export function OrderForm() {
           </div>
 
           {/* Installment Mode Tabs */}
-          {form.commission_base_value > 0 && (
+          {form.commission_base_value !== 0 && (
             <div className="space-y-3">
               <Label className="text-base font-semibold">Parcelas</Label>
               <Tabs value={parcelMode} onValueChange={(v) => {
