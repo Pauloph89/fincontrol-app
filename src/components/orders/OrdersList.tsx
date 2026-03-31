@@ -155,15 +155,23 @@ export function OrdersList() {
                 {orders.map((o: any) => {
                   const isOpen = expanded.has(o.id);
                   const installments = (o.order_installments || []).sort((a: any, b: any) => a.installment_number - b.installment_number);
+                  const isReturn = o.order_type === "devolucao";
                   return (
                     <>
-                      <TableRow key={o.id} className="cursor-pointer hover:bg-accent/50" onClick={() => toggleExpand(o.id)}>
+                      <TableRow key={o.id} className={`cursor-pointer hover:bg-accent/50 ${isReturn ? "bg-destructive/5" : ""}`} onClick={() => toggleExpand(o.id)}>
                         <TableCell className="px-2">{isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</TableCell>
+                        <TableCell>
+                          {isReturn ? (
+                            <Badge variant="destructive" className="text-[10px]"><RotateCw className="mr-0.5 h-2.5 w-2.5" />Devolução</Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-[10px]">Venda</Badge>
+                          )}
+                        </TableCell>
                         <TableCell className="font-medium text-xs sm:text-sm">{o.factory}</TableCell>
                         <TableCell className="hidden sm:table-cell text-xs sm:text-sm">{normalizeDisplayName(o.client)}</TableCell>
                         <TableCell className="hidden md:table-cell text-xs">{o.order_number}</TableCell>
-                        <TableCell className="text-right text-xs sm:text-sm">{formatCurrency(o.commission_base_value)}</TableCell>
-                        <TableCell className="text-right font-semibold hidden sm:table-cell text-xs sm:text-sm">{formatCurrency(o.commission_total_rep)}</TableCell>
+                        <TableCell className={`text-right text-xs sm:text-sm ${isReturn ? "text-destructive" : ""}`}>{formatCurrency(o.commission_base_value)}</TableCell>
+                        <TableCell className={`text-right font-semibold hidden sm:table-cell text-xs sm:text-sm ${isReturn ? "text-destructive" : ""}`}>{formatCurrency(o.commission_total_rep)}</TableCell>
                         <TableCell className="hidden lg:table-cell text-xs">{formatDate(o.order_date)}</TableCell>
                         <TableCell>
                           <Badge variant={o.status === "cancelado" ? "destructive" : "outline"} className="text-[10px]">
