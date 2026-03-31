@@ -186,7 +186,8 @@ export function OrderForm() {
       billing_date: "", factory: "", client: "", client_cnpj: "", client_city: "", client_state: "",
       salesperson: "", pre_posto: "", commission_base_value: 0, invoice_total_value: 0,
       commission_percent_rep: 8, commission_percent_preposto: 0, observations: "",
-      status: "pedido_enviado", num_installments: 4, installment_interval: 30,
+      status: "pedido_enviado", order_type: "venda", origin_order_id: "",
+      num_installments: 4, installment_interval: 30,
     });
     setManualInstallments([]);
     setParcelMode("auto");
