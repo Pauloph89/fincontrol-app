@@ -33,7 +33,9 @@ const BRAZILIAN_STATES = [
 
 export function OrderForm() {
   const [open, setOpen] = useState(false);
-  const { createOrder } = useOrders();
+  const { createOrder, ordersQuery } = useOrders();
+  const { role } = useUserRole();
+  const { toast } = useToast();
   const { toast } = useToast();
   const [parcelMode, setParcelMode] = useState<"auto" | "manual" | "custom_days">("auto");
   const [editingAutoDates, setEditingAutoDates] = useState(false);
