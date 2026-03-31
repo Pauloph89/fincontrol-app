@@ -30,6 +30,8 @@ export interface OrderFormData {
   commission_percent_preposto: number;
   observations?: string;
   status?: string;
+  order_type?: string;
+  origin_order_id?: string;
   // Installment config
   num_installments: number;
   installment_interval: number;
