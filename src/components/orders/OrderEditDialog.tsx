@@ -95,6 +95,17 @@ export function OrderEditDialog({ order, open, onOpenChange }: OrderEditDialogPr
           </TabsList>
           <TabsContent value="edit">
             <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+              {/* Order type indicator */}
+              {form.order_type === "devolucao" && (
+                <div className="rounded-lg bg-destructive/10 border border-destructive/30 p-3 text-sm text-destructive font-medium">
+                  📋 Este registro é uma Devolução
+                  {order.origin_order_id && (
+                    <span className="block text-xs mt-1 opacity-75">
+                      Vinculado ao pedido de origem
+                    </span>
+                  )}
+                </div>
+              )}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label>Nº Pedido</Label>
