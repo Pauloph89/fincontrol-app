@@ -140,6 +140,7 @@ export function OrdersList() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-8"></TableHead>
+                  <TableHead>Tipo</TableHead>
                   <TableHead>Fábrica</TableHead>
                   <TableHead className="hidden sm:table-cell">Cliente</TableHead>
                   <TableHead className="hidden md:table-cell">Pedido</TableHead>
