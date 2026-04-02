@@ -434,6 +434,7 @@ export default function Dashboard() {
       <OverdueCommissionsCard
         factoryOverdues={monthlyProjection.factoryOverdues}
         totalOverdue={monthlyProjection.totalOverdue}
+        totalToReceive={monthlyProjection.totalToReceive}
       />
 
       <MonthlyProjectionCard
