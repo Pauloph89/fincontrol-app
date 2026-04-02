@@ -22,6 +22,7 @@ const ITEMS_PER_PAGE = 20;
 
 export function ExpensesList() {
   const { expensesQuery, markExpensePaid, deleteExpense, uploadReceipt } = useExpenses();
+  const { openReceipt } = useReceiptUrl();
   const [search, setSearch] = useState("");
   const [filterAccount, setFilterAccount] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
