@@ -1,4 +1,5 @@
 import { useMemo, useState, useRef } from "react";
+import { useReceiptUrl } from "@/hooks/useReceiptUrl";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useExpenseProjection } from "@/hooks/useExpenseProjection";
 import { formatCurrency, formatDate, getExpenseAlertClass, statusLabels, recurrenceLabels } from "@/lib/financial-utils";

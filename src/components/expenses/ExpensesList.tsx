@@ -1,4 +1,5 @@
 import { useExpenses } from "@/hooks/useExpenses";
+import { useReceiptUrl } from "@/hooks/useReceiptUrl";
 import { formatCurrency, formatDate, getExpenseAlertClass, statusLabels, recurrenceLabels } from "@/lib/financial-utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

@@ -1,4 +1,5 @@
 import { useCommissions } from "@/hooks/useCommissions";
+import { useReceiptUrl } from "@/hooks/useReceiptUrl";
 import { normalizeDisplayName } from "@/lib/display-utils";
 import { useUserRole } from "@/hooks/useUserRole";
 import { formatCurrency, formatDate, getInstallmentAlertClass, getInstallmentStatus, statusLabels, commissionStatusFlow } from "@/lib/financial-utils";
