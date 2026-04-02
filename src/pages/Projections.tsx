@@ -1,17 +1,15 @@
 import { useMemo, useState } from "react";
 import { useCommissions } from "@/hooks/useCommissions";
 import { formatCurrency, formatDate, statusLabels, getInstallmentStatus } from "@/lib/financial-utils";
+import { buildCommissionMonthlySeries, flattenActiveCommissionInstallments, parseDateOnly } from "@/lib/commission-installment-utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { TrendingUp, AlertTriangle, CheckCircle2, Clock, Loader2, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { startOfDay, addMonths, startOfMonth, endOfMonth, format, isBefore } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { startOfDay, isBefore } from "date-fns";
 
 export default function Projections() {
   const { commissionsQuery } = useCommissions();
@@ -19,29 +17,22 @@ export default function Projections() {
   const [months, setMonths] = useState(12);
 
   const commissions = commissionsQuery.data || [];
-  const factories = [...new Set(commissions.filter((c: any) => c.status !== "deleted").map((c) => c.factory))].sort();
+  const activeCommissions = useMemo(
+    () => commissions.filter((c: any) => c.status !== "deleted" && c.status !== "cancelada"),
+    [commissions]
+  );
+  const factories = [...new Set(activeCommissions.map((c: any) => c.factory))].sort();
 
   const allInstallments = useMemo(() => {
-    return commissions
-      .filter((c: any) => c.status !== "deleted" && c.status !== "cancelada")
-      .filter((c: any) => filterFactory === "all" || c.factory === filterFactory)
-      .flatMap((c: any) =>
-        (c.commission_installments || []).map((i: any) => ({
-          ...i,
-          factory: c.factory,
-          client: c.client,
-          order_number: c.order_number,
-        }))
-      )
-      .filter((i: any) => i.status !== "cancelado");
-  }, [commissions, filterFactory]);
+    return flattenActiveCommissionInstallments(activeCommissions as any[], filterFactory);
+  }, [activeCommissions, filterFactory]);
 
   const today = startOfDay(new Date());
 
   const stats = useMemo(() => {
     const received = allInstallments.filter((i: any) => i.status === "recebido");
-    const late = allInstallments.filter((i: any) => i.status !== "recebido" && isBefore(startOfDay(new Date(i.due_date)), today));
-    const upcoming = allInstallments.filter((i: any) => i.status !== "recebido" && !isBefore(startOfDay(new Date(i.due_date)), today));
+    const late = allInstallments.filter((i: any) => i.status !== "recebido" && isBefore(parseDateOnly(i.due_date), today));
+    const upcoming = allInstallments.filter((i: any) => i.status !== "recebido" && !isBefore(parseDateOnly(i.due_date), today));
 
     const totalReceived = received.reduce((s: number, i: any) => s + Number(i.value), 0);
     const totalLate = late.reduce((s: number, i: any) => s + Number(i.value), 0);
@@ -52,30 +43,23 @@ export default function Projections() {
 
   // Monthly chart data
   const monthlyData = useMemo(() => {
-    const data: { month: string; previsto: number; recebido: number; atrasado: number }[] = [];
-    for (let i = 0; i < months; i++) {
-      const monthStart = startOfMonth(addMonths(today, i - 2)); // 2 months back + future
-      const monthEnd = endOfMonth(monthStart);
-      const label = format(monthStart, "MMM/yy", { locale: ptBR });
-
-      const monthInst = allInstallments.filter((inst: any) => {
-        const d = new Date(inst.paid_date || inst.due_date);
-        return d >= monthStart && d <= monthEnd;
-      });
-
-      const recebido = monthInst.filter((i: any) => i.status === "recebido").reduce((s: number, i: any) => s + Number(i.value), 0);
-      const atrasado = monthInst.filter((i: any) => i.status !== "recebido" && isBefore(startOfDay(new Date(i.due_date)), today)).reduce((s: number, i: any) => s + Number(i.value), 0);
-      const previsto = monthInst.filter((i: any) => i.status !== "recebido" && !isBefore(startOfDay(new Date(i.due_date)), today)).reduce((s: number, i: any) => s + Number(i.value), 0);
-
-      data.push({ month: label, previsto, recebido, atrasado });
-    }
-    return data;
+    return buildCommissionMonthlySeries(allInstallments, {
+      monthsBack: 2,
+      monthsForward: Math.max(months - 3, 0),
+      labelMode: "short-pt",
+      referenceDate: today,
+    }).map(({ label, previsto, recebido, atrasado }) => ({
+      month: label,
+      previsto,
+      recebido,
+      atrasado,
+    }));
   }, [allInstallments, months, today]);
 
   // Detailed upcoming installments
   const upcomingDetailed = useMemo(() => {
     return [...stats.upcoming, ...stats.late]
-      .sort((a: any, b: any) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
+      .sort((a: any, b: any) => parseDateOnly(a.due_date).getTime() - parseDateOnly(b.due_date).getTime());
   }, [stats]);
 
   if (commissionsQuery.isLoading) {
