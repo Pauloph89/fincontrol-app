@@ -531,8 +531,7 @@ export function useOrders() {
       const filePath = `${user.id}/order_inst_${installmentId}_${file.name}`;
       const { error: uploadError } = await supabase.storage.from("receipts").upload(filePath, file);
       if (uploadError) throw uploadError;
-      const { data: { publicUrl } } = supabase.storage.from("receipts").getPublicUrl(filePath);
-      const { error } = await supabase.from("order_installments").update({ receipt_url: publicUrl } as any).eq("id", installmentId);
+      const { error } = await supabase.from("order_installments").update({ receipt_url: filePath } as any).eq("id", installmentId);
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["orders"] }); toast({ title: "Comprovante enviado!" }); },
