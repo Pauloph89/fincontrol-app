@@ -35,7 +35,17 @@ export function useCompanySettings() {
         .eq("id", companyId!)
         .single();
       if (error) throw error;
-      return data as any as CompanySettings;
+      const company = data as any as CompanySettings;
+      // Generate signed URL for logo if stored as a storage path
+      if (company.logo_url && !company.logo_url.startsWith("http")) {
+        const { data: signedData } = await supabase.storage
+          .from("company-assets")
+          .createSignedUrl(company.logo_url, 3600);
+        if (signedData?.signedUrl) {
+          company.logo_url = signedData.signedUrl;
+        }
+      }
+      return company;
     },
     enabled: !!user && !!companyId,
   });
