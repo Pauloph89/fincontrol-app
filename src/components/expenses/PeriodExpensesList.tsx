@@ -1,4 +1,5 @@
 import { useMemo, useState, useRef } from "react";
+import { useReceiptUrl } from "@/hooks/useReceiptUrl";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useExpenseProjection } from "@/hooks/useExpenseProjection";
 import { formatCurrency, formatDate, getExpenseAlertClass, statusLabels, recurrenceLabels } from "@/lib/financial-utils";
@@ -52,6 +53,7 @@ const ITEMS_PER_PAGE = 20;
 
 export function PeriodExpensesList() {
   const { expensesQuery, markExpensePaid, deleteExpense, uploadReceipt } = useExpenses();
+  const { openReceipt } = useReceiptUrl();
   const { projections } = useExpenseProjection();
   const { user, companyId } = useAuth();
   const queryClient = useQueryClient();
@@ -370,7 +372,7 @@ export function PeriodExpensesList() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => window.open(exp.receipt_url!, "_blank")}>
+                                  <DropdownMenuItem onClick={() => openReceipt(exp.receipt_url!)}>
                                     <ExternalLink className="h-3.5 w-3.5 mr-2" />
                                     Ver comprovante
                                   </DropdownMenuItem>

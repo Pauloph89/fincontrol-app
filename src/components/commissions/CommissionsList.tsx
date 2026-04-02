@@ -1,4 +1,5 @@
 import { useCommissions } from "@/hooks/useCommissions";
+import { useReceiptUrl } from "@/hooks/useReceiptUrl";
 import { normalizeDisplayName } from "@/lib/display-utils";
 import { useUserRole } from "@/hooks/useUserRole";
 import { formatCurrency, formatDate, getInstallmentAlertClass, getInstallmentStatus, statusLabels, commissionStatusFlow } from "@/lib/financial-utils";
@@ -23,6 +24,7 @@ const ITEMS_PER_PAGE = 20;
 export function CommissionsList() {
   const { commissionsQuery, updateInstallmentStatus, reactivateCommission, deleteCommission, uploadInstallmentReceipt } = useCommissions();
   const { canEdit, canDelete } = useUserRole();
+  const { openReceipt } = useReceiptUrl();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [editCommission, setEditCommission] = useState<any>(null);
   const [search, setSearch] = useState("");
@@ -345,9 +347,9 @@ export function CommissionsList() {
                                       )}
 
                                       {(inst as any).receipt_url && (
-                                        <a href={(inst as any).receipt_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-info underline mt-1 block">
+                                        <button onClick={() => openReceipt((inst as any).receipt_url)} className="text-[10px] text-info underline mt-1 block cursor-pointer">
                                           Ver comprovante
-                                        </a>
+                                        </button>
                                       )}
                                     </div>
                                   );

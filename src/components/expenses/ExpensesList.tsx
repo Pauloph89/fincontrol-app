@@ -1,4 +1,5 @@
 import { useExpenses } from "@/hooks/useExpenses";
+import { useReceiptUrl } from "@/hooks/useReceiptUrl";
 import { formatCurrency, formatDate, getExpenseAlertClass, statusLabels, recurrenceLabels } from "@/lib/financial-utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ const ITEMS_PER_PAGE = 20;
 
 export function ExpensesList() {
   const { expensesQuery, markExpensePaid, deleteExpense, uploadReceipt } = useExpenses();
+  const { openReceipt } = useReceiptUrl();
   const [search, setSearch] = useState("");
   const [filterAccount, setFilterAccount] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -183,7 +185,7 @@ export function ExpensesList() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => window.open(exp.receipt_url!, "_blank")}>
+                            <DropdownMenuItem onClick={() => openReceipt(exp.receipt_url!)}>
                               <ExternalLink className="h-3.5 w-3.5 mr-2" />Ver comprovante
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => { setUploadingId(exp.id); fileInputRef.current?.click(); }}>

@@ -94,8 +94,7 @@ export function useBankEntries() {
       const filePath = `${user.id}/${bankEntryId}_${file.name}`;
       const { error: uploadError } = await supabase.storage.from("receipts").upload(filePath, file);
       if (uploadError) throw uploadError;
-      const { data: { publicUrl } } = supabase.storage.from("receipts").getPublicUrl(filePath);
-      const { error } = await supabase.from("bank_entries").update({ receipt_url: publicUrl }).eq("id", bankEntryId);
+      const { error } = await supabase.from("bank_entries").update({ receipt_url: filePath }).eq("id", bankEntryId);
       if (error) throw error;
     },
     onSuccess: () => {
