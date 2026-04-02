@@ -35,7 +35,17 @@ export function useCompanySettings() {
         .eq("id", companyId!)
         .single();
       if (error) throw error;
-      return data as any as CompanySettings;
+      const company = data as any as CompanySettings;
+      // Generate signed URL for logo if stored as a storage path
+      if (company.logo_url && !company.logo_url.startsWith("http")) {
+        const { data: signedData } = await supabase.storage
+          .from("company-assets")
+          .createSignedUrl(company.logo_url, 3600);
+        if (signedData?.signedUrl) {
+          company.logo_url = signedData.signedUrl;
+        }
+      }
+      return company;
     },
     enabled: !!user && !!companyId,
   });
@@ -98,15 +108,13 @@ export function useCompanySettings() {
         .from("company-assets")
         .upload(filePath, file, { upsert: true });
       if (uploadError) throw uploadError;
-      const { data: { publicUrl } } = supabase.storage
-        .from("company-assets")
-        .getPublicUrl(filePath);
-      const urlWithCacheBust = `${publicUrl}?v=${Date.now()}`;
+      // Store the storage path, generate signed URL for display
+      const logoPath = filePath;
       await supabase
         .from("companies" as any)
-        .update({ logo_url: urlWithCacheBust } as any)
+        .update({ logo_url: logoPath } as any)
         .eq("id", companyId);
-      return urlWithCacheBust;
+      return logoPath;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["company_settings"] });
