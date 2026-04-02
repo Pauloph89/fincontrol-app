@@ -24,6 +24,7 @@ const ITEMS_PER_PAGE = 20;
 export function CommissionsList() {
   const { commissionsQuery, updateInstallmentStatus, reactivateCommission, deleteCommission, uploadInstallmentReceipt } = useCommissions();
   const { canEdit, canDelete } = useUserRole();
+  const { openReceipt } = useReceiptUrl();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [editCommission, setEditCommission] = useState<any>(null);
   const [search, setSearch] = useState("");
