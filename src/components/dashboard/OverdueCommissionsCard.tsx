@@ -10,9 +10,10 @@ interface FactoryOverdue {
 interface OverdueCommissionsCardProps {
   factoryOverdues: FactoryOverdue[];
   totalOverdue: number;
+  totalToReceive?: number;
 }
 
-export function OverdueCommissionsCard({ factoryOverdues, totalOverdue }: OverdueCommissionsCardProps) {
+export function OverdueCommissionsCard({ factoryOverdues, totalOverdue, totalToReceive = 0 }: OverdueCommissionsCardProps) {
   if (totalOverdue <= 0) return null;
 
   return (
@@ -36,6 +37,10 @@ export function OverdueCommissionsCard({ factoryOverdues, totalOverdue }: Overdu
         <div className="border-t pt-1.5 flex items-center justify-between text-sm">
           <span className="font-medium">Total Atrasado</span>
           <span className="font-bold text-destructive">{formatCurrency(totalOverdue)}</span>
+        </div>
+        <div className="flex items-center justify-between text-sm">
+          <span className="font-medium">Total Geral Pendente</span>
+          <span className="font-bold text-[hsl(215,76%,35%)]">{formatCurrency(totalOverdue + totalToReceive)}</span>
         </div>
       </CardContent>
     </Card>
