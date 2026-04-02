@@ -185,7 +185,7 @@ export function ExpensesList() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => window.open(exp.receipt_url!, "_blank")}>
+                            <DropdownMenuItem onClick={() => openReceipt(exp.receipt_url!)}>
                               <ExternalLink className="h-3.5 w-3.5 mr-2" />Ver comprovante
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => { setUploadingId(exp.id); fileInputRef.current?.click(); }}>

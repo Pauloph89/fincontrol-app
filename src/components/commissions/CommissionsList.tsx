@@ -347,9 +347,9 @@ export function CommissionsList() {
                                       )}
 
                                       {(inst as any).receipt_url && (
-                                        <a href={(inst as any).receipt_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-info underline mt-1 block">
+                                        <button onClick={() => openReceipt((inst as any).receipt_url)} className="text-[10px] text-info underline mt-1 block cursor-pointer">
                                           Ver comprovante
-                                        </a>
+                                        </button>
                                       )}
                                     </div>
                                   );
