@@ -10,9 +10,10 @@ interface FactoryOverdue {
 interface OverdueCommissionsCardProps {
   factoryOverdues: FactoryOverdue[];
   totalOverdue: number;
+  totalToReceive?: number;
 }
 
-export function OverdueCommissionsCard({ factoryOverdues, totalOverdue }: OverdueCommissionsCardProps) {
+export function OverdueCommissionsCard({ factoryOverdues, totalOverdue, totalToReceive = 0 }: OverdueCommissionsCardProps) {
   if (totalOverdue <= 0) return null;
 
   return (
