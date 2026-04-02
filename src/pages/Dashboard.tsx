@@ -15,6 +15,7 @@ import { AlertsPanel } from "@/components/dashboard/AlertsPanel";
 import { CommercialAgenda } from "@/components/dashboard/CommercialAgenda";
 import { MonthlyClosingByFactory } from "@/components/dashboard/MonthlyClosingByFactory";
 import { MonthlyProjectionCard } from "@/components/dashboard/MonthlyProjectionCard";
+import { OverdueCommissionsCard } from "@/components/dashboard/OverdueCommissionsCard";
 import { PeriodSelector, getDefaultPeriod, PeriodRange } from "@/components/dashboard/PeriodSelector";
 import { differenceInBusinessDays, isBefore, startOfDay, addDays, startOfMonth, endOfMonth } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -368,7 +369,20 @@ export default function Dashboard() {
 
     const totalFixedCosts = realFixedCosts + projFixedCosts;
 
-    return { factoryProjections, totalToReceive, totalFixedCosts };
+    // Overdue: installments due before current month start, not received
+    const overdueInstallments = activeCommissionInstallments.filter(
+      (i: any) => i.status !== "recebido" && parseDateOnly(i.due_date) < mStart
+    );
+    const byFactoryOverdue: Record<string, number> = {};
+    overdueInstallments.forEach((i: any) => {
+      byFactoryOverdue[i.factory] = (byFactoryOverdue[i.factory] || 0) + Number(i.value);
+    });
+    const factoryOverdues = Object.entries(byFactoryOverdue)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+    const totalOverdue = factoryOverdues.reduce((s, f) => s + f.value, 0);
+
+    return { factoryProjections, totalToReceive, totalFixedCosts, factoryOverdues, totalOverdue };
   }, [activeCommissionInstallments, expenses, projections]);
 
   // Commission monthly evolution for dedicated chart
@@ -415,6 +429,11 @@ export default function Dashboard() {
         factories={factoriesQuery.data || []}
         commissions={commissions}
         orders={orders}
+      />
+
+      <OverdueCommissionsCard
+        factoryOverdues={monthlyProjection.factoryOverdues}
+        totalOverdue={monthlyProjection.totalOverdue}
       />
 
       <MonthlyProjectionCard
