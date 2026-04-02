@@ -53,6 +53,7 @@ const ITEMS_PER_PAGE = 20;
 
 export function PeriodExpensesList() {
   const { expensesQuery, markExpensePaid, deleteExpense, uploadReceipt } = useExpenses();
+  const { openReceipt } = useReceiptUrl();
   const { projections } = useExpenseProjection();
   const { user, companyId } = useAuth();
   const queryClient = useQueryClient();
