@@ -98,15 +98,13 @@ export function useCompanySettings() {
         .from("company-assets")
         .upload(filePath, file, { upsert: true });
       if (uploadError) throw uploadError;
-      const { data: { publicUrl } } = supabase.storage
-        .from("company-assets")
-        .getPublicUrl(filePath);
-      const urlWithCacheBust = `${publicUrl}?v=${Date.now()}`;
+      // Store the storage path, generate signed URL for display
+      const logoPath = filePath;
       await supabase
         .from("companies" as any)
-        .update({ logo_url: urlWithCacheBust } as any)
+        .update({ logo_url: logoPath } as any)
         .eq("id", companyId);
-      return urlWithCacheBust;
+      return logoPath;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["company_settings"] });
