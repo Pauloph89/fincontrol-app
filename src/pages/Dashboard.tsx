@@ -19,6 +19,7 @@ import { PeriodSelector, getDefaultPeriod, PeriodRange } from "@/components/dash
 import { differenceInBusinessDays, isBefore, startOfDay, addDays, startOfMonth, endOfMonth } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/financial-utils";
+import { buildCommissionMonthlySeries, flattenActiveCommissionInstallments, parseDateOnly } from "@/lib/commission-installment-utils";
 
 export default function Dashboard() {
   const { commissionsQuery } = useCommissions();
@@ -35,6 +36,10 @@ export default function Dashboard() {
   const expenses = expensesQuery.data || [];
   const orders = (ordersQuery.data || []).filter((o: any) => o.status !== "deleted" && o.status !== "cancelado");
   const clients = clientsQuery.data || [];
+  const activeCommissionInstallments = useMemo(
+    () => flattenActiveCommissionInstallments((commissions as any[]).filter((c: any) => c.status !== "deleted" && c.status !== "cancelada")),
+    [commissions]
+  );
 
   const stats = useMemo(() => {
     const today = startOfDay(new Date());
@@ -58,18 +63,10 @@ export default function Dashboard() {
     const totalOrdersCount = ordersInPeriod.length;
 
     // --- COMMISSION metrics from commission_installments ONLY ---
-    const allCommissionInstallments = commissions
-      .filter((c: any) => c.status !== "deleted" && c.status !== "cancelada")
-      .flatMap((c: any) =>
-        (c.commission_installments || []).map((i: any) => ({
-          ...i,
-          factory: c.factory,
-          client: c.client,
-        }))
-      );
+    const allCommissionInstallments = activeCommissionInstallments;
 
     const receivedCommission = allCommissionInstallments
-      .filter((i: any) => i.status === "recebido" && i.paid_date && new Date(i.paid_date) >= start && new Date(i.paid_date) <= end)
+      .filter((i: any) => i.status === "recebido" && i.paid_date && parseDateOnly(i.paid_date) >= start && parseDateOnly(i.paid_date) <= end)
       .reduce((s: number, i: any) => s + Number(i.value), 0);
 
     const pendingCommission = allCommissionInstallments
@@ -119,13 +116,13 @@ export default function Dashboard() {
     const toPay = realToPay + deduplicatedProjectedToPay;
 
     const lateCommissions = allCommissionInstallments
-      .filter((i: any) => i.status !== "recebido" && i.status !== "cancelado" && isBefore(startOfDay(new Date(i.due_date)), today))
+      .filter((i: any) => i.status !== "recebido" && isBefore(parseDateOnly(i.due_date), today))
       .reduce((sum: number, i: any) => sum + Number(i.value), 0);
 
     // Inadimplência: only commission installments overdue by 30+ days (not expenses)
     const thirtyDaysAgo = addDays(today, -30);
     const inadimplencia = allCommissionInstallments
-      .filter((i: any) => i.status !== "recebido" && i.status !== "cancelado" && isBefore(startOfDay(new Date(i.due_date)), thirtyDaysAgo))
+      .filter((i: any) => i.status !== "recebido" && isBefore(parseDateOnly(i.due_date), thirtyDaysAgo))
       .reduce((sum: number, i: any) => sum + Number(i.value), 0);
 
     // Forecast next 30 and 90 days
@@ -133,11 +130,11 @@ export default function Dashboard() {
     const in90days = addDays(today, 90);
 
     const forecast30commission = allCommissionInstallments
-      .filter((i: any) => i.status !== "recebido" && i.status !== "cancelado" && new Date(i.due_date) >= today && new Date(i.due_date) <= in30days)
+      .filter((i: any) => i.status !== "recebido" && parseDateOnly(i.due_date) >= today && parseDateOnly(i.due_date) <= in30days)
       .reduce((sum: number, i: any) => sum + Number(i.value), 0);
 
     const forecast90 = allCommissionInstallments
-      .filter((i: any) => i.status !== "recebido" && i.status !== "cancelado" && new Date(i.due_date) >= today && new Date(i.due_date) <= in90days)
+      .filter((i: any) => i.status !== "recebido" && parseDateOnly(i.due_date) >= today && parseDateOnly(i.due_date) <= in90days)
       .reduce((sum: number, i: any) => sum + Number(i.value), 0);
 
     // Alerts — from commission_installments + expenses + recurring projections
@@ -145,8 +142,8 @@ export default function Dashboard() {
     const in7days = addDays(today, 7);
 
     allCommissionInstallments.forEach((i: any) => {
-      if (i.status === "recebido" || i.status === "cancelado") return;
-      const due = startOfDay(new Date(i.due_date));
+      if (i.status === "recebido") return;
+      const due = parseDateOnly(i.due_date);
       if (isBefore(due, today)) {
         alerts.push({ type: "commission_late", description: `${i.factory} - ${normalizeDisplayName(i.client)} (P${i.installment_number})`, value: Number(i.value), date: i.due_date });
       } else if (differenceInBusinessDays(due, today) <= 3) {
@@ -237,7 +234,7 @@ export default function Dashboard() {
       const mEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0);
       const label = `${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
       const mRec = allCommissionInstallments
-        .filter((inst: any) => inst.status === "recebido" && inst.paid_date && new Date(inst.paid_date) >= d && new Date(inst.paid_date) <= mEnd)
+        .filter((inst: any) => inst.status === "recebido" && inst.paid_date && parseDateOnly(inst.paid_date) >= d && parseDateOnly(inst.paid_date) <= mEnd)
         .reduce((s: number, inst: any) => s + Number(inst.value), 0);
       const mExp = expenses
         .filter((e) => e.status === "pago" && e.payment_date && new Date(e.payment_date) >= d && new Date(e.payment_date) <= mEnd)
@@ -293,7 +290,7 @@ export default function Dashboard() {
       monthlyEvolution, clientRanking, commissionByVendor, commissionByFactory, vendorRanking,
       forecast30commission, lateCommissions,
     };
-  }, [commissions, expenses, projections, period, orders, clients]);
+  }, [activeCommissionInstallments, expenses, projections, period, orders, clients, ordersQuery.data]);
 
   // Count leads
   const leadsCount = clients.filter((c) => c.status_funil === "lead" || c.status_funil === "contato_realizado" || c.status_funil === "negociacao").length;
@@ -328,14 +325,8 @@ export default function Dashboard() {
     const mStart = startOfMonth(now);
     const mEnd = endOfMonth(now);
 
-    const allInstallments = commissions
-      .filter((c: any) => c.status !== "deleted" && c.status !== "cancelada")
-      .flatMap((c: any) =>
-        (c.commission_installments || []).map((i: any) => ({ ...i, factory: c.factory }))
-      );
-
-    const monthInstallments = allInstallments.filter(
-      (i: any) => i.status !== "recebido" && i.status !== "cancelado" && new Date(i.due_date) >= mStart && new Date(i.due_date) <= mEnd
+    const monthInstallments = activeCommissionInstallments.filter(
+      (i: any) => i.status !== "recebido" && parseDateOnly(i.due_date) >= mStart && parseDateOnly(i.due_date) <= mEnd
     );
 
     const byFactory: Record<string, number> = {};
@@ -378,33 +369,16 @@ export default function Dashboard() {
     const totalFixedCosts = realFixedCosts + projFixedCosts;
 
     return { factoryProjections, totalToReceive, totalFixedCosts };
-  }, [commissions, expenses, projections]);
+  }, [activeCommissionInstallments, expenses, projections]);
 
   // Commission monthly evolution for dedicated chart
   const commissionMonthlyEvolution = useMemo(() => {
-    const today = new Date();
-    const allCommissionInstallments = commissions
-      .filter((c: any) => c.status !== "deleted" && c.status !== "cancelada")
-      .flatMap((c: any) => (c.commission_installments || []));
-
-    const months: { month: string; recebido: number; previsto: number }[] = [];
-    for (let i = 5; i >= -3; i--) {
-      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-      const mEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-      const label = `${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
-
-      const recebido = allCommissionInstallments
-        .filter((inst: any) => inst.status === "recebido" && inst.paid_date && new Date(inst.paid_date) >= d && new Date(inst.paid_date) <= mEnd)
-        .reduce((s: number, inst: any) => s + Number(inst.value), 0);
-
-      const previsto = allCommissionInstallments
-        .filter((inst: any) => inst.status !== "recebido" && inst.status !== "cancelado" && new Date(inst.due_date) >= d && new Date(inst.due_date) <= mEnd)
-        .reduce((s: number, inst: any) => s + Number(inst.value), 0);
-
-      months.push({ month: label, recebido, previsto });
-    }
-    return months;
-  }, [commissions]);
+    return buildCommissionMonthlySeries(activeCommissionInstallments, { monthsBack: 5, monthsForward: 3 }).map(({ label, recebido, previsto, atrasado }) => ({
+      month: label,
+      recebido,
+      previsto: previsto + atrasado,
+    }));
+  }, [activeCommissionInstallments]);
 
   return (
     <div className="space-y-6">
