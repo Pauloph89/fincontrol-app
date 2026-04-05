@@ -36,11 +36,18 @@ export function useCompanySettings() {
         .single();
       if (error) throw error;
       const company = data as any as CompanySettings;
-      // Generate signed URL for logo if stored as a storage path
-      if (company.logo_url && !company.logo_url.startsWith("http")) {
+      // Generate signed URL for logo
+      if (company.logo_url) {
+        let storagePath = company.logo_url;
+        // Extract path from full public/signed URLs
+        const publicPrefix = "/storage/v1/object/public/company-assets/";
+        const idx = company.logo_url.indexOf(publicPrefix);
+        if (idx !== -1) {
+          storagePath = decodeURIComponent(company.logo_url.substring(idx + publicPrefix.length).split("?")[0]);
+        }
         const { data: signedData } = await supabase.storage
           .from("company-assets")
-          .createSignedUrl(company.logo_url, 3600);
+          .createSignedUrl(storagePath, 3600);
         if (signedData?.signedUrl) {
           company.logo_url = signedData.signedUrl;
         }
