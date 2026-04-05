@@ -254,10 +254,12 @@ export type Database = {
         Row: {
           commission_id: string
           created_at: string
+          data_baixa: string | null
           due_date: string
           id: string
           installment_number: number
           lot_id: string | null
+          nf_emitida: boolean | null
           notes: string | null
           paid_date: string | null
           paid_observation: string | null
@@ -270,10 +272,12 @@ export type Database = {
         Insert: {
           commission_id: string
           created_at?: string
+          data_baixa?: string | null
           due_date: string
           id?: string
           installment_number: number
           lot_id?: string | null
+          nf_emitida?: boolean | null
           notes?: string | null
           paid_date?: string | null
           paid_observation?: string | null
@@ -286,10 +290,12 @@ export type Database = {
         Update: {
           commission_id?: string
           created_at?: string
+          data_baixa?: string | null
           due_date?: string
           id?: string
           installment_number?: number
           lot_id?: string | null
+          nf_emitida?: boolean | null
           notes?: string | null
           paid_date?: string | null
           paid_observation?: string | null
