@@ -1,4 +1,5 @@
 import { useCommissions } from "@/hooks/useCommissions";
+import { supabase } from "@/integrations/supabase/client";
 import { useReceiptUrl } from "@/hooks/useReceiptUrl";
 import { normalizeDisplayName } from "@/lib/display-utils";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -14,7 +15,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { CheckCircle2, ChevronDown, ChevronRight, Pencil, Search, XCircle, Trash2, RotateCcw, Paperclip, Loader2, Undo2 } from "lucide-react";
+import { CheckCircle2, ChevronDown, ChevronRight, Pencil, Search, XCircle, Trash2, RotateCcw, Paperclip, Loader2, Undo2, FileText } from "lucide-react";
 import { useState, useMemo, useRef } from "react";
 import { CommissionEditDialog } from "./CommissionEditDialog";
 import { ReceiptDialog } from "./ReceiptDialog";
@@ -23,6 +24,7 @@ const ITEMS_PER_PAGE = 20;
 
 export function CommissionsList() {
   const { commissionsQuery, updateInstallmentStatus, reactivateCommission, deleteCommission, uploadInstallmentReceipt } = useCommissions();
+  const queryClient = (await import("@tanstack/react-query")).useQueryClient();
   const { canEdit, canDelete } = useUserRole();
   const { openReceipt } = useReceiptUrl();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
