@@ -52,7 +52,11 @@ export function CommissionsList() {
   const filtered = useMemo(() => {
     return allCommissions.filter((c) => {
       if (filterFactory !== "all" && c.factory !== filterFactory) return false;
-      if (filterStatus !== "all" && (c as any).status !== filterStatus) return false;
+      if (filterStatus === "pronto_faturar") {
+        const insts = (c as any).commission_installments || [];
+        const hasReady = insts.some((i: any) => i.data_baixa && !i.nf_emitida && i.status !== "recebido");
+        if (!hasReady) return false;
+      } else if (filterStatus !== "all" && (c as any).status !== filterStatus) return false;
       if (search) {
         const s = search.toLowerCase();
         return c.factory.toLowerCase().includes(s) || c.client.toLowerCase().includes(s) || c.order_number.toLowerCase().includes(s);
@@ -137,6 +141,7 @@ export function CommissionsList() {
                 <SelectTrigger className="h-9 w-full sm:w-40"><SelectValue placeholder="Status" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="pronto_faturar">💰 Pronto para Faturar</SelectItem>
                   {commissionStatusFlow.map((s) => (
                     <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
                   ))}
