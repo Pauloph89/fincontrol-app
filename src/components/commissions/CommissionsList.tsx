@@ -272,6 +272,28 @@ export function CommissionsList() {
                                         </div>
                                       )}
 
+                                      {/* Emitir NF button for ready-to-invoice installments */}
+                                      {inst.data_baixa && !inst.nf_emitida && inst.status !== "recebido" && canEdit && (
+                                        <div className="mt-2">
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-7 text-xs w-full border-emerald-500 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950"
+                                            onClick={async (e) => {
+                                              e.stopPropagation();
+                                              await supabase
+                                                .from("commission_installments")
+                                                .update({ nf_emitida: true } as any)
+                                                .eq("id", inst.id);
+                                              queryClient.invalidateQueries({ queryKey: ["commissions"] });
+                                            }}
+                                          >
+                                            <FileText className="mr-1 h-3 w-3 shrink-0" />
+                                            Emitir NF
+                                          </Button>
+                                        </div>
+                                      )}
+
                                       {/* Buttons for non-received installments */}
                                       {inst.status !== "recebido" && inst.status !== "cancelado" && canEdit && (
                                         <div className="flex flex-wrap gap-1 mt-2">
