@@ -16,6 +16,7 @@ import { CommercialAgenda } from "@/components/dashboard/CommercialAgenda";
 import { MonthlyClosingByFactory } from "@/components/dashboard/MonthlyClosingByFactory";
 import { MonthlyProjectionCard } from "@/components/dashboard/MonthlyProjectionCard";
 import { OverdueCommissionsCard } from "@/components/dashboard/OverdueCommissionsCard";
+import { ReadyToInvoiceCard } from "@/components/dashboard/ReadyToInvoiceCard";
 import { PeriodSelector, getDefaultPeriod, PeriodRange } from "@/components/dashboard/PeriodSelector";
 import { differenceInBusinessDays, isBefore, startOfDay, addDays, startOfMonth, endOfMonth } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -382,7 +383,20 @@ export default function Dashboard() {
       .sort((a, b) => b.value - a.value);
     const totalOverdue = factoryOverdues.reduce((s, f) => s + f.value, 0);
 
-    return { factoryProjections, totalToReceive, totalFixedCosts, factoryOverdues, totalOverdue };
+    // Ready to invoice: data_baixa filled AND nf_emitida is false/null
+    const readyInstallments = activeCommissionInstallments.filter(
+      (i: any) => i.data_baixa && !i.nf_emitida && i.status !== "recebido"
+    );
+    const byFactoryReady: Record<string, number> = {};
+    readyInstallments.forEach((i: any) => {
+      byFactoryReady[i.factory] = (byFactoryReady[i.factory] || 0) + Number(i.value);
+    });
+    const factoryReadyList = Object.entries(byFactoryReady)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+    const totalReady = factoryReadyList.reduce((s, f) => s + f.value, 0);
+
+    return { factoryProjections, totalToReceive, totalFixedCosts, factoryOverdues, totalOverdue, factoryReadyList, totalReady };
   }, [activeCommissionInstallments, expenses, projections]);
 
   // Commission monthly evolution for dedicated chart
@@ -429,6 +443,11 @@ export default function Dashboard() {
         factories={factoriesQuery.data || []}
         commissions={commissions}
         orders={orders}
+      />
+
+      <ReadyToInvoiceCard
+        factoryReadyList={monthlyProjection.factoryReadyList}
+        totalReady={monthlyProjection.totalReady}
       />
 
       <OverdueCommissionsCard
