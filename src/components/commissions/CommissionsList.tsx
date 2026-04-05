@@ -1,5 +1,6 @@
 import { useCommissions } from "@/hooks/useCommissions";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 import { useReceiptUrl } from "@/hooks/useReceiptUrl";
 import { normalizeDisplayName } from "@/lib/display-utils";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -24,7 +25,7 @@ const ITEMS_PER_PAGE = 20;
 
 export function CommissionsList() {
   const { commissionsQuery, updateInstallmentStatus, reactivateCommission, deleteCommission, uploadInstallmentReceipt } = useCommissions();
-  const queryClient = (await import("@tanstack/react-query")).useQueryClient();
+  const queryClient = useQueryClient();
   const { canEdit, canDelete } = useUserRole();
   const { openReceipt } = useReceiptUrl();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
