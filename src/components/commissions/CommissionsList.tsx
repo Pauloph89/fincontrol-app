@@ -1,4 +1,6 @@
 import { useCommissions } from "@/hooks/useCommissions";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 import { useReceiptUrl } from "@/hooks/useReceiptUrl";
 import { normalizeDisplayName } from "@/lib/display-utils";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -14,7 +16,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { CheckCircle2, ChevronDown, ChevronRight, Pencil, Search, XCircle, Trash2, RotateCcw, Paperclip, Loader2, Undo2 } from "lucide-react";
+import { CheckCircle2, ChevronDown, ChevronRight, Pencil, Search, XCircle, Trash2, RotateCcw, Paperclip, Loader2, Undo2, FileText } from "lucide-react";
 import { useState, useMemo, useRef } from "react";
 import { CommissionEditDialog } from "./CommissionEditDialog";
 import { ReceiptDialog } from "./ReceiptDialog";
@@ -23,6 +25,7 @@ const ITEMS_PER_PAGE = 20;
 
 export function CommissionsList() {
   const { commissionsQuery, updateInstallmentStatus, reactivateCommission, deleteCommission, uploadInstallmentReceipt } = useCommissions();
+  const queryClient = useQueryClient();
   const { canEdit, canDelete } = useUserRole();
   const { openReceipt } = useReceiptUrl();
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -49,7 +52,11 @@ export function CommissionsList() {
   const filtered = useMemo(() => {
     return allCommissions.filter((c) => {
       if (filterFactory !== "all" && c.factory !== filterFactory) return false;
-      if (filterStatus !== "all" && (c as any).status !== filterStatus) return false;
+      if (filterStatus === "pronto_faturar") {
+        const insts = (c as any).commission_installments || [];
+        const hasReady = insts.some((i: any) => i.data_baixa && !i.nf_emitida && i.status !== "recebido");
+        if (!hasReady) return false;
+      } else if (filterStatus !== "all" && (c as any).status !== filterStatus) return false;
       if (search) {
         const s = search.toLowerCase();
         return c.factory.toLowerCase().includes(s) || c.client.toLowerCase().includes(s) || c.order_number.toLowerCase().includes(s);
@@ -134,6 +141,7 @@ export function CommissionsList() {
                 <SelectTrigger className="h-9 w-full sm:w-40"><SelectValue placeholder="Status" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="pronto_faturar">💰 Pronto para Faturar</SelectItem>
                   {commissionStatusFlow.map((s) => (
                     <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
                   ))}
@@ -261,6 +269,28 @@ export function CommissionsList() {
                                           {inst.paid_date && <div className="text-success">Recebido em: {formatDate(inst.paid_date)}</div>}
                                           {inst.paid_value != null && <div className="text-success">Valor: {formatCurrency(inst.paid_value)}</div>}
                                           {inst.paid_observation && <div className="italic text-muted-foreground">{inst.paid_observation}</div>}
+                                        </div>
+                                      )}
+
+                                      {/* Emitir NF button for ready-to-invoice installments */}
+                                      {inst.data_baixa && !inst.nf_emitida && inst.status !== "recebido" && canEdit && (
+                                        <div className="mt-2">
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-7 text-xs w-full border-emerald-500 text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950"
+                                            onClick={async (e) => {
+                                              e.stopPropagation();
+                                              await supabase
+                                                .from("commission_installments")
+                                                .update({ nf_emitida: true } as any)
+                                                .eq("id", inst.id);
+                                              queryClient.invalidateQueries({ queryKey: ["commissions"] });
+                                            }}
+                                          >
+                                            <FileText className="mr-1 h-3 w-3 shrink-0" />
+                                            Emitir NF
+                                          </Button>
                                         </div>
                                       )}
 
