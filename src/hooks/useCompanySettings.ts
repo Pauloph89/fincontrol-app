@@ -3,6 +3,55 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
+const COMPANY_ASSETS_PUBLIC_SEGMENT = "/storage/v1/object/public/company-assets/";
+const COMPANY_ASSETS_SIGNED_SEGMENT = "/storage/v1/object/sign/company-assets/";
+const COMPANY_LOGO_URL_TTL = 60 * 60 * 24 * 30;
+
+function extractCompanyAssetPath(logoUrl: string): string | null {
+  if (!logoUrl) return null;
+
+  if (!logoUrl.startsWith("http")) {
+    return logoUrl;
+  }
+
+  try {
+    const parsedUrl = new URL(logoUrl);
+    const pathname = decodeURIComponent(parsedUrl.pathname);
+
+    const publicIndex = pathname.indexOf(COMPANY_ASSETS_PUBLIC_SEGMENT);
+    if (publicIndex !== -1) {
+      return pathname.substring(publicIndex + COMPANY_ASSETS_PUBLIC_SEGMENT.length);
+    }
+
+    const signedIndex = pathname.indexOf(COMPANY_ASSETS_SIGNED_SEGMENT);
+    if (signedIndex !== -1) {
+      return pathname.substring(signedIndex + COMPANY_ASSETS_SIGNED_SEGMENT.length);
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function resolveCompanyLogoUrl(logoUrl: string): Promise<string> {
+  const storagePath = extractCompanyAssetPath(logoUrl);
+
+  if (!storagePath) {
+    return logoUrl;
+  }
+
+  const { data, error } = await supabase.storage
+    .from("company-assets")
+    .createSignedUrl(storagePath, COMPANY_LOGO_URL_TTL);
+
+  if (error || !data?.signedUrl) {
+    return logoUrl;
+  }
+
+  return data.signedUrl;
+}
+
 export interface CompanySettings {
   id: string;
   name: string;
@@ -36,25 +85,17 @@ export function useCompanySettings() {
         .single();
       if (error) throw error;
       const company = data as any as CompanySettings;
-      // Generate signed URL for logo
+
       if (company.logo_url) {
-        let storagePath = company.logo_url;
-        // Extract path from full public/signed URLs
-        const publicPrefix = "/storage/v1/object/public/company-assets/";
-        const idx = company.logo_url.indexOf(publicPrefix);
-        if (idx !== -1) {
-          storagePath = decodeURIComponent(company.logo_url.substring(idx + publicPrefix.length).split("?")[0]);
-        }
-        const { data: signedData } = await supabase.storage
-          .from("company-assets")
-          .createSignedUrl(storagePath, 3600);
-        if (signedData?.signedUrl) {
-          company.logo_url = signedData.signedUrl;
-        }
+        company.logo_url = await resolveCompanyLogoUrl(company.logo_url);
       }
+
       return company;
     },
     enabled: !!user && !!companyId,
+    staleTime: 1000 * 60 * 5,
+    refetchInterval: 1000 * 60 * 30,
+    refetchIntervalInBackground: true,
   });
 
   const profileQuery = useQuery({
@@ -136,10 +177,10 @@ export function useCompanySettings() {
   const settingsQuery = {
     isLoading: companyQuery.isLoading || profileQuery.isLoading,
     data: companyQuery.data && profileQuery.data ? {
+      ...profileQuery.data,
       ...companyQuery.data,
       company_name: companyQuery.data.name,
       company_logo_url: companyQuery.data.logo_url,
-      ...profileQuery.data,
     } : undefined,
   };
 
