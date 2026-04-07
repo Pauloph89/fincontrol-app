@@ -115,11 +115,17 @@ export function useUserRole() {
 
   const updateUserRole = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: AppRole }) => {
-      const { error } = await supabase
+      // Delete all existing roles for this user, then insert the new one
+      const { error: delError } = await supabase
         .from("user_roles")
-        .update({ role } as any)
+        .delete()
         .eq("user_id", userId);
-      if (error) throw error;
+      if (delError) throw delError;
+
+      const { error: insError } = await supabase
+        .from("user_roles")
+        .insert({ user_id: userId, role, active: true } as any);
+      if (insError) throw insError;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["all-users-roles"] });
